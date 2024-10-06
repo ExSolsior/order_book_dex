@@ -12,7 +12,7 @@ mint / program
 
 INSTRUCTIONS:
 -- USER
-:: ExecutionMarketOrder
+:: ExecutionMarketOrder 
     :: INPUT
         - type:                 Order{Buy, Sell},
         - fill:                 Fill{Partial(target_price), Full}
@@ -20,21 +20,17 @@ INSTRUCTIONS:
         - target_amount:        u64,
     :: ACCOUNTS
         - config                []
-        - market pointer        [w]
+        - market_pointer        [w]
         - signer                [s, w]
-        - taker source          []
-        
-        - taker destination     []  -- could there be a vulnerbility if I don't check owner?
-        - taker stats           []
-        - order position        []  -- maybe last order position, apply validations
-        - next order position   []  -- optional if order position ptr is None
-
-        - multisig?             [s] -> optional
-
+        - taker_source          []
+        - taker_destination     []  -- could there be a vulnerbility if I don't check owner?
+        - taker_stats           []
+        - order_position        []  -- maybe last order position, apply validations
+        - next_order_position   []  -- optional if order position ptr is None
     :: VALIDATIONS
         - market_pointer.config == config,
         - market_pointer.is_avialable || market_pointer.state.slot_delta() >= slot_target_delta
-        - taker_source.owner == signer || taker_source.delegate == signer || multisig?
+        - taker_source.owner == signer || taker_source.delegate == signer
         - taker_stats.owner == signer
         - taker_destination.owner == signer
         - if -> (target == Source && taker_source.amount >= target_amount)
@@ -42,65 +38,121 @@ INSTRUCTIONS:
             && ((type == Sell && order_position.price >= target_price) || (type == Buy && order_position.price <= target_price))
             -> ensure have correct order_position
     :: PROCESS
-        - if valid, save the market order position, and set execution state, and update slot
+        - market_pointer [state]
+            - is_avialable = false
+            - slot = latest_slot
+            - position.current = signer
+            - posiiton.order_type = order_type
+            - position.fill = fill
+            - position.target = target
+            - posiiton.target_amount = target_amount
+            - posiiton.source = taker_source
+            - posiiton.destination = taker_destination
 
 -- USER 
 :: ReturnExcutionMarketOrder
     :: ACCOUNTS
         - config                []
         - market pointer        [w]
-        - signer                [s,]
+        - signer                [s, w]
     :: VALIDATIONS
         - market_pointer.config == config,
-        - maker_pointer.is_executing == true,
-        - market_pointer.current = signer,
+        - maker_pointer.is_executing() == true,
+        - market_pointer.current == signer,
     :: PROCESS
-        - clear state
+        - market_pointer [state] --> clear state
+            - is_avialable = true
+            - slot = latest_slot
+            - position = None
 
 -- USER
 :: FillOrderPosition
     :: ACCOUNTS
-    - token program a           []
-    - token program b           []
-    - token mint a              []
-    - token mint b              []
-
-    - taker source              [w]   
-    - maker destination         [w]   
-    - maker source              [w]
-    - taker destination         [w]   
-
-    - market pointer            [w]
-    - order position            [w]
-    - signer / payer            [s,w]
-    - config                    []
-
-    - taker stats               [w]
-    - fee collector             [w]
+        - config                    []
+        - signer                    [s,w]
+        - token_program_a           []
+        - token_program_b           []
+        - token_mint_a              []
+        - token_mint_b              []
+        - taker_source              [w]   
+        - maker_destination         [w]   
+        - maker_source              [w]
+        - taker_destination         [w]   
+        - market_pointer            [w]
+        - order_position            [w]
+        //- taker_stats               [w]
+        - fee_collector             [w]
     :: VALIDATIONS
+        - market_pointer.config == config
+        - market_pointer.current == signer
+        - market_pointer.ptr == order_position
+        - market_pointer.source == taker_source
+        - market_pointer.destination == taker_destination
+        - order_position.config == config
+        - order_position.source == maker_source
+        - order_position.destination = maker_destination
+        - config.token_mint_a == token_mint_a
+        - config.token_mint_b == token_mint_b
+        - config.token_program_a == token_program_a
+        - config.token_program_b == token_program_b
+        - config.fee_account == fee_collector
+        //- taker_stats.owner == signer
     :: PROCESS
+        - compute amount
+        - compute fee
+        - transfer amount + fee     -> taker_source -> maker_destination
+        - transfer amount           -> maker_source -> taker_destination
+        - transfer fee              -> taker_source -> fee_vault
+        - market_pointer [state]
+            - ptr = order_position.next_order_position
 
 -- ADMIN
 :: CreateTradePair
+    ::INPUT
+        - set_quote:        bool,
     :: ACCOUNTS
         - authority | administrator     [s],
         - config                        [w],    -> create
-        - token program a
-        - token program b
-        - token mint a
-        - token mint b
-        - fee account a 
-        - fee account b
+        - token_program_a               []
+        - token_program_b               []
+        - token_mint_a                  []
+        - token_mint_b                  []
+        - fee_account_a                 [] 
+        - fee_account_b                 []
+        - system_program                []
+    :: VALIDATIONS
+        - authority == AUTH_ID
+        - config.owner == authority
+        - token_mint_a < token_mint_b
+        - token_mint_a.owner == token_program_a
+        - token_mint_b.owner == token_program_b
+        - fee_account_a.token_mint == token_mint_a
+        - fee_account_b.token_mint == token_mint_b
+    :: PROCESS
+        - create account
+        - assign as config
+        - config [state]
+            - token_program_a
+            - token_program_b
+            - token_mint_a
+            - token_mint_b
+            - fee_account_a
+            - fee_account_b
 
 -- ADMIN
 :: CreateMarketPointer
     :: INPUTS 
         - type:         Order{Buy, Sell},
     :: ACCOUNTS
-        - config
-        - fee collector
-        - market pointer
-        - authority / signer / payer
+        - config                        []
+        - market pointer                [w]        
+        - authority / signer / payer    [s, w]
+        - system_program                []
+    :: VALIDATIONS
+        - config.owner == authority
+    :: PROCESS
+        - market_pointer [state]
+            -
 
 -- USER
 :: CreateOrderEscrow [source, destination]
@@ -127,12 +179,10 @@ INSTRUCTIONS:
         - signer / payer        [s,w]
         - system program        []
         - token program a       []
-
         - token program b       []
         - token mint a          []
         - token mint b          []
         - capital_source        [w] -> owner == signer
-
         - order position        [w] -> create
         - source                [w] -> transfer -> from capital_source
         - destination           []
@@ -146,16 +196,20 @@ INSTRUCTIONS:
         - transfer
             - amount => capital_source -> source
 
-
 -- USER
 :: OpenOrderPosition
     :: ACCOUNTS
+        - config                []
         - market pointer        [w], []
         - prev order position   [w], optional
         - next order position   [w], optional
         - order position        [w]
-        - signer / payer        [s,w]
-        - config                []
+        - signer / payer        [s, w]
+    :: VALIDATIONS
+        - market_pointer.config == config
+        - order_position.config == config
+        - prev_order_postion != None 
+            && (order_position.price )
 
 -- USER
 :: UpdateOrderPosition
@@ -182,6 +236,7 @@ INSTRUCTIONS:
         - signer / payer        [s,w]
         - config                []
 
+-- USER
 :: CreateUserOrderPositionConfig
     :: ACCOUNTS
         - config                []
@@ -295,3 +350,4 @@ Notes:
 - one token mint is the base mint
 - right now there is no way to differaintate that
 - only sorting from lower token mint to greater token mint -> a -> b
+--> for now will not support multisig
