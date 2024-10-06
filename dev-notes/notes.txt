@@ -1,0 +1,187 @@
+
+
+market taker
+    - taker source
+    - taker destination
+market maker
+    - maker source
+    - maker destination
+mint / program
+    - a -> taker source -> maker destination
+    - b -> maker source -> taker destination
+
+INSTRUCTIONS:
+-- USER
+:: ExecutionMarketOrder
+    :: INPUT
+        - type:                 Order{Buy, Sell},
+        - fill:                 Fill{Partial(target_price), Full}
+        - target:               Order{Source, Destination}
+        - target_amount:        u64,
+    :: ACCOUNTS
+        - config                []
+        - market pointer        [w]
+        - signer                [s, w]
+        - taker source          []
+        - taker destination     []  -- could there be a vulnerbility if I don't check owner?
+        - taker stats           []
+        - order position        []  -- maybe last order position, apply validations
+        - next order position   []  -- optional if order position ptr is None
+        - multisig?             [s] -> optional
+    :: VALIDATIONS
+        - market_pointer.config == config,
+        - market_pointer.is_avialable || market_pointer.state.slot_delta() >= slot_target_delta
+        - taker_source.owner == signer || taker_source.delegate == signer || multisig?
+        - taker_stats.owner == signer
+        - taker_destination.owner == signer
+        - if -> (target == Source && taker_source.amount >= target_amount)
+        - if -> fill == Partial 
+            && ((type == Sell && order_position.price >= target_price) || (type == Buy && order_position.price <= target_price))
+            -> ensure have correct order_position
+    :: PROCESS
+        - if valid, save the market order position, and set execution state, and update slot
+
+-- USER 
+:: ReturnExcutionMarketOrder
+    :: ACCOUNTS
+        - config                []
+        - market pointer        [w]
+        - signer                [s,]
+    :: VALIDATIONS
+        - market_pointer.config == config,
+        - maker_pointer.is_executing == true,
+        - market_pointer.current = signer,
+    :: PROCESS
+        - clear state
+
+-- USER
+:: FillOrderPosition
+    :: ACCOUNTS
+    - token program a           []
+    - token program b           []
+    - token mint a              []
+    - token mint b              []
+
+    - taker source              [w]   
+    - maker destination         [w]   
+    - maker source              [w]
+    - taker destination         [w]   
+
+    - market pointer            [w]
+    - order position            [w]
+    - signer / payer            [s,w]
+    - config                    []
+
+    - taker stats               [w]
+    - fee collector             [w]
+    :: VALIDATIONS
+    :: PROCESS
+
+-- ADMIN
+:: CreateTradePair
+    :: ACCOUNTS
+        - authority | administrator     [s],
+        - config                        [w],    -> create
+        - token program a
+        - token program b
+        - token mint a
+        - token mint b
+        - fee account a 
+        - fee account b
+
+-- ADMIN
+:: CreateMarketPointer
+    :: INPUTS 
+        - type:         Order{Buy, Sell},
+    :: ACCOUNTS
+        - config
+        - fee collector
+        - market pointer
+        - authority / signer / payer
+
+-- USER
+:: CreateOrderPosition
+    :: INPUT
+        - order type:           Order{Buy, Sell},
+        - price:                u64,
+        - amount:               u64,
+
+    :: ACCOUNTS
+        - config                []
+        - signer / payer        [s,w]
+        - system program        []
+        - token program a       []
+
+        - token program b       []
+        - token mint a          []
+        - token mint b          []
+        - capital_source        [w] -> owner == signer
+
+        - order position        [w] -> create
+        - source                [w] -> create & transfer -> from capital_source
+        - destination           [w] -> create
+
+-- USER
+:: OpenOrderPosition
+    :: ACCOUNTS
+        - market pointer        [w], []
+        - prev order position   [w], optional
+        - next order position   [w], optional
+        - order position        [w]
+        - signer / payer        [s,w]
+        - config                []
+
+-- USER
+:: UpdateOrderPosition
+
+-- USER
+:: CloseOrderPosition
+
+
+
+
+STATE ACCOUNTS:
+config:
+    - token_program_a:      PubKey,
+    - token_program_b:      PubKey,
+    - token_mint_a:         PubKey,
+    - token_mint_b:         PubKey,
+    - sell_market_ptr:      Option<PubKey>,
+    - buy_market_ptr:       Option<PubKey>,
+    - taker_fee:            u64,
+    - maker_fee:            u64,
+    - authority
+
+
+order position
+    - config_autority:      PubKey,
+    - type:                 Order{Buy, Sell},
+    - price:                u64,
+    - aount:                u64,
+    - is_avialable:         bool,
+    - next_order_position:  Option<OrderPositionPubkey>,
+    - timestamp:            u64,
+    - slot:                 u64,
+    - source:               TokenAccount,
+    - destination:          TokenAccount,
+
+market pointer / position
+    - config_autority:      PubKey,
+    - type:                 Order{Buy, Sell},
+    - ptr:                  Option<OrderPositionPubkey>,
+    - timestamp:            u64,
+    - slot:                 u64,
+    - is_executing:         bool,
+    - current_executer:     Option<Pubkey>,
+    - fill_order:           Option<ExecuteMarketOrder>
+
+-> ExecuteMarketOrder
+    - type:             Order{Buy, Sell},
+    - fill:             Fill{Partial(target_price: u64), Full}
+    - target_amount:    u64,
+    - collected_amount: u64,
+
+fee accounts
+
+Question::
+- do I need an observer?
