@@ -23,11 +23,14 @@ INSTRUCTIONS:
         - market pointer        [w]
         - signer                [s, w]
         - taker source          []
+        
         - taker destination     []  -- could there be a vulnerbility if I don't check owner?
         - taker stats           []
         - order position        []  -- maybe last order position, apply validations
         - next order position   []  -- optional if order position ptr is None
+
         - multisig?             [s] -> optional
+
     :: VALIDATIONS
         - market_pointer.config == config,
         - market_pointer.is_avialable || market_pointer.state.slot_delta() >= slot_target_delta
@@ -100,12 +103,25 @@ INSTRUCTIONS:
         - authority / signer / payer
 
 -- USER
+:: CreateOrderEscrow [source, destination]
+    :: ACCOUNTS
+        - config
+        - order_escrow
+        - token_mint
+        - signer
+        - system program
+    :: VALIDATIONS
+        - config.token_mint_a == token_mint || config.token_mint_b == token_mint
+    :: PROCESS
+        - create account
+        - assing as token account
+
+-- USER
 :: CreateOrderPosition
     :: INPUT
         - order type:           Order{Buy, Sell},
         - price:                u64,
         - amount:               u64,
-
     :: ACCOUNTS
         - config                []
         - signer / payer        [s,w]
@@ -118,8 +134,18 @@ INSTRUCTIONS:
         - capital_source        [w] -> owner == signer
 
         - order position        [w] -> create
-        - source                [w] -> create & transfer -> from capital_source
-        - destination           [w] -> create
+        - source                [w] -> transfer -> from capital_source
+        - destination           []
+    :: PROCESS
+        - order_position [state]
+            - source = source
+            - destination = destination
+            - price = price
+            - amount = amount
+            - order_type = order_type
+        - transfer
+            - amount => capital_source -> source
+
 
 -- USER
 :: OpenOrderPosition
@@ -133,47 +159,103 @@ INSTRUCTIONS:
 
 -- USER
 :: UpdateOrderPosition
+    :: INPUT
+        - amount:   u64,
+        - price:    u64,
+    :: ACCOUNTS
+        - market pointer            [w], []
+        - old prev order position   [w], optional
+        - old next order position   [w], optional
+        - new prev order position   [w], optional
+        - new next order position   [w], optional
+        - order position            [w]
+        - signer / payer            [s,w]
+        - config                    []
 
 -- USER
 :: CloseOrderPosition
+    :: ACCOUNTS
+        - market pointer        [w] | []
+        - prev order position   [w], optional
+        - next order position   [w], optional
+        - order position        [w]
+        - signer / payer        [s,w]
+        - config                []
 
+:: CreateUserOrderPositionConfig
+    :: ACCOUNTS
+        - config                []
+        - signer                [s]
+        - order_config          [w]
 
 
 
 STATE ACCOUNTS:
-config:
-    - token_program_a:      PubKey,
-    - token_program_b:      PubKey,
-    - token_mint_a:         PubKey,
-    - token_mint_b:         PubKey,
-    - sell_market_ptr:      Option<PubKey>,
-    - buy_market_ptr:       Option<PubKey>,
-    - taker_fee:            u64,
-    - maker_fee:            u64,
-    - authority
+:: Config:
+    :: SEED 
+        - "config"
+        - token_mint_a
+        - token_mint_b
+    :: VALIDATIONS
+        - token_mint_a < token_mint_b
+    :: STATE
+        - token_program_a:      PubKey,
+        - token_program_b:      PubKey,
+        - token_mint_a:         PubKey,
+        - token_mint_b:         PubKey,
+        - sell_market_ptr:      Option<PubKey>,
+        - buy_market_ptr:       Option<PubKey>,
+        - taker_fee:            u64,
+        - maker_fee:            u64,
+        - authority             PubKey,
 
+:: UserOrderConfig:
+    :: SEED
+        - signer
+        - config
+        - "user-order-config"
+    :: CHEKCS
+        - owner == signer
+    :: METHODS
+        - nonce += 1
+    :: STATE
+        - config:   PubKey
+        - owner:    PubKey,
+        - nonce:    u64,
 
-order position
-    - config_autority:      PubKey,
-    - type:                 Order{Buy, Sell},
-    - price:                u64,
-    - aount:                u64,
-    - is_avialable:         bool,
-    - next_order_position:  Option<OrderPositionPubkey>,
-    - timestamp:            u64,
-    - slot:                 u64,
-    - source:               TokenAccount,
-    - destination:          TokenAccount,
+:: OrderPosition
+    :: SEED
+        - config
+        - signer
+        - "order-position"
+        - order_config.nonce
+    :: VALIDATIONS
+        - order_config.owner == signer
+        - order_config.config == config
+    :: STATE
+        - config_autority:      PubKey,
+        - type:                 Order{Buy, Sell},
+        - price:                u64,
+        - aount:                u64,
+        - is_avialable:         bool,
+        - next_order_position:  Option<OrderPositionPubkey>,
+        - timestamp:            u64,
+        - slot:                 u64,
+        - source:               TokenAccount,
+        - destination:          TokenAccount,
 
-market pointer / position
-    - config_autority:      PubKey,
-    - type:                 Order{Buy, Sell},
-    - ptr:                  Option<OrderPositionPubkey>,
-    - timestamp:            u64,
-    - slot:                 u64,
-    - is_executing:         bool,
-    - current_executer:     Option<Pubkey>,
-    - fill_order:           Option<ExecuteMarketOrder>
+:: MarketPointer:
+    :: SEED 
+        - 
+    :: STATE
+        - config_autority:      PubKey,
+        - type:                 Order{Buy, Sell},
+        - ptr:                  Option<OrderPositionPubkey>,
+        - timestamp:            u64,
+        - slot:                 u64,
+        - is_executing:         bool,
+        - current_executer:     Option<Pubkey>,
+        - fill_order:           Option<ExecuteMarketOrder>
 
 -> ExecuteMarketOrder
     - type:             Order{Buy, Sell},
@@ -181,7 +263,35 @@ market pointer / position
     - target_amount:    u64,
     - collected_amount: u64,
 
-fee accounts
+
+
+ESCROWS:
+:: OrderEscrow
+    :: SEED
+        - config
+        - token_mint
+        - signer
+        - "order-escrow"
+    :: VALIDATIONS
+        - config.token_mint_a == token_mint || config.token_mint_b == token_mint
+    :: OWNER
+
+:: FeeVault
+    :: SEED
+        - config
+        - token_mint
+        - "fee-vault"
+    :: VALIDATIONS
+        - config.token_mint_a == token_mint || config.token_mint_b == token_mint
+    :: OWNER
+
+
 
 Question::
 - do I need an observer?
+
+Notes:
+- one token mint is the quote mint
+- one token mint is the base mint
+- right now there is no way to differaintate that
+- only sorting from lower token mint to greater token mint -> a -> b
