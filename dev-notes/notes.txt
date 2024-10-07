@@ -19,14 +19,13 @@ INSTRUCTIONS:
         - target:               Order{Source, Destination}
         - target_amount:        u64,
     :: ACCOUNTS
-        - config                []
-        - market_pointer        [w]
-        - signer                [s, w]
-        - taker_source          []
-        - taker_destination     []  -- could there be a vulnerbility if I don't check owner?
-        - taker_stats           []
-        - order_position        []  -- maybe last order position, apply validations
-        - next_order_position   []  -- optional if order position ptr is None
+        - config                []          OrderBookConfig
+        - market_pointer        [w]         MarketPointer
+        - signer                [s, w]      AccountInfo
+        - taker_source          []          TokenAccount
+        - taker_destination     []          TokenAccount
+        - order_position        []          OrderPosition           -- maybe last order position, apply validations
+        - next_order_position   []          Option<OrderPosition>   -- optional if order position ptr is None
     :: VALIDATIONS
         - market_pointer.config == config,
         - market_pointer.is_avialable || market_pointer.state.slot_delta() >= slot_target_delta
@@ -52,9 +51,9 @@ INSTRUCTIONS:
 -- USER 
 :: ReturnExcutionMarketOrder
     :: ACCOUNTS
-        - config                []
-        - market pointer        [w]
-        - signer                [s, w]
+        - config                []          OrderBookConfig
+        - market_pointer        [w]         MarketPointer
+        - signer                [s, w]      AccountInfo
     :: VALIDATIONS
         - market_pointer.config == config,
         - maker_pointer.is_executing() == true,
@@ -68,20 +67,19 @@ INSTRUCTIONS:
 -- USER
 :: FillOrderPosition
     :: ACCOUNTS
-        - config                    []
-        - signer                    [s,w]
-        - token_program_a           []
-        - token_program_b           []
-        - token_mint_a              []
-        - token_mint_b              []
-        - taker_source              [w]   
-        - maker_destination         [w]   
-        - maker_source              [w]
-        - taker_destination         [w]   
-        - market_pointer            [w]
-        - order_position            [w]
-        //- taker_stats               [w]
-        - fee_collector             [w]
+        - config                    []          OrderBookConfig
+        - signer                    [s,w]       AccountInfo
+        - token_program_a           []          TokenProgram
+        - token_program_b           []          TokenProgram
+        - token_mint_a              []          TokenMint
+        - token_mint_b              []          TokenMint
+        - taker_source              [w]         TokenAccount    
+        - maker_destination         [w]         TokenAccount    
+        - maker_source              [w]         TokenAccount
+        - taker_destination         [w]         TokenAccount   
+        - market_pointer            [w]         MarketPointer
+        - order_position            [w]         OrderPosition
+        - fee_collector             [w]         TokenAccount
     :: VALIDATIONS
         - market_pointer.config == config
         - market_pointer.current == signer
@@ -96,7 +94,6 @@ INSTRUCTIONS:
         - config.token_program_a == token_program_a
         - config.token_program_b == token_program_b
         - config.fee_account == fee_collector
-        //- taker_stats.owner == signer
     :: PROCESS
         - compute amount
         - compute fee
@@ -111,15 +108,15 @@ INSTRUCTIONS:
     ::INPUT
         - set_quote:        bool,
     :: ACCOUNTS
-        - authority | administrator     [s],
-        - config                        [w],    -> create
-        - token_program_a               []
-        - token_program_b               []
-        - token_mint_a                  []
-        - token_mint_b                  []
-        - fee_account_a                 [] 
-        - fee_account_b                 []
-        - system_program                []
+        - authority | administrator     [s]     AccountInfo
+        - config                        [w]     OrderBookConfig
+        - token_program_a               []      TokenProgram
+        - token_program_b               []      TokenProgram
+        - token_mint_a                  []      TokenMint
+        - token_mint_b                  []      TokenMint
+        - fee_account_a                 []      TokenAccount 
+        - fee_account_b                 []      TokenAccount
+        - system_program                []      SystemProgram
     :: VALIDATIONS
         - authority == AUTH_ID
         - config.owner == authority
@@ -129,7 +126,7 @@ INSTRUCTIONS:
         - fee_account_a.token_mint == token_mint_a
         - fee_account_b.token_mint == token_mint_b
     :: PROCESS
-        - create account
+        - create account -> config
         - assign as config
         - config [state]
             - token_program_a
@@ -144,10 +141,10 @@ INSTRUCTIONS:
     :: INPUTS 
         - type:         Order{Buy, Sell},
     :: ACCOUNTS
-        - config                        []
-        - market pointer                [w]        
-        - authority / signer / payer    [s, w]
-        - system_program                []
+        - config                        []          OrderBookConfig
+        - market_pointer                [w]         MarketPointer
+        - authority / signer / payer    [s, w]      AccountInfo
+        - system_program                []          SystemProgram
     :: VALIDATIONS
         - config.owner == authority
     :: PROCESS
@@ -157,11 +154,11 @@ INSTRUCTIONS:
 -- USER
 :: CreateOrderEscrow [source, destination]
     :: ACCOUNTS
-        - config
-        - order_escrow
-        - token_mint
-        - signer
-        - system program
+        - config            []          OrderBookConfig
+        - order_escrow      [w]         TokenAccount
+        - token_mint        []          TokenMint
+        - signer            [s, w]      AccountInfo
+        - system_program    []          SystemProgram
     :: VALIDATIONS
         - config.token_mint_a == token_mint || config.token_mint_b == token_mint
     :: PROCESS
@@ -175,18 +172,24 @@ INSTRUCTIONS:
         - price:                u64,
         - amount:               u64,
     :: ACCOUNTS
-        - config                []
-        - signer / payer        [s,w]
-        - system program        []
-        - token program a       []
-        - token program b       []
-        - token mint a          []
-        - token mint b          []
-        - capital_source        [w] -> owner == signer
-        - order position        [w] -> create
-        - source                [w] -> transfer -> from capital_source
-        - destination           []
+        - config                    []      OrderBookConfig
+        - order_position_config     [w]     OrderPositionConfig
+        - signer / payer            [s, w]  AccountInfo
+        - system_program            []      SystemProgram
+        - token_program_a           []      TokenProgram
+        - token_program_b           []      TokenProgram
+        - token_mint_a              []      TokenMint
+        - token_mint_b              []      TokenMint
+        - capital_source            [w]     TokenAccount
+        - order_position            [w]     OrderPosition
+        - source                    [w]     TokenAccount
+        - destination               []      TokenAccount
+    :: VALIDATIONS
+        - capital_source.owner == signer
+        - order_position_config.owner == signer
     :: PROCESS
+        - create account -> order_position
+        - order_position_config.inc()
         - order_position [state]
             - source = source
             - destination = destination
@@ -194,81 +197,117 @@ INSTRUCTIONS:
             - amount = amount
             - order_type = order_type
         - transfer
+            - amount = source > amount ? source - amount : amount - source
             - amount => capital_source -> source
 
 -- USER
 :: OpenOrderPosition
     :: ACCOUNTS
-        - config                []
-        - market pointer        [w], []
-        - prev order position   [w], optional
-        - next order position   [w], optional
-        - order position        [w]
-        - signer / payer        [s, w]
+        - config                []          OrderBookConfig
+        - market_pointer        [w] | []    MarketPointer
+        - prev_order_position   [w],        Option<OrderPosition>
+        - next_order_position   [w],        Option<OrderPosition>
+        - order_position        [w]         OrderPosition
+        - signer / payer        [s, w]      AccountInfo
     :: VALIDATIONS
         - market_pointer.config == config
         - order_position.config == config
-        - prev_order_postion != None 
-            && (order_position.price )
+        - prev_order_postion != None && market_pointer.ptr != None
+            && (( order_position.order_type == Sell && order_position.price  ))
 
 -- USER
 :: UpdateOrderPosition
     :: INPUT
-        - amount:   u64,
-        - price:    u64,
+        - amount:   Option<u64>,
+        - price:    Option<u64>,
     :: ACCOUNTS
-        - market pointer            [w], []
-        - old prev order position   [w], optional
-        - old next order position   [w], optional
-        - new prev order position   [w], optional
-        - new next order position   [w], optional
-        - order position            [w]
-        - signer / payer            [s,w]
-        - config                    []
+        - market_pointer            [w] | []    MarketPointer
+        - old_prev_order_position   [w]         Option<OrderPosition>
+        - old_next_order_position   [w]         Option<OrderPosition>
+        - new_prev_order_position   [w]         Option<OrderPosition>
+        - new_next_order_position   [w]         Option<OrderPosition>
+        - order_position            [w]         OrderPosition
+        - capital_source            [w]         TokenAccount
+        - source                    [w]         TokenAccount
+        - signer / payer            [s, w]      AccountInfo
+        - config                    []          OrderBookConfig 
+    :: VALIDATIONS
+        - order_position.owner == signer
+    :: PROCESS
+        - market_pointer [state]
+            - || ptr = order_type || order_type.next_order_position
+        - order_position [state]
+            - || price = price
+            - || amount = amount
+            - || next_order_position = new_next_order_position
+            - || new_prev_order_position.next_order_position = order_position
+            - || old_prev_order_position.next_order_position = order_position.next_order_position
+        - || transfer -> capital_source -> source
+        - || transfer -> source -> capital_source
 
 -- USER
 :: CloseOrderPosition
     :: ACCOUNTS
-        - market pointer        [w] | []
-        - prev order position   [w], optional
-        - next order position   [w], optional
-        - order position        [w]
-        - signer / payer        [s,w]
-        - config                []
+        - market_pointer        [w] | []    MarketPointer
+        - prev_order_position   [w]         Option<OrderPosition>
+        - next_order_position   [w]         Option<OrderPosition>
+        - order_position        [w]         OrderPosition
+        - signer / payer        [s, w]      AccountInfo
+        - config                []          OrderBookConfig
+    :: VALIDATIONS
+        - order_position.owner == signer
+    :: PROCESS
+        -   IF          order_position.next_order_position == None && prev_order_postion != None && prev_order_postion.next_order_position == order_position
+            THEN        prev_order_postion.next_order_position = None
+            ELSE IF     market_pointer.ptr == order_position && order_position.next_order_position == next_order_position
+            THEN        maker_pointer.ptr = next_order_position
+            ELSE IF     prev_order_postion != None && next_order_position != None && prev_order_postion.next_order_position == order_position && order_position.next_order_position == next_order_position
+            THEN        prev_order_postion.next_order_position = next_order_position
+            ELSE        THROW ERROR
 
 -- USER
-:: CreateUserOrderPositionConfig
+:: CreateOrderPositionConfig
     :: ACCOUNTS
-        - config                []
-        - signer                [s]
-        - order_config          [w]
+        - order_book_config         []      OrderBookConfig
+        - signer                    [s]     AccountInfo
+        - order_position_config     [w]     OrderPositionConfig
+        - system_program            []      SystemProgram
+    :: PROCESS
+        - create account -> order_position_config
+        - order_position_config [state]
+            - order_book_config
+            - owner = signer
+            - nonce = 0
 
 
 
 STATE ACCOUNTS:
-:: Config:
+:: OrderBookConfig:
     :: SEED 
-        - "config"
         - token_mint_a
         - token_mint_b
+        - "order-book-config"
     :: VALIDATIONS
         - token_mint_a < token_mint_b
     :: STATE
-        - token_program_a:      PubKey,
-        - token_program_b:      PubKey,
-        - token_mint_a:         PubKey,
-        - token_mint_b:         PubKey,
-        - sell_market_ptr:      Option<PubKey>,
-        - buy_market_ptr:       Option<PubKey>,
-        - taker_fee:            u64,
-        - maker_fee:            u64,
-        - authority             PubKey,
+        - authority             PubKey,             AccountInfo
+        - token_program_a:      PubKey,             TokenProgram
+        - token_program_b:      PubKey,             TokenProgram
+        - token_mint_a:         PubKey,             TokenMint
+        - token_mint_b:         PubKey,             TokenMint
+        - sell_market_ptr:      Option<PubKey>,     OrderPosition
+        - buy_market_ptr:       Option<PubKey>,     OrderPosition
+        - sell_fee_vault:       PubKey,             TokenAccount,
+        - buy_fee_vault:        PubKey,             TokenAccount,
+        - taker_fee_rate:       u64,
+        - maker_fee_rate:       u64,
+        - is_reverse:           bool,
 
-:: UserOrderConfig:
+:: OrderPositionConfig:
     :: SEED
         - signer
         - config
-        - "user-order-config"
+        - "order-position-config"
     :: CHEKCS
         - owner == signer
     :: METHODS
@@ -280,43 +319,57 @@ STATE ACCOUNTS:
 
 :: OrderPosition
     :: SEED
-        - config
+        - order_position_config.nonce
         - signer
+        - order_book_config
         - "order-position"
-        - order_config.nonce
     :: VALIDATIONS
         - order_config.owner == signer
         - order_config.config == config
+        - market_pointer.type == order_position.type
+        - !config.is_reverse && type == Buy || config.is_reverse && type == Sell
+            - destination.token_mint == config.token_mint_a
+            - source.token_mint == config.token_mint_b
+        - !config.is_reverse && type == Sell || config.is_reverse && type == Buy
+            - destination.token_mint == config.token_mint_b
+            - source.token_mint == config.token_mint_a
     :: STATE
-        - config_autority:      PubKey,
-        - type:                 Order{Buy, Sell},
-        - price:                u64,
-        - aount:                u64,
-        - is_avialable:         bool,
-        - next_order_position:  Option<OrderPositionPubkey>,
-        - timestamp:            u64,
-        - slot:                 u64,
-        - source:               TokenAccount,
-        - destination:          TokenAccount,
+        - order_book_config:            PubKey,                 OrderBookConfig,
+        - order_position_config:        PubKey,                 OrderPositionConfig,
+        - type:                         Order{Buy, Sell},
+        - price:                        u64,
+        - aount:                        u64,
+        - is_avialable:                 bool,
+        - next_order_position:          Option<PubKey>,         OrderPosition,
+        - timestamp:                    u64,
+        - slot:                         u64,
+        - source:                       PubKey,                 TokenAccount,
+        - destination:                  Pubkey,                 TokenAccount,
 
 :: MarketPointer:
     :: SEED 
-        - 
+        - type
+        - config
+        - "market-pointer"
+    :: VALIDATIONS
+        - market_pointer.type == order_position.type
     :: STATE
-        - config_autority:      PubKey,
+        - config:               PubKey,                         OrderBookConfig,
         - type:                 Order{Buy, Sell},
-        - ptr:                  Option<OrderPositionPubkey>,
+        - ptr:                  Option<PubKey>,                 OrderPosition,
         - timestamp:            u64,
         - slot:                 u64,
         - is_executing:         bool,
-        - current_executer:     Option<Pubkey>,
+        - current_executer:     Option<Pubkey>,                 AccountInfo,
         - fill_order:           Option<ExecuteMarketOrder>
 
 -> ExecuteMarketOrder
-    - type:             Order{Buy, Sell},
-    - fill:             Fill{Partial(target_price: u64), Full}
-    - target_amount:    u64,
-    - collected_amount: u64,
+    :: STATE
+        - type:             Order{Buy, Sell},
+        - fill:             Fill{Partial(target_price: u64), Full}
+        - target_amount:    u64,
+        - collected_amount: u64,
+        - owner:            PubKey,
 
 
 
