@@ -25,7 +25,8 @@ pub mod order_book_dex {
     ) -> Result<()> {
         ctx.accounts.exec(order_type, price, amount)
     }
-}
 
-#[derive(Accounts)]
-pub struct Initialize {}
+    pub fn open_order_position(ctx: Context<OpenOrderPosition>) -> Result<()> {
+        ctx.accounts.exec()
+    }
+}

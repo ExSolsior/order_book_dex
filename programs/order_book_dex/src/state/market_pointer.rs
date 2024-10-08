@@ -11,7 +11,7 @@ use anchor_lang::{
 pub struct MarketPointer {
     pub order_book_config: Pubkey,
     pub order_type: Order,
-    pub open_position_pointer: Option<Pubkey>,
+    pub order_position_pointer: Option<Pubkey>,
     pub timestamp: i64,
     pub slot: u64,
 
@@ -36,7 +36,7 @@ impl MarketPointer {
         } = Clock::get()?;
 
         self.order_type = order_type;
-        self.open_position_pointer = None;
+        self.order_position_pointer = None;
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.fill_order = None;
@@ -71,7 +71,7 @@ impl MarketPointer {
             ..
         } = Clock::get()?;
         if order_position.is_next() {
-            self.open_position_pointer = order_position.next();
+            self.order_position_pointer = order_position.next();
         }
         self.timestamp = unix_timestamp;
         self.slot = slot;
@@ -93,8 +93,34 @@ impl MarketPointer {
         self.fill_order.is_none()
     }
 
+    pub fn is_valid_execution(&self) -> bool {
+        self.fill_order.is_some()
+    }
+
     pub fn is_valid_market_order_owner(&self, owner: Pubkey) -> bool {
         self.fill_order.as_ref().unwrap().owner == owner
+    }
+
+    pub fn is_valid_position(
+        &self,
+        prev_order_position: Option<&Account<'_, OrderPosition>>,
+        next_order_position: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        if prev_order_position.is_some() && next_order_position.is_some() {
+            return prev_order_position.unwrap().next_order_position.unwrap()
+                == next_order_position.unwrap().key();
+        }
+
+        self.order_position_pointer.unwrap() == next_order_position.unwrap().key()
+    }
+
+    pub fn is_valid_order_type_match(
+        &self,
+        order_position: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        (order_position.as_ref().is_some()
+            && order_position.as_ref().unwrap().order_type == self.order_type)
+            || order_position.as_ref().is_none()
     }
 }
 

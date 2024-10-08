@@ -5,6 +5,8 @@ use anchor_lang::{
 
 use crate::constants::{BYTE, DISCRIMINATOR};
 
+use super::OrderPosition;
+
 #[account]
 pub struct OrderBookConfig {
     pub token_program_a: Pubkey,
@@ -47,5 +49,14 @@ impl OrderBookConfig {
         token_mint_a.key < token_mint_b.key
             && token_mint_a.owner == token_program_a.key
             && token_mint_b.owner == token_program_b.key
+    }
+
+    pub fn is_valid_config_with_order_position(
+        order_book_config: Pubkey,
+        order_position: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        (order_position.as_ref().is_some()
+            && order_position.as_ref().unwrap().order_book_config == order_book_config)
+            || order_position.as_ref().is_none()
     }
 }

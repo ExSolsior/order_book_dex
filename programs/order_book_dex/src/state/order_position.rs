@@ -101,7 +101,7 @@ impl OrderPosition {
         self.order_position_config == order_position_config
     }
 
-    pub fn is_valid_order_type_match(&self, market_pointer: &MarketPointer) -> bool {
+    pub fn is_valid_order_type_match(&self, market_pointer: &Account<'_, MarketPointer>) -> bool {
         self.order_type == market_pointer.order_type
     }
 
