@@ -170,18 +170,18 @@ INSTRUCTIONS:
         - price:                u64,
         - amount:               u64,
     :: ACCOUNTS
-        - config                    []      OrderBookConfig
-        - order_position_config     [w]     OrderPositionConfig
         - signer / payer            [s, w]  AccountInfo
-        - system_program            []      SystemProgram
-        - token_program_a           []      TokenProgram
-        - token_program_b           []      TokenProgram
+        - config                    []      OrderBookConfig
+        - order_position_config     []      OrderPositionConfig
+        - order_position            [w]     OrderPosition
         - token_mint_a              []      TokenMint
         - token_mint_b              []      TokenMint
         - capital_source            [w]     TokenAccount
-        - order_position            [w]     OrderPosition
         - source                    [w]     TokenAccount
         - destination               []      TokenAccount
+        - token_program_a           []      TokenProgram
+        - token_program_b           []      TokenProgram
+        - system_program            []      SystemProgram
     :: VALIDATIONS
         - capital_source.owner == signer
         - order_position_config.owner == signer
@@ -195,7 +195,6 @@ INSTRUCTIONS:
             - amount = amount
             - order_type = order_type
         - transfer
-            - amount = source > amount ? source - amount : amount - source
             - amount => capital_source -> source
 
 -- USER

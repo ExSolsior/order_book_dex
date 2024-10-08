@@ -39,7 +39,6 @@ impl OrderPosition {
         source: Pubkey,
         destination: Pubkey,
         order_type: Order,
-        next_order_position: Option<Pubkey>,
         price: u64,
         amount: u64,
     ) -> Result<()> {
@@ -54,7 +53,7 @@ impl OrderPosition {
         self.source = source;
         self.destination = destination;
         self.order_type = order_type;
-        self.next_order_position = next_order_position;
+        self.next_order_position = None;
         self.price = price;
         self.amount = amount;
         self.timestamp = unix_timestamp;
@@ -63,6 +62,8 @@ impl OrderPosition {
 
         Ok(())
     }
+
+    pub fn open(&mut self) {}
 
     pub fn update(&mut self, market_order: &ExecutionMarketOrder) -> u64 {
         let amount = if market_order.amount() >= self.amount {
@@ -104,14 +105,17 @@ impl OrderPosition {
         self.order_type == market_pointer.order_type
     }
 
-    pub fn is_valid_source(&self, config: &OrderBookConfig, source: &TokenAccount) -> bool {
-        (!config.is_reverse && self.order_type == Order::Buy
-            || config.is_reverse
-                && self.order_type == Order::Sell
-                && source.mint == config.token_mint_b)
-            || (!config.is_reverse && self.order_type == Order::Sell
+    pub fn is_valid_source(
+        &self,
+        config: &OrderBookConfig,
+        source: &TokenAccount,
+        order_type: Order,
+    ) -> bool {
+        (!config.is_reverse && order_type == Order::Buy
+            || config.is_reverse && order_type == Order::Sell && source.mint == config.token_mint_b)
+            || (!config.is_reverse && order_type == Order::Sell
                 || config.is_reverse
-                    && self.order_type == Order::Buy
+                    && order_type == Order::Buy
                     && source.mint == config.token_mint_a)
     }
 
@@ -119,14 +123,15 @@ impl OrderPosition {
         &self,
         config: &OrderBookConfig,
         destination: &TokenAccount,
+        order_type: Order,
     ) -> bool {
-        (!config.is_reverse && self.order_type == Order::Buy
+        (!config.is_reverse && order_type == Order::Buy
             || config.is_reverse
-                && self.order_type == Order::Sell
+                && order_type == Order::Sell
                 && destination.mint == config.token_mint_a)
-            || (!config.is_reverse && self.order_type == Order::Sell
+            || (!config.is_reverse && order_type == Order::Sell
                 || config.is_reverse
-                    && self.order_type == Order::Buy
+                    && order_type == Order::Buy
                     && destination.mint == config.token_mint_b)
     }
 }
