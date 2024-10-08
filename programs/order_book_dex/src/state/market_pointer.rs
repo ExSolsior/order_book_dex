@@ -1,12 +1,10 @@
-use anchor_lang::{
-    prelude::*,
-    solana_program::pubkey::{Pubkey, PUBKEY_BYTES},
-};
-use borsh::{BorshDeserialize, BorshSerialize};
-
 use crate::{
     constants::{BYTE, DISCRIMINATOR, U64_BYTES},
     state::{Fill, Order, OrderPosition},
+};
+use anchor_lang::{
+    prelude::*,
+    solana_program::pubkey::{Pubkey, PUBKEY_BYTES},
 };
 
 #[account]
@@ -100,7 +98,7 @@ impl MarketPointer {
     }
 }
 
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct ExecutionMarketOrder {
     pub order_type: Order,
     pub fill: Fill,

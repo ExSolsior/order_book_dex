@@ -1,6 +1,6 @@
-use crate::constants::ORDER_BOOK_CONFIG;
+use crate::constants::{BUY_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG, SELL_SEED};
 use crate::errors::ErrorCode;
-use crate::state::OrderBookConfig;
+use crate::state::{MarketPointer, Order, OrderBookConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
@@ -31,6 +31,32 @@ pub struct CreateTradePair<'info> {
     )]
     pub config: Account<'info, OrderBookConfig>,
 
+    #[account(
+        init,
+        payer = authority,
+        space = MarketPointer::LEN,
+        seeds = [
+            BUY_SEED.as_bytes(),
+            config.key().as_ref(),
+            MARKET_POINTER_SEED.as_bytes(),
+        ],
+        bump
+    )]
+    pub buy_market_pointer: Account<'info, MarketPointer>,
+
+    #[account(
+        init,
+        payer = authority,
+        space = MarketPointer::LEN,
+        seeds = [
+            SELL_SEED.as_bytes(),
+            config.key().as_ref(),
+            MARKET_POINTER_SEED.as_bytes(),
+        ],
+        bump
+    )]
+    pub sell_market_pointer: Account<'info, MarketPointer>,
+
     pub token_mint_a: InterfaceAccount<'info, Mint>,
     pub token_mint_b: InterfaceAccount<'info, Mint>,
 
@@ -52,6 +78,9 @@ impl<'info> CreateTradePair<'info> {
             self.token_mint_b.key(),
             is_reverse,
         );
+
+        self.buy_market_pointer.init(Order::Buy)?;
+        self.sell_market_pointer.init(Order::Sell)?;
 
         msg!("New Trade Pair Created: {}", self.config.key());
 

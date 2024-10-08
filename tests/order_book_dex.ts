@@ -10,7 +10,12 @@ describe("order_book_dex", () => {
 
   it("Is initialized!", async () => {
     // Add your test here.
-    const tx = await program.methods.initialize().rpc();
+    const tx = await program.methods
+      .createTradePair(false)
+      .accounts({
+
+      })
+      .rpc();
     console.log("Your transaction signature", tx);
   });
 });

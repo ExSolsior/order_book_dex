@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 
-use borsh::{BorshDeserialize, BorshSerialize};
 pub use order_book_config::*;
 pub mod order_book_config;
 
@@ -15,7 +14,7 @@ pub mod order_position;
 
 use crate::constants::{BYTE, U64_BYTES};
 
-#[derive(PartialEq, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(PartialEq, Clone, AnchorSerialize, AnchorDeserialize)]
 pub enum Order {
     Buy,
     Sell,
@@ -25,7 +24,7 @@ impl Order {
     pub const LEN: usize = BYTE;
 }
 
-#[derive(PartialEq, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(PartialEq, Clone, AnchorSerialize, AnchorDeserialize)]
 pub enum Fill {
     Partial { target_price: u64 },
     Full,
