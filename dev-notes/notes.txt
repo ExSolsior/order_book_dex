@@ -106,7 +106,7 @@ INSTRUCTIONS:
 -- ADMIN
 :: CreateTradePair
     ::INPUT
-        - set_quote:        bool,
+        - is_reverse:        bool,
     :: ACCOUNTS
         - authority | administrator     [s]     AccountInfo
         - config                        [w]     OrderBookConfig
@@ -114,8 +114,6 @@ INSTRUCTIONS:
         - token_program_b               []      TokenProgram
         - token_mint_a                  []      TokenMint
         - token_mint_b                  []      TokenMint
-        - fee_account_a                 []      TokenAccount 
-        - fee_account_b                 []      TokenAccount
         - system_program                []      SystemProgram
     :: VALIDATIONS
         - authority == AUTH_ID
