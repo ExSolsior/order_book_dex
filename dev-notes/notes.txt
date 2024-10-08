@@ -359,8 +359,6 @@ STATE ACCOUNTS:
         - ptr:                  Option<PubKey>,                 OrderPosition,
         - timestamp:            u64,
         - slot:                 u64,
-        - is_executing:         bool,
-        - current_executer:     Option<Pubkey>,                 AccountInfo,
         - fill_order:           Option<ExecuteMarketOrder>
 
 -> ExecuteMarketOrder
@@ -369,7 +367,7 @@ STATE ACCOUNTS:
         - fill:             Fill{Partial(target_price: u64), Full}
         - target_amount:    u64,
         - collected_amount: u64,
-        - owner:            PubKey,
+        - owner:            PubKey,         AccountInfo,
 
 
 
