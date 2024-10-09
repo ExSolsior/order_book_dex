@@ -29,4 +29,8 @@ pub mod order_book_dex {
     pub fn open_order_position(ctx: Context<OpenOrderPosition>) -> Result<()> {
         ctx.accounts.exec()
     }
+
+    pub fn open_order_position_reentrance(ctx: Context<OpenOrderPositionReentrance>) -> Result<()> {
+        Ok(())
+    }
 }

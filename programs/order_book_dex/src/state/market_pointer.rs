@@ -9,9 +9,10 @@ use anchor_lang::{
 
 #[account]
 pub struct MarketPointer {
-    pub order_book_config: Pubkey,
     pub order_type: Order,
+    pub order_book_config: Pubkey,
     pub order_position_pointer: Option<Pubkey>,
+    pub next_position_pointer: Option<Pubkey>,
     pub timestamp: i64,
     pub slot: u64,
 
@@ -109,9 +110,11 @@ impl MarketPointer {
         if prev_order_position.is_some() && next_order_position.is_some() {
             return prev_order_position.unwrap().next_order_position.unwrap()
                 == next_order_position.unwrap().key();
+        } else if self.order_position_pointer.is_some() && next_order_position.is_some() {
+            return self.order_position_pointer.unwrap() == next_order_position.unwrap().key();
+        } else {
+            return self.order_position_pointer.is_none();
         }
-
-        self.order_position_pointer.unwrap() == next_order_position.unwrap().key()
     }
 
     pub fn is_valid_order_type_match(
@@ -121,6 +124,45 @@ impl MarketPointer {
         (order_position.as_ref().is_some()
             && order_position.as_ref().unwrap().order_type == self.order_type)
             || order_position.as_ref().is_none()
+    }
+
+    pub fn is_valid_open_position_section(
+        &self,
+        order_position: &Account<'_, OrderPosition>,
+        next_position_pointer: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        if self.next_position_pointer.is_some()
+            && next_position_pointer.is_some()
+            && self.order_type == Order::Buy
+        {
+            let position_pointer = self.next_position_pointer.unwrap();
+            let next_position_pointer = next_position_pointer.unwrap();
+            return position_pointer == next_position_pointer.key()
+                && order_position.amount < next_position_pointer.amount;
+        }
+
+        if self.next_position_pointer.is_some()
+            && next_position_pointer.is_some()
+            && self.order_type == Order::Sell
+        {
+            let position_pointer = self.next_position_pointer.unwrap();
+            let next_position_pointer = next_position_pointer.unwrap();
+            return position_pointer == next_position_pointer.key()
+                && order_position.amount > next_position_pointer.amount;
+        }
+
+        return self.next_position_pointer.is_none();
+    }
+
+    pub fn is_valid_prev_order_position(
+        &self,
+        prev_order_position: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        if self.next_position_pointer.is_some() && prev_order_position.is_some() {
+            return self.next_position_pointer.unwrap() != prev_order_position.unwrap().key();
+        }
+
+        return prev_order_position.is_none();
     }
 }
 
