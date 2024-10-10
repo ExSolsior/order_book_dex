@@ -17,6 +17,10 @@ pub mod order_book_dex {
         ctx.accounts.initialize(is_reverse)
     }
 
+    pub fn create_order_position_config(ctx: Context<CreateOrderPositionConfig>) -> Result<()> {
+        ctx.accounts.init()
+    }
+
     pub fn create_order_position(
         ctx: Context<CreateOrderPosition>,
         order_type: state::Order,
@@ -31,6 +35,6 @@ pub mod order_book_dex {
     }
 
     pub fn open_order_position_reentrance(ctx: Context<OpenOrderPositionReentrance>) -> Result<()> {
-        Ok(())
+        ctx.accounts.exec()
     }
 }

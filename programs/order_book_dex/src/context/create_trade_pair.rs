@@ -1,4 +1,4 @@
-use crate::constants::{BUY_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG, SELL_SEED};
+use crate::constants::{BUY_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG_SEED, SELL_SEED};
 use crate::errors::ErrorCode;
 use crate::state::{MarketPointer, Order, OrderBookConfig};
 use anchor_lang::prelude::*;
@@ -25,7 +25,7 @@ pub struct CreateTradePair<'info> {
         seeds = [
             token_mint_a.key().as_ref(),
             token_mint_b.key().as_ref(),
-            ORDER_BOOK_CONFIG.as_bytes(),
+            ORDER_BOOK_CONFIG_SEED.as_bytes(),
         ],
         bump
     )]

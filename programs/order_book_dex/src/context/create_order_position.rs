@@ -87,37 +87,25 @@ impl<'info> CreateOrderPosition<'info> {
 
         let source_program = *self.source.to_account_info().owner;
 
-        if source_program == self.token_program_a.key() {
-            transfer_checked(
-                CpiContext::new(
-                    self.token_program_a.to_account_info(),
-                    TransferChecked {
-                        from: self.captial_source.to_account_info(),
-                        to: self.source.to_account_info(),
-                        authority: self.signer.to_account_info(),
-                        mint: self.token_mint_a.to_account_info(),
-                    },
-                ),
-                amount,
-                self.token_mint_a.decimals,
-            )?;
-        } else if source_program == self.token_program_b.key() {
-            transfer_checked(
-                CpiContext::new(
-                    self.token_program_b.to_account_info(),
-                    TransferChecked {
-                        from: self.captial_source.to_account_info(),
-                        to: self.source.to_account_info(),
-                        authority: self.signer.to_account_info(),
-                        mint: self.token_mint_b.to_account_info(),
-                    },
-                ),
-                amount,
-                self.token_mint_b.decimals,
-            )?;
+        let (token_program, token_mint) = if source_program == self.token_program_a.key() {
+            (self.token_program_a.clone(), self.token_mint_a.clone())
         } else {
-            // throw error -> redundent
-        }
+            (self.token_program_b.clone(), self.token_mint_b.clone())
+        };
+
+        transfer_checked(
+            CpiContext::new(
+                token_program.to_account_info(),
+                TransferChecked {
+                    from: self.captial_source.to_account_info(),
+                    to: self.source.to_account_info(),
+                    authority: self.signer.to_account_info(),
+                    mint: token_mint.to_account_info(),
+                },
+            ),
+            amount,
+            token_mint.decimals,
+        )?;
 
         Ok(())
     }
