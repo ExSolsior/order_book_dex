@@ -12,7 +12,7 @@ pub struct OrderPositionConfig {
 }
 
 impl OrderPositionConfig {
-    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES + U64_BYTES;
+    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES + PUBKEY_BYTES + U64_BYTES;
 
     pub fn init(&mut self, config: Pubkey, owner: Pubkey) {
         self.order_book_config = config;

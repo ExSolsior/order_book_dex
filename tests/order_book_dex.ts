@@ -97,16 +97,17 @@ describe("order_book_dex", () => {
         })
       }))
 
+    tokenMints.sort((a, b) => a.mint - b.mint);
   })
 
-  it("Is initialized!", async () => {
-    // Add your test here.
+  it("Create Trade Pair", async () => {
 
-    console.log(tokenMints[0])
+    let tokenMintA = tokenMints[0].mint
+    let tokenMintB = tokenMints[1].mint
 
     const [orderBookConfig] = PublicKey.findProgramAddressSync([
-      tokenMints[0].mint.toBuffer(),
-      tokenMints[1].mint.toBuffer(),
+      tokenMintA.toBuffer(),
+      tokenMintB.toBuffer(),
       Buffer.from('order-book-config'),
     ], program.programId);
 
@@ -122,12 +123,7 @@ describe("order_book_dex", () => {
       Buffer.from('market-pointer'),
     ], program.programId);
 
-    let tokenMintA = tokenMints[0].mint
-    let tokenMintB = tokenMints[1].mint
-    if (!(tokenMints[0].mint < tokenMints[1].mint)) {
-      tokenMintA = tokenMints[1].mint
-      tokenMintB = tokenMints[0].mint
-    }
+
 
     const tx = await program.methods
       .createTradePair(false)
@@ -144,6 +140,50 @@ describe("order_book_dex", () => {
       })
       .signers([wallet.payer])
       .rpc();
-    console.log("Your transaction signature", tx);
+
+    const latestBlockHash = await provider.connection.getLatestBlockhash()
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: tx,
+    });
+
   });
+
+  it("Create Order Position Config", async () => {
+
+    let tokenMintA = tokenMints[0].mint
+    let tokenMintB = tokenMints[1].mint
+
+    const [orderBookConfig] = PublicKey.findProgramAddressSync([
+      tokenMintA.toBuffer(),
+      tokenMintB.toBuffer(),
+      Buffer.from('order-book-config'),
+    ], program.programId);
+
+    const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+      users[0].keypair.publicKey.toBuffer(),
+      orderBookConfig.toBuffer(),
+      Buffer.from('order-position-config'),
+    ], program.programId);
+
+    const tx = await program.methods
+      .createOrderPositionConfig()
+      .accounts({
+        signer: users[0].keypair.publicKey,
+        orderBookConfig,
+        // orderPositionConfig,
+        // systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([users[0].keypair])
+      .rpc();
+
+    const latestBlockHash = await provider.connection.getLatestBlockhash()
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: tx,
+    });
+
+  })
 });
