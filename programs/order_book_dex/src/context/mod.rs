@@ -1,6 +1,9 @@
 pub mod create_trade_pair;
 pub use create_trade_pair::*;
 
+pub mod create_vault_accounts;
+pub use create_vault_accounts::*;
+
 pub mod create_order_position_config;
 pub use create_order_position_config::*;
 

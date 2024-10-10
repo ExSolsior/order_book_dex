@@ -17,6 +17,10 @@ pub mod order_book_dex {
         ctx.accounts.initialize(is_reverse)
     }
 
+    pub fn create_vault_accounts(ctx: Context<CreateVaultAccounts>) -> Result<()> {
+        ctx.accounts.initialize()
+    }
+
     pub fn create_order_position_config(ctx: Context<CreateOrderPositionConfig>) -> Result<()> {
         ctx.accounts.init()
     }

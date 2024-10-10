@@ -4,4 +4,10 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("Invalid Mints")]
     InvalidMints,
+
+    #[msg("Invalid Mint")]
+    InvalidMint,
+
+    #[msg("Invalid Token Program")]
+    InvalidTokenProgram,
 }
