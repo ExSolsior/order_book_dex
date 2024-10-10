@@ -1,4 +1,4 @@
-use crate::constants::{BUY_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG_SEED, SELL_SEED};
+use crate::constants::{ASK_SEED, BID_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG_SEED};
 use crate::errors::ErrorCode;
 use crate::state::{MarketPointer, Order, OrderBookConfig};
 use anchor_lang::prelude::*;
@@ -29,33 +29,33 @@ pub struct CreateTradePair<'info> {
         ],
         bump
     )]
-    pub config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Account<'info, OrderBookConfig>,
 
     #[account(
         init,
         payer = authority,
         space = MarketPointer::LEN,
         seeds = [
-            BUY_SEED.as_bytes(),
-            config.key().as_ref(),
+            BID_SEED.as_bytes(),
+            order_book_config.key().as_ref(),
             MARKET_POINTER_SEED.as_bytes(),
         ],
         bump
     )]
-    pub buy_market_pointer: Account<'info, MarketPointer>,
+    pub bid_market_pointer: Account<'info, MarketPointer>,
 
     #[account(
         init,
         payer = authority,
         space = MarketPointer::LEN,
         seeds = [
-            SELL_SEED.as_bytes(),
-            config.key().as_ref(),
+            ASK_SEED.as_bytes(),
+            order_book_config.key().as_ref(),
             MARKET_POINTER_SEED.as_bytes(),
         ],
         bump
     )]
-    pub sell_market_pointer: Account<'info, MarketPointer>,
+    pub ask_market_pointer: Account<'info, MarketPointer>,
 
     pub token_mint_a: InterfaceAccount<'info, Mint>,
     pub token_mint_b: InterfaceAccount<'info, Mint>,
@@ -71,7 +71,7 @@ pub struct CreateTradePair<'info> {
 
 impl<'info> CreateTradePair<'info> {
     pub fn initialize(&mut self, is_reverse: bool) -> Result<()> {
-        self.config.init(
+        self.order_book_config.init(
             self.token_program_a.key(),
             self.token_program_b.key(),
             self.token_mint_a.key(),
@@ -79,10 +79,10 @@ impl<'info> CreateTradePair<'info> {
             is_reverse,
         );
 
-        self.buy_market_pointer.init(Order::Buy)?;
-        self.sell_market_pointer.init(Order::Sell)?;
+        self.bid_market_pointer.init(Order::Buy)?;
+        self.ask_market_pointer.init(Order::Sell)?;
 
-        msg!("New Trade Pair Created: {}", self.config.key());
+        msg!("New Trade Pair Created: {}", self.order_book_config.key());
 
         Ok(())
     }

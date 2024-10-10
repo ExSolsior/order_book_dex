@@ -61,11 +61,13 @@ pub struct CreateOrderPosition<'info> {
     #[account(
         constraint = order_book_config.token_program_a == token_program_a.key(),
     )]
+    /// CHECK: only need the pubkey to sync with token_mint_a
     pub token_program_a: UncheckedAccount<'info>,
 
     #[account(
         constraint = order_book_config.token_program_b == token_program_b.key(),
     )]
+    /// CHECK: only need the pubkey to sync with token_mint_b
     pub token_program_b: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,

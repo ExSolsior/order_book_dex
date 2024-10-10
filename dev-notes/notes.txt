@@ -243,7 +243,7 @@ INSTRUCTIONS:
         - || transfer -> source -> capital_source
 
 -- USER
-:: CloseOrderPosition
+:: CancelOrderPosition
     :: ACCOUNTS
         - market_pointer        [w] | []    MarketPointer
         - prev_order_position   [w]         Option<OrderPosition>

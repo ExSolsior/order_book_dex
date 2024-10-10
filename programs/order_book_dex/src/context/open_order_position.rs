@@ -1,6 +1,6 @@
 // use crate::errors::ErrorCode;
 use crate::{
-    constants::{BUY_SEED, MARKET_POINTER_SEED, SELL_SEED},
+    constants::{ASK_SEED, BID_SEED, MARKET_POINTER_SEED},
     state::{MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::{
@@ -91,8 +91,8 @@ impl<'info> OpenOrderPosition<'info> {
         ];
 
         let order_seed = match self.market_pointer.order_type {
-            Order::Buy => BUY_SEED,
-            Order::Sell => SELL_SEED,
+            Order::Buy => BID_SEED,
+            Order::Sell => ASK_SEED,
         };
 
         let order_book_config_pubkey = self.order_book_config.key();
