@@ -3,20 +3,14 @@ import { Program, AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { OrderBookDex } from "../target/types/order_book_dex";
 
 import {
-  getAssociatedTokenAddress,
-  getAssociatedTokenAddressSync,
   getOrCreateAssociatedTokenAccount,
-  createAssociatedTokenAccountInstruction,
-  createInitializeMintInstruction,
-  getMinimumBalanceForRentExemptMint,
-  createMintToInstruction,
-  MINT_SIZE,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
-  // ASSOCIATED_TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
+  createAccount,
   mintToChecked,
+  getMinimumBalanceForRentExemptAccount,
 } from "@solana/spl-token";
 import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
@@ -28,6 +22,9 @@ describe("order_book_dex", () => {
   const {
     Keypair,
     PublicKey,
+    Transaction,
+    TransactionInstruction,
+    SystemProgram,
   } = anchor.web3
 
   const provider = <AnchorProvider>anchor.getProvider();
@@ -43,7 +40,7 @@ describe("order_book_dex", () => {
 
     console.log('CREATING MINTS');
     await Promise.all(
-      new Array(4).fill(0).map(() => {
+      new Array(2).fill(0).map(() => {
         return new Promise<void>(async (resolve, reject) => {
 
           try {
@@ -82,18 +79,21 @@ describe("order_book_dex", () => {
       let tokenMintA = tokenMints[index].mint
       let tokenMintB = tokenMints[index + 1].mint
 
-      const [orderBookConfig, bump] = PublicKey.findProgramAddressSync([
+      let tokenProgramA = tokenMints[index].program
+      let tokenProgramB = tokenMints[index + 1].program
+
+      const [orderBookConfig] = PublicKey.findProgramAddressSync([
         tokenMintA.toBuffer(),
         tokenMintB.toBuffer(),
         Buffer.from('order-book-config'),
       ], program.programId);
 
-      orderBookConfigAddressList.push({ publicKey: orderBookConfig, bump, tokenMintA, tokenMintB });
+      orderBookConfigAddressList.push({ publicKey: orderBookConfig, tokenMintA, tokenMintB, tokenProgramA, tokenProgramB });
 
     });
 
     await Promise.all(
-      new Array(6).fill(0).map(() => {
+      new Array(4).fill(0).map(() => {
 
         console.log('CREATING USER');
         return new Promise<void>(async (resolve, reject) => {
@@ -158,15 +158,16 @@ describe("order_book_dex", () => {
                 config.publicKey.toBuffer(),
                 config.tokenMintA.toBuffer(),
                 keypair.publicKey.toBuffer(),
-                Buffer.from('order-vaults'),
+                Buffer.from('vault-account'),
               ], program.programId);
 
               const [vaultB] = PublicKey.findProgramAddressSync([
                 config.publicKey.toBuffer(),
                 config.tokenMintB.toBuffer(),
                 keypair.publicKey.toBuffer(),
-                Buffer.from('order-vaults'),
+                Buffer.from('vault-account'),
               ], program.programId);
+
 
               return { config, vaultA, vaultB }
             })
@@ -272,40 +273,23 @@ describe("order_book_dex", () => {
 
   })
 
-  it("Create Order Position -> Market Maker", async () => {
-
-    let tokenMintA = tokenMints[0].mint
-    let tokenMintB = tokenMints[1].mint
-
-    const [orderBookConfig] = PublicKey.findProgramAddressSync([
-      tokenMintA.toBuffer(),
-      tokenMintB.toBuffer(),
-      Buffer.from('order-book-config'),
-    ], program.programId);
-
-    const [orderPositionConfig] = PublicKey.findProgramAddressSync([
-      users[0].keypair.publicKey.toBuffer(),
-      orderBookConfig.toBuffer(),
-      Buffer.from('order-position-config'),
-    ], program.programId);
-
-
+  it("Create Vault Accounts", async () => {
 
     const tx = await program.methods
-      .createOrderPosition({ buy: {} }, new anchor.BN(100), new anchor.BN(100))
+      .createVaultAccounts()
       .accounts({
-        // signer: users[0].keypair.publicKey,
-        // orderBookConfig,
-        // orderPositionConfig,
-        // orderPosition,
-        // tokenMintA,
-        // tokenMintB,
-        // capitalSource,
-        // source,
-        // destination,
-        // tokenProgramA, TOKEN_PROGRAM_ID,
-        // tokenProgramB, TOKEN_PROGRAM_ID,
-        // systemProgram
+        signer: users[0].keypair.publicKey,
+        orderBookConfig: orderBookConfigAddressList[0].publicKey,
+        tokenMintA: orderBookConfigAddressList[0].tokenMintA,
+        tokenMintB: orderBookConfigAddressList[0].tokenMintB,
+
+        // vaultA: user[0].vaultAccountList[0].vaultA,
+        // vaultB: user[0].vaultAccountList[0].vaultB,
+
+        tokenProgramA: orderBookConfigAddressList[0].tokenProgramA,
+        tokenProgramB: orderBookConfigAddressList[0].tokenProgramB,
+
+        // systemProgram: SYSTEM_PROGRAM_ID,
       })
       .signers([users[0].keypair])
       .rpc();
@@ -316,6 +300,53 @@ describe("order_book_dex", () => {
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
       signature: tx,
     });
+
   })
+
+  // it("Create Order Position -> Market Maker", async () => {
+
+  //   let tokenMintA = tokenMints[0].mint
+  //   let tokenMintB = tokenMints[1].mint
+
+  //   const [orderBookConfig] = PublicKey.findProgramAddressSync([
+  //     tokenMintA.toBuffer(),
+  //     tokenMintB.toBuffer(),
+  //     Buffer.from('order-book-config'),
+  //   ], program.programId);
+
+  //   const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+  //     users[0].keypair.publicKey.toBuffer(),
+  //     orderBookConfig.toBuffer(),
+  //     Buffer.from('order-position-config'),
+  //   ], program.programId);
+
+
+
+  //   const tx = await program.methods
+  //     .createOrderPosition({ buy: {} }, new anchor.BN(100), new anchor.BN(100))
+  //     .accounts({
+  //       // signer: users[0].keypair.publicKey,
+  //       // orderBookConfig,
+  //       // orderPositionConfig,
+  //       // orderPosition,
+  //       // tokenMintA,
+  //       // tokenMintB,
+  //       // capitalSource,
+  //       // source,
+  //       // destination,
+  //       // tokenProgramA, TOKEN_PROGRAM_ID,
+  //       // tokenProgramB, TOKEN_PROGRAM_ID,
+  //       // systemProgram
+  //     })
+  //     .signers([users[0].keypair])
+  //     .rpc();
+
+  //   const latestBlockHash = await provider.connection.getLatestBlockhash()
+  //   await provider.connection.confirmTransaction({
+  //     blockhash: latestBlockHash.blockhash,
+  //     lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+  //     signature: tx,
+  //   });
+  // })
 
 });
