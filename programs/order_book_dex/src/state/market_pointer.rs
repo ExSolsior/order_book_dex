@@ -92,6 +92,7 @@ impl MarketPointer {
         Ok(())
     }
 
+    // will come back to this later
     pub fn update(
         &mut self,
         order_position: &mut OrderPosition,
