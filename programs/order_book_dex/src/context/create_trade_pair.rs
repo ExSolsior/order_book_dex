@@ -70,13 +70,14 @@ pub struct CreateTradePair<'info> {
 }
 
 impl<'info> CreateTradePair<'info> {
-    pub fn initialize(&mut self, is_reverse: bool) -> Result<()> {
+    pub fn initialize(&mut self, is_reverse: bool, bump: u8) -> Result<()> {
         self.order_book_config.init(
             self.token_program_a.key(),
             self.token_program_b.key(),
             self.token_mint_a.key(),
             self.token_mint_b.key(),
             is_reverse,
+            bump,
         );
 
         self.bid_market_pointer

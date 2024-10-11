@@ -14,7 +14,8 @@ pub mod order_book_dex {
     use super::*;
 
     pub fn create_trade_pair(ctx: Context<CreateTradePair>, is_reverse: bool) -> Result<()> {
-        ctx.accounts.initialize(is_reverse)
+        ctx.accounts
+            .initialize(is_reverse, ctx.bumps.order_book_config)
     }
 
     pub fn create_vault_accounts(ctx: Context<CreateVaultAccounts>) -> Result<()> {
@@ -35,6 +36,23 @@ pub mod order_book_dex {
     }
 
     pub fn open_order_position(ctx: Context<OpenOrderPosition>) -> Result<()> {
+        ctx.accounts.exec()
+    }
+
+    pub fn create_market_order(
+        ctx: Context<CreateMarketOrder>,
+        order_type: state::Order,
+        fill: state::Fill,
+        target_amount: u64,
+    ) -> Result<()> {
+        ctx.accounts.exec(order_type, fill, target_amount)
+    }
+
+    // pub fn fill_market_order(ctx: Context<FillMarketOrder>) -> Result<()> {
+    //     ctx.accounts.exec()
+    // }
+
+    pub fn return_execution_market_order(ctx: Context<ReturnExecutionMarketOrder>) -> Result<()> {
         ctx.accounts.exec()
     }
 }

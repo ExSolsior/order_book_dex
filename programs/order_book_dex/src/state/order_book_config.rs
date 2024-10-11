@@ -5,7 +5,7 @@ use anchor_lang::{
 
 use crate::constants::{BYTE, DISCRIMINATOR};
 
-use super::OrderPosition;
+use crate::state::{MarketPointer, Order, OrderPosition};
 
 #[account]
 pub struct OrderBookConfig {
@@ -16,6 +16,7 @@ pub struct OrderBookConfig {
     // pub sell_market_pointer: Pubkey,
     // pub buy_market_pointer: Pubkey,
     pub is_reverse: bool,
+    pub bump: u8,
 }
 
 impl OrderBookConfig {
@@ -30,6 +31,7 @@ impl OrderBookConfig {
         // sell_market_pointer: Pubkey,
         // buy_market_pointer: Pubkey,
         is_reverse: bool,
+        bump: u8,
     ) {
         self.token_program_a = token_program_a;
         self.token_program_b = token_program_b;
@@ -38,6 +40,7 @@ impl OrderBookConfig {
         // self.sell_market_pointer = sell_market_pointer;
         // self.buy_market_pointer = buy_market_pointer;
         self.is_reverse = is_reverse;
+        self.bump = bump
     }
 
     pub fn is_valid_mints(
@@ -58,5 +61,33 @@ impl OrderBookConfig {
         (order_position.as_ref().is_some()
             && order_position.as_ref().unwrap().order_book_config == order_book_config)
             || order_position.as_ref().is_none()
+    }
+
+    pub fn is_valid_token_mint_source(
+        &self,
+        source: Pubkey,
+        market_pointer: &Account<'_, MarketPointer>,
+    ) -> bool {
+        if !self.is_reverse && market_pointer.order_type == Order::Buy {
+            self.token_mint_a == source
+        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
+            self.token_mint_b == source
+        } else {
+            false
+        }
+    }
+
+    pub fn is_valid_token_mint_dest(
+        &self,
+        dest: Pubkey,
+        market_pointer: &Account<'_, MarketPointer>,
+    ) -> bool {
+        if !self.is_reverse && market_pointer.order_type == Order::Buy {
+            self.token_mint_a == dest
+        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
+            self.token_mint_b == dest
+        } else {
+            false
+        }
     }
 }

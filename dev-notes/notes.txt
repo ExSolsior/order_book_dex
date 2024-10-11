@@ -150,7 +150,7 @@ INSTRUCTIONS:
             -
 
 -- USER
-:: CreateOrderEscrow [source, destination]
+:: CreateOrderVault [source, destination]
     :: ACCOUNTS
         - config            []          OrderBookConfig
         - order_escrow      [w]         TokenAccount
@@ -399,3 +399,31 @@ Notes:
 - right now there is no way to differaintate that
 - only sorting from lower token mint to greater token mint -> a -> b
 --> for now will not support multisig
+
+
+
+// prev_order_position
+// new_order_position
+// next_order_position
+
+// prev_order_position.next_order_position = new_order_position.key()
+// new_order_position.next_order_position = next_order_position.key()
+
+// ASK
+//  price 11, size 1 <- market pointer 
+//  price 12, size 5,
+//  price 13, size 4,
+//  price 14, size 10, 
+
+// market taker
+//  buy 10 tokens
+
+// transaction 1 -> create market order -> chagnes the flag to executing
+
+// stop sending
+// transaction 2 -> execute market order -> pay 10 USDC, receive 1 token, market pointer updates pointing to the next order position
+// transaction 3 -> execute market order -> pay 40 USDC, receive 5 token, same thing happens here
+// transaction 4 -> execute market order -> pay 28 USDC, receive 4 token, same thing happens here
+// transaction 5 -> change the flag to avaialbe
+
+// algo -> de 
