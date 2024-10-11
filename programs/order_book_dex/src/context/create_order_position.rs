@@ -43,9 +43,9 @@ pub struct CreateOrderPosition<'info> {
 
     #[account(
         mut,
-        constraint = captial_source.mint == source.mint
+        constraint = capital_source.mint == source.mint
     )]
-    pub captial_source: InterfaceAccount<'info, TokenAccount>,
+    pub capital_source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -73,6 +73,12 @@ pub struct CreateOrderPosition<'info> {
     pub system_program: Program<'info, System>,
 }
 
+// !is_reverse -> token_mint_a is bid side, token_mint_b is ask side
+//  is_reverse -> token_mint_b is bid side, token_mint_a is ask side
+// NOTE:    potential problem, with vault accounts, could cause write fail issue
+//          if both buy and sell are writing to the same vaults, so might have to
+//          reconsider maying seperate vault accounts for both sides. if this becomes
+//          an issue then we'll make that change.
 impl<'info> CreateOrderPosition<'info> {
     pub fn exec(&mut self, order_type: Order, price: u64, amount: u64) -> Result<()> {
         self.order_position_config.inc_nonce();
@@ -99,7 +105,7 @@ impl<'info> CreateOrderPosition<'info> {
             CpiContext::new(
                 token_program.to_account_info(),
                 TransferChecked {
-                    from: self.captial_source.to_account_info(),
+                    from: self.capital_source.to_account_info(),
                     to: self.source.to_account_info(),
                     authority: self.signer.to_account_info(),
                     mint: token_mint.to_account_info(),

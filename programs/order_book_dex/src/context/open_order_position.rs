@@ -91,8 +91,12 @@ impl<'info> OpenOrderPosition<'info> {
         ];
 
         let order_seed = match self.market_pointer.order_type {
+            // should fix?
             Order::Buy => BID_SEED,
             Order::Sell => ASK_SEED,
+
+            Order::Bid => BID_SEED,
+            Order::Ask => ASK_SEED,
         };
 
         let order_book_config_pubkey = self.order_book_config.key();
