@@ -25,6 +25,7 @@ describe("order_book_dex", () => {
     Transaction,
     TransactionInstruction,
     SystemProgram,
+    sendAndConfirmTransaction,
   } = anchor.web3
 
   const provider = <AnchorProvider>anchor.getProvider();
@@ -434,12 +435,12 @@ describe("order_book_dex", () => {
     ], program.programId);
 
     const tx = await program.methods
-      // this should be bid instead of buy. will fix later
       .openOrderPosition()
       .accountsPartial({
         signer: signer.publicKey,
         orderBookConfig,
-        marketPointer: bidMarketPointer,
+        marketPointerRead: null,
+        marketPointerWrite: bidMarketPointer,
         orderPosition,
         prevOrderPosition: null,
         nextOrderPosition: null,
@@ -448,7 +449,11 @@ describe("order_book_dex", () => {
       .signers([signer])
       .rpc();
 
+
+
     const latestBlockHash = await provider.connection.getLatestBlockhash()
+
+
     await provider.connection.confirmTransaction({
       blockhash: latestBlockHash.blockhash,
       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,

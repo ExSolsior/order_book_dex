@@ -83,6 +83,14 @@ impl MarketPointer {
         Ok(())
     }
 
+    pub fn validate_mutable_status(
+        pointer_reader: Option<&Account<'_, MarketPointer>>,
+        pointer_writer: Option<&Account<'_, MarketPointer>>,
+    ) -> bool {
+        !((pointer_reader.is_none() && pointer_writer.is_none())
+            || (pointer_reader.is_some() && pointer_writer.is_some()))
+    }
+
     pub fn is_valid_order_book_config(&self, config: Pubkey) -> bool {
         self.order_book_config == config
     }
