@@ -18,6 +18,8 @@ use crate::constants::{BYTE, U64_BYTES};
 pub enum Order {
     Buy,
     Sell,
+    Bid,
+    Ask,
 }
 
 impl Order {
