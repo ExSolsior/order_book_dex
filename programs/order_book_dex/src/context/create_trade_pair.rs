@@ -79,8 +79,10 @@ impl<'info> CreateTradePair<'info> {
             is_reverse,
         );
 
-        self.bid_market_pointer.init(Order::Buy)?;
-        self.ask_market_pointer.init(Order::Sell)?;
+        self.bid_market_pointer
+            .init(Order::Buy, self.order_book_config.key())?;
+        self.ask_market_pointer
+            .init(Order::Sell, self.order_book_config.key())?;
 
         msg!("New Trade Pair Created: {}", self.order_book_config.key());
 

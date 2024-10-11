@@ -239,8 +239,6 @@ describe("order_book_dex", () => {
       Buffer.from('market-pointer'),
     ], program.programId);
 
-
-
     const tx = await program.methods
       .createTradePair(false)
       .accounts({
@@ -335,8 +333,6 @@ describe("order_book_dex", () => {
 
   it("Create Order Position -> Market Maker", async () => {
 
-    // console.log(users[0].vaultAccountList.tokenAccounts)
-
     const signer = users[0].keypair;
 
     const {
@@ -387,6 +383,67 @@ describe("order_book_dex", () => {
         tokenProgramA,
         tokenProgramB,
         systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([signer])
+      .rpc();
+
+    const latestBlockHash = await provider.connection.getLatestBlockhash()
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: tx,
+    });
+
+  })
+
+  it("Open Order Position -> Market Maker", async () => {
+
+    const signer = users[0].keypair;
+
+    const {
+      tokenMintA,
+      tokenMintB,
+    } = orderBookConfigAddressList[0];
+
+    const [orderBookConfig] = PublicKey.findProgramAddressSync([
+      tokenMintA.toBuffer(),
+      tokenMintB.toBuffer(),
+      Buffer.from('order-book-config'),
+    ], program.programId);
+
+    const bufNum = Buffer.allocUnsafe(8);
+    const num = BigInt(0);
+    bufNum.writeBigUInt64LE(num, 0);
+    const [orderPosition] = PublicKey.findProgramAddressSync([
+      bufNum,
+      signer.publicKey.toBuffer(),
+      // 'market-maker-order-position'
+      Buffer.from('order-position'),
+    ], program.programId);
+
+    const [bidMarketPointer] = PublicKey.findProgramAddressSync([
+      Buffer.from('bid-market-pointer'),
+      orderBookConfig.toBuffer(),
+      Buffer.from('market-pointer'),
+    ], program.programId);
+
+    const [askMarketPointer] = PublicKey.findProgramAddressSync([
+      Buffer.from('ask-market-pointer'),
+      orderBookConfig.toBuffer(),
+      Buffer.from('market-pointer'),
+    ], program.programId);
+
+    const tx = await program.methods
+      // this should be bid instead of buy. will fix later
+      .openOrderPosition()
+      .accountsPartial({
+        signer: signer.publicKey,
+        orderBookConfig,
+        marketPointer: bidMarketPointer,
+        orderPosition,
+        prevOrderPosition: null,
+        nextOrderPosition: null,
+        nextPositionPointer: null,
       })
       .signers([signer])
       .rpc();

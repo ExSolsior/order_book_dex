@@ -18,10 +18,10 @@ use anchor_lang::{
 #[derive(Accounts)]
 pub struct OpenOrderPosition<'info> {
     #[account(mut)]
-    pub singer: Signer<'info>,
+    pub signer: Signer<'info>,
 
     #[account(
-        constraint = market_pointer.is_valid_config(order_book_config.key()),
+        constraint = market_pointer.is_valid_order_book_config(order_book_config.key()),
         constraint = order_position.is_valid_order_book_config(order_book_config.key()),
         constraint = OrderBookConfig::is_valid_config_with_order_position(order_book_config.key(), prev_order_position.as_ref()),
         constraint = OrderBookConfig::is_valid_config_with_order_position(order_book_config.key(), next_order_position.as_ref()),
@@ -29,7 +29,8 @@ pub struct OpenOrderPosition<'info> {
     pub order_book_config: Account<'info, OrderBookConfig>,
 
     #[account(
-        constraint = market_pointer.is_valid_execution(),
+        mut,
+        // constraint = market_pointer.is_valid_availability(),
         constraint = market_pointer.is_valid_order_type_match(prev_order_position.as_ref()),
         constraint = market_pointer.is_valid_order_type_match(next_order_position.as_ref()),
         constraint = market_pointer.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref()),

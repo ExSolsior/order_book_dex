@@ -29,7 +29,7 @@ impl MarketPointer {
         + U64_BYTES * 2
         + (BYTE + ExecutionMarketOrder::LEN);
 
-    pub fn init(&mut self, order_type: Order) -> Result<()> {
+    pub fn init(&mut self, order_type: Order, order_book_config: Pubkey) -> Result<()> {
         let Clock {
             slot,
             unix_timestamp,
@@ -37,6 +37,7 @@ impl MarketPointer {
         } = Clock::get()?;
 
         self.order_type = order_type;
+        self.order_book_config = order_book_config;
         self.order_position_pointer = None;
         self.timestamp = unix_timestamp;
         self.slot = slot;
@@ -82,7 +83,7 @@ impl MarketPointer {
         Ok(())
     }
 
-    pub fn is_valid_config(&self, config: Pubkey) -> bool {
+    pub fn is_valid_order_book_config(&self, config: Pubkey) -> bool {
         self.order_book_config == config
     }
 
