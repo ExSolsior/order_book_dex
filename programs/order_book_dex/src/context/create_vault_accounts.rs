@@ -34,7 +34,7 @@ pub struct CreateVaultAccounts<'info> {
         ],
         bump,
         token::mint = token_mint_a,
-        token::authority = signer,
+        token::authority = order_book_config,
         token::token_program = token_program_a,
     )]
     pub vault_a: InterfaceAccount<'info, TokenAccount>,

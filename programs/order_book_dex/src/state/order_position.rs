@@ -1,6 +1,6 @@
 use crate::{
     constants::{BYTE, DISCRIMINATOR, I64_BYTES, U64_BYTES},
-    state::{ExecutionMarketOrder, MarketPointer, Order, OrderBookConfig},
+    state::{MarketOrder, MarketPointer, Order, OrderBookConfig},
 };
 use anchor_lang::{
     prelude::*,
@@ -65,7 +65,8 @@ impl OrderPosition {
 
     pub fn open(&mut self) {}
 
-    pub fn update(&mut self, market_order: &ExecutionMarketOrder) -> u64 {
+    // problem with this. doesn't take into accout price and amount that is available
+    pub fn update(&mut self, market_order: &MarketOrder) -> u64 {
         let amount = if market_order.amount() >= self.amount {
             self.amount
         } else {
@@ -77,6 +78,8 @@ impl OrderPosition {
         if self.amount == 0 {
             self.is_avialable = false;
         }
+
+        self.price * amount;
 
         return amount;
     }

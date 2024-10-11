@@ -12,13 +12,12 @@ pub struct MarketPointer {
     pub order_type: Order,
     pub order_book_config: Pubkey,
     pub order_position_pointer: Option<Pubkey>,
-    pub next_position_pointer: Option<Pubkey>,
     pub timestamp: i64,
     pub slot: u64,
 
     // if fill order is None, it is available for execution of market order
-    // could name this market_order instead of fill_order
-    pub fill_order: Option<ExecutionMarketOrder>,
+    // could name this market_order instead of market_order
+    pub market_order: Option<MarketOrder>,
 }
 
 impl MarketPointer {
@@ -27,7 +26,7 @@ impl MarketPointer {
         + Order::LEN
         + (BYTE + PUBKEY_BYTES)
         + U64_BYTES * 2
-        + (BYTE + ExecutionMarketOrder::LEN);
+        + (BYTE + MarketOrder::LEN);
 
     pub fn init(&mut self, order_type: Order, order_book_config: Pubkey) -> Result<()> {
         let Clock {
@@ -41,7 +40,7 @@ impl MarketPointer {
         self.order_position_pointer = None;
         self.timestamp = unix_timestamp;
         self.slot = slot;
-        self.fill_order = None;
+        self.market_order = None;
 
         Ok(())
     }
@@ -52,21 +51,52 @@ impl MarketPointer {
         fill: Fill,
         target_amount: u64,
         owner: Pubkey,
-    ) {
-        self.fill_order = Some(ExecutionMarketOrder {
+        source: Pubkey,
+        dest: Pubkey,
+        next_position_pointer: Pubkey,
+    ) -> Result<()> {
+        let Clock {
+            slot,
+            unix_timestamp,
+            ..
+        } = Clock::get()?;
+
+        self.timestamp = unix_timestamp;
+        self.slot = slot;
+
+        self.market_order = Some(MarketOrder {
             order_type,
             fill,
             target_amount,
-            collected_amount: 0,
+            total_amount: 0,
             owner,
+            source,
+            dest,
+            next_position_pointer,
         });
+
+        Ok(())
     }
 
-    pub fn remove_market_order(&mut self) {
-        self.fill_order = None;
+    pub fn remove_market_order(&mut self) -> Result<()> {
+        let Clock {
+            slot,
+            unix_timestamp,
+            ..
+        } = Clock::get()?;
+
+        self.timestamp = unix_timestamp;
+        self.slot = slot;
+        self.market_order = None;
+
+        Ok(())
     }
 
-    pub fn update(&mut self, order_position: &mut OrderPosition, amount: u64) -> Result<()> {
+    pub fn update(
+        &mut self,
+        order_position: &mut OrderPosition,
+        amount: u64,
+    ) -> Result<(u64, u64)> {
         let Clock {
             slot,
             unix_timestamp,
@@ -78,7 +108,7 @@ impl MarketPointer {
         self.timestamp = unix_timestamp;
         self.slot = slot;
 
-        self.fill_order.as_mut().unwrap().update(amount);
+        self.market_order.as_mut().unwrap().update(amount);
 
         Ok(())
     }
@@ -100,15 +130,19 @@ impl MarketPointer {
     }
 
     pub fn is_valid_availability(&self) -> bool {
-        self.fill_order.is_none()
+        self.market_order.is_none()
     }
 
     pub fn is_valid_execution(&self) -> bool {
-        self.fill_order.is_some()
+        self.market_order.is_some()
     }
 
     pub fn is_valid_market_order_owner(&self, owner: Pubkey) -> bool {
-        self.fill_order.as_ref().unwrap().owner == owner
+        self.market_order.as_ref().unwrap().owner == owner
+    }
+
+    pub fn is_valid_order_pointer(&self, order_position: Pubkey) -> bool {
+        self.market_order.as_ref().unwrap().next_position_pointer == order_position
     }
 
     pub fn is_valid_position(
@@ -140,58 +174,85 @@ impl MarketPointer {
         order_position: &Account<'_, OrderPosition>,
         next_position_pointer: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
-        if self.next_position_pointer.is_some()
+        if self.market_order.is_some()
             && next_position_pointer.is_some()
             && self.order_type == Order::Buy
         {
-            let position_pointer = self.next_position_pointer.unwrap();
+            let position_pointer = self.market_order.as_ref().unwrap().next_position_pointer;
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount < next_position_pointer.amount;
         }
 
-        if self.next_position_pointer.is_some()
+        if self.market_order.is_some()
             && next_position_pointer.is_some()
             && self.order_type == Order::Sell
         {
-            let position_pointer = self.next_position_pointer.unwrap();
+            let position_pointer = self.market_order.as_ref().unwrap().next_position_pointer;
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount > next_position_pointer.amount;
         }
 
-        return self.next_position_pointer.is_none();
+        return self.market_order.is_none();
     }
 
     pub fn is_valid_prev_order_position(
         &self,
         prev_order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
-        if self.next_position_pointer.is_some() && prev_order_position.is_some() {
-            return self.next_position_pointer.unwrap() != prev_order_position.unwrap().key();
+        if self.market_order.is_some() && prev_order_position.is_some() {
+            return self.market_order.as_ref().unwrap().next_position_pointer
+                != prev_order_position.unwrap().key();
         }
 
         return prev_order_position.is_none();
     }
+
+    pub fn is_valid_return(&self, owner: Pubkey) -> bool {
+        let Clock {
+            slot,
+            // unix_timestamp,
+            ..
+        } = match Clock::get() {
+            Ok(data) => data,
+            _ => return false,
+        };
+
+        let delta = slot - self.slot;
+
+        self.market_order.as_ref().unwrap().owner == owner || delta > 20
+    }
+
+    pub fn is_valid_source(&self, source: Pubkey) -> bool {
+        self.market_order.as_ref().unwrap().source == source
+    }
+
+    pub fn is_valid_dest(&self, dest: Pubkey) -> bool {
+        self.market_order.as_ref().unwrap().dest == dest
+    }
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct ExecutionMarketOrder {
+pub struct MarketOrder {
     pub order_type: Order,
     pub fill: Fill,
     pub target_amount: u64,
-    pub collected_amount: u64,
+    pub total_amount: u64,
     pub owner: Pubkey,
+    pub source: Pubkey,
+    pub dest: Pubkey,
+    pub next_position_pointer: Pubkey,
 }
 
-impl ExecutionMarketOrder {
+impl MarketOrder {
     pub const LEN: usize = Order::LEN + Fill::LEN + U64_BYTES * 2 + PUBKEY_BYTES;
 
     pub fn update(&mut self, amount: u64) {
-        self.collected_amount += amount;
+        self.total_amount += amount;
     }
 
     pub fn amount(&self) -> u64 {
-        self.target_amount - self.collected_amount
+        self.target_amount - self.total_amount
     }
 }
