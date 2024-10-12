@@ -63,14 +63,31 @@ impl OrderPosition {
         Ok(())
     }
 
-    pub fn open(&mut self) {}
+    pub fn get_total(balance: u64, cost: u64) -> u64 {
+        return if balance > cost { cost } else { balance };
+    }
 
-    // problem with this. doesn't take into accout price and amount that is available
-    pub fn update(&mut self, market_order: &MarketOrder) -> u64 {
-        let amount = if market_order.amount() >= self.amount {
-            self.amount
+    // how to handle if the total is zero, but amount isn't or vice versa?
+    // how to handle fees?
+    // how to handle which is sending and receiving?
+    // how to handle some other thing that just escaped my mind?
+    // how to handle big ints?
+    // how to handle overflow | underflow with multiplication and division?
+    pub fn update(&mut self, market_order: &MarketOrder, balance: u64) -> (u64, u64) {
+        let delta = market_order.amount();
+
+        let (amount, total) = if delta >= self.amount {
+            self.amount;
+            (
+                self.amount,
+                OrderPosition::get_total(balance, self.price * self.amount),
+            )
         } else {
-            self.amount - market_order.amount()
+            let amount = self.amount - delta;
+            (
+                amount,
+                OrderPosition::get_total(balance, self.price * amount),
+            )
         };
 
         self.amount -= amount;
@@ -79,9 +96,7 @@ impl OrderPosition {
             self.is_avialable = false;
         }
 
-        self.price * amount;
-
-        return amount;
+        return (amount, total);
     }
 
     pub fn is_next(&self) -> bool {

@@ -1,6 +1,7 @@
 use crate::{
     constants::ORDER_BOOK_CONFIG_SEED,
-    state::{MarketPointer, OrderBookConfig, OrderPosition},
+    errors::ErrorCode,
+    state::{MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
@@ -107,13 +108,27 @@ impl<'info> FillMarketOrder<'info> {
                 )
             };
 
-        let amount = self
-            .order_position
-            .update(&self.market_pointer.market_order.as_ref().unwrap());
+        let balance = match self.market_pointer.order_type  {
+            Order::Buy => self.taker_source.amount,
+            Order::Sell => self.maker_source.amount,
+            _ => return err!(ErrorCode::InvalidOrderType),
+        };
 
-        let (sending_amount, receiving_amount) = self
+        let (amount, total) = self
+            .order_position
+            .update(&self.market_pointer.market_order.as_ref().unwrap(), balance);
+
+        
+        self
             .market_pointer
             .update(&mut self.order_position, amount)?;
+
+        let (sending_amount, receiving_amount) = match self.market_pointer.order_type  {
+            Order::Buy => (total, amount),
+            Order::Sell => (amount, total),
+            _ => return err!(ErrorCode::InvalidOrderType),
+        };
+
 
         let token_mint_a_key = self.token_mint_a.key();
         let token_mint_b_key = self.token_mint_b.key();

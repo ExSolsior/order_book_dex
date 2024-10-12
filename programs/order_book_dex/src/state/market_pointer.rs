@@ -18,6 +18,7 @@ pub struct MarketPointer {
     // if fill order is None, it is available for execution of market order
     // could name this market_order instead of market_order
     pub market_order: Option<MarketOrder>,
+    pub execution_stats: Option<ExecutionStats>,
 }
 
 impl MarketPointer {
@@ -93,11 +94,7 @@ impl MarketPointer {
     }
 
     // will come back to this later
-    pub fn update(
-        &mut self,
-        order_position: &mut OrderPosition,
-        amount: u64,
-    ) -> Result<(u64, u64)> {
+    pub fn update(&mut self, order_position: &mut OrderPosition, amount: u64) -> Result<()> {
         let Clock {
             slot,
             unix_timestamp,
@@ -106,6 +103,7 @@ impl MarketPointer {
         if order_position.is_next() {
             self.order_position_pointer = order_position.next();
         }
+
         self.timestamp = unix_timestamp;
         self.slot = slot;
 
@@ -239,6 +237,8 @@ pub struct MarketOrder {
     pub order_type: Order,
     pub fill: Fill,
     pub target_amount: u64,
+
+    // remove
     pub total_amount: u64,
     pub owner: Pubkey,
     pub source: Pubkey,
@@ -256,4 +256,14 @@ impl MarketOrder {
     pub fn amount(&self) -> u64 {
         self.target_amount - self.total_amount
     }
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct ExecutionStats {
+    pub owner: Pubkey,
+    pub source: Pubkey,
+    pub dest: Pubkey,
+    pub next_position_pointer: Pubkey,
+    pub total_amount: u64,
+    pub total_paid: u64,
 }

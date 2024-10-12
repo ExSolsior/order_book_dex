@@ -10,4 +10,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid Token Program")]
     InvalidTokenProgram,
+
+    #[msg("Invalid Order Type")]
+    InvalidOrderType,
 }
