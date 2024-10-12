@@ -18,6 +18,7 @@ pub struct FillMarketOrder<'info> {
         constraint = market_pointer.is_valid_execution(),
         constraint = market_pointer.is_valid_market_order_owner(signer.key()),
         constraint = market_pointer.is_valid_order_book_config(order_book_config.key()),
+        constraint = market_pointer.is_valid_fill(order_position.price),
     )]
     pub market_pointer: Account<'info, MarketPointer>,
 
@@ -108,6 +109,7 @@ impl<'info> FillMarketOrder<'info> {
                 )
             };
 
+        let decimals = token_mint_a.decimals + token_mint_b.decimals;
         let balance = match self.market_pointer.order_type  {
             Order::Buy => self.taker_source.amount,
             Order::Sell => self.maker_source.amount,
@@ -116,12 +118,12 @@ impl<'info> FillMarketOrder<'info> {
 
         let (amount, total) = self
             .order_position
-            .update(&self.market_pointer.market_order.as_ref().unwrap(), balance);
+            .update(self.market_pointer.delta_amount(), balance, decimals as u32);
 
         
         self
             .market_pointer
-            .update(&mut self.order_position, amount)?;
+            .update(&mut self.order_position, amount, total)?;
 
         let (sending_amount, receiving_amount) = match self.market_pointer.order_type  {
             Order::Buy => (total, amount),
@@ -175,3 +177,10 @@ impl<'info> FillMarketOrder<'info> {
         Ok(())
     }
 }
+
+
+// convert to uszie 128 first to prevent interger overflow from mul
+// fixed cost calc by shift decimals, 
+// handling rounding up to 1 if total is 0
+// restructured market pointer state
+// handle partial and full conditions

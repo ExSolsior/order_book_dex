@@ -1,6 +1,6 @@
 use crate::{
     constants::{BYTE, DISCRIMINATOR, I64_BYTES, U64_BYTES},
-    state::{MarketOrder, MarketPointer, Order, OrderBookConfig},
+    state::{MarketPointer, Order, OrderBookConfig},
 };
 use anchor_lang::{
     prelude::*,
@@ -31,6 +31,8 @@ impl OrderPosition {
         + U64_BYTES * 3
         + I64_BYTES
         + BYTE;
+
+    pub const BASE10: u64 = 10;
 
     pub fn init(
         &mut self,
@@ -67,28 +69,33 @@ impl OrderPosition {
         return if balance > cost { cost } else { balance };
     }
 
-    // how to handle if the total is zero, but amount isn't or vice versa?
     // how to handle fees?
-    // how to handle which is sending and receiving?
     // how to handle some other thing that just escaped my mind?
     // how to handle big ints?
-    // how to handle overflow | underflow with multiplication and division?
-    pub fn update(&mut self, market_order: &MarketOrder, balance: u64) -> (u64, u64) {
-        let delta = market_order.amount();
-
-        let (amount, total) = if delta >= self.amount {
+    pub fn update(&mut self, delta_amount: u64, balance: u64, decimals: u32) -> (u64, u64) {
+        let (amount, total) = if delta_amount >= self.amount {
             self.amount;
             (
                 self.amount,
-                OrderPosition::get_total(balance, self.price * self.amount),
+                OrderPosition::get_total(
+                    balance,
+                    ((self.price as u128 * self.amount as u128)
+                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
+                ),
             )
         } else {
-            let amount = self.amount - delta;
+            let amount = self.amount - delta_amount;
             (
                 amount,
-                OrderPosition::get_total(balance, self.price * amount),
+                OrderPosition::get_total(
+                    balance,
+                    ((self.price as u128 * amount as u128)
+                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
+                ),
             )
         };
+
+        let total = if total == 0 { 1 } else { total };
 
         self.amount -= amount;
 
@@ -112,11 +119,6 @@ impl OrderPosition {
 
     pub fn is_valid_order_book_config(&self, order_book_config: Pubkey) -> bool {
         self.order_book_config == order_book_config
-    }
-
-    // don't think I'll be using this
-    pub fn is_valid_order_position_config(&self, order_position_config: Pubkey) -> bool {
-        self.order_position_config == order_position_config
     }
 
     pub fn is_valid_order_type_match(&self, market_pointer: &Account<'_, MarketPointer>) -> bool {
