@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { CaretDownIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,8 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
-import { Button } from "../ui/button";
-import { CaretDownIcon } from "@radix-ui/react-icons";
 
 export function MainNav() {
   const pathname = usePathname();
@@ -21,7 +20,7 @@ export function MainNav() {
         href="/"
         className="flex items-center space-x-2 lg:mr-6"
       >
-        <span className="font-bold lg:inline-block">Open Book Dex</span>
+        <span className="font-bold lg:inline-block tracking-widest">OBDEX</span>
       </Link>
 
       <nav className="flex items-center gap-4 text-sm lg:gap-6">
