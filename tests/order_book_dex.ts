@@ -708,8 +708,50 @@ describe("order_book_dex", () => {
 
     })
 
+    it("Complete Market Order", async () => {
+
+      const signer = users[1].keypair;
+
+      const {
+        tokenMintA,
+        tokenMintB,
+      } = orderBookConfigAddressList[0];
+
+      const [orderBookConfig] = PublicKey.findProgramAddressSync([
+        tokenMintA.toBuffer(),
+        tokenMintB.toBuffer(),
+        Buffer.from('order-book-config'),
+      ], program.programId);
+
+      const [buyMarketPointer] = PublicKey.findProgramAddressSync([
+        Buffer.from('buy-market-pointer'),
+        orderBookConfig.toBuffer(),
+        Buffer.from('market-pointer'),
+      ], program.programId);
+
+      const [sellMarketPointer] = PublicKey.findProgramAddressSync([
+        Buffer.from('sell-market-pointer'),
+        orderBookConfig.toBuffer(),
+        Buffer.from('market-pointer'),
+      ], program.programId);
+
+      const tx = await program.methods
+        .returnExecutionMarketOrder()
+        .accountsPartial({
+          signer: signer.publicKey,
+          orderBookConfig,
+          marketPointer: sellMarketPointer,
+        })
+        .signers([signer])
+        .rpc();
+
+      const latestBlockHash = await provider.connection.getLatestBlockhash()
+      await provider.connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: tx,
+      });
+    })
+
   })
-
-
-
 });
