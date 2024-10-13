@@ -69,9 +69,9 @@ impl OrderBookConfig {
         market_pointer: &Account<'_, MarketPointer>,
     ) -> bool {
         if !self.is_reverse && market_pointer.order_type == Order::Buy {
-            self.token_mint_a == source
-        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
             self.token_mint_b == source
+        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
+            self.token_mint_a == source
         } else {
             false
         }
@@ -83,9 +83,9 @@ impl OrderBookConfig {
         market_pointer: &Account<'_, MarketPointer>,
     ) -> bool {
         if !self.is_reverse && market_pointer.order_type == Order::Buy {
-            self.token_mint_b == dest
-        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
             self.token_mint_a == dest
+        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
+            self.token_mint_b == dest
         } else {
             false
         }
