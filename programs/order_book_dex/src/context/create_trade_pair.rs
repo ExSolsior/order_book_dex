@@ -18,7 +18,7 @@ pub struct CreateTradePair<'info> {
             &token_mint_b.to_account_info(),
             &token_program_a.to_account_info(),
             &token_program_b.to_account_info(),
-        ) @ ErrorCode::InvalidMints,
+        ) @ ErrorCode::InvalidMint,
         init,
         payer = authority,
         space = OrderBookConfig::LEN,

@@ -429,3 +429,33 @@ Notes:
 // algo -> de 
 
 
+TODO:
+    instructions:
+        - cancel order position -> set flag to close
+        - close order positions
+        - reclaim vaults / close vaults
+
+        - set flag to close order book config
+        - set flag to close order position config
+        - close order book config
+        - close order position config
+
+    other
+        - implement errors
+        - launch on dev net
+
+    optimazitions:
+        - lookup tables system via CPIs
+
+    backend
+        - create server -> node express | golang gorilla | maybe rust?
+        - websockets collecting events from rpc
+        - postgress database -> store and manage events
+        - redis -> cache storage
+        - launch on cloud service
+
+    client
+        - wallet integration
+        - page view listing all order pairs
+        - page view order pair trade
+        - algorithm to handle transactions
