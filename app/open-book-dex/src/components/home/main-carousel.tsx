@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import * as React from "react";
-import { Card, CardContent } from "./ui/card";
+import { Card, CardContent } from "../ui/card";
 
 export function MainCarousel() {
   const plugin = React.useRef(
@@ -67,9 +67,9 @@ export function MainCarousel() {
               <img
                 src="/assets/images/banner-3.webp"
                 alt="Banner 3"
-                className="w-full h-72 object-cover opacity-40"
+                className="w-full h-72 object-cover opacity-80 rounded-xl"
               />
-              <CardContent className="absolute inset-0 rounded-xl flex flex-col items-start justify-end p-6 h-72 gap-5">
+              <CardContent className="absolute inset-0 rounded-xl flex flex-col items-start justify-end p-6 h-72 gap-5 bg-gradient-to-tr from-black">
                 <span className="text-4xl font-semibold">New Token: NEIRO</span>
                 <span className="text-xl opacity-80">
                   The NEIRO/WETH market will be live soon.
