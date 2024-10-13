@@ -131,12 +131,12 @@ impl OrderPosition {
         source: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse && order_type == Order::Sell && source.mint == config.token_mint_b)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && source.mint == config.token_mint_a)
+        ((!config.is_reverse && order_type == Order::Bid
+            || config.is_reverse && order_type == Order::Ask)
+            && source.mint == config.token_mint_a)
+            || ((!config.is_reverse && order_type == Order::Ask
+                || config.is_reverse && order_type == Order::Bid)
+                && source.mint == config.token_mint_b)
     }
 
     pub fn is_valid_destination(
@@ -145,13 +145,11 @@ impl OrderPosition {
         destination: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse
-                && order_type == Order::Sell
+        ((!config.is_reverse && order_type == Order::Bid
+            || config.is_reverse && order_type == Order::Ask)
+            && destination.mint == config.token_mint_b)
+            || ((!config.is_reverse && order_type == Order::Ask
+                || config.is_reverse && order_type == Order::Bid)
                 && destination.mint == config.token_mint_a)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && destination.mint == config.token_mint_b)
     }
 }
