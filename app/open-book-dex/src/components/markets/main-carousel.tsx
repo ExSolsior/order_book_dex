@@ -1,59 +1,45 @@
-"use client"
+"use client";
 
-import * as React from "react"
 import {
-    Carousel,
-    CarouselContent,
-    CarouselItem,
-    CarouselNext,
-    CarouselPrevious,
-} from "@/components/ui/carousel"
-import Autoplay from "embla-carousel-autoplay"
-import { cn } from "@/lib/utils"
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+import * as React from "react";
+import { Card, CardContent } from "../ui/card";
 
-const MainCarousel = React.forwardRef<
-    HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement>
->(({ className }, ref) => {
-    const plugin = React.useRef(
-        Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })
-    );
+export function MainCarousel() {
+  const plugin = React.useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true })
+  );
 
-    return <Carousel className={cn("w-full", className)}
-        plugins={[plugin.current]}
-        ref={ref}
+  return (
+    <Carousel
+      plugins={[plugin.current]}
+      className="container"
     >
-        <CarouselContent>
-            <MainCarouselItem1 />
-            {/* <CarouselItem>2</CarouselItem>
-            <CarouselItem>3</CarouselItem> */}
-        </CarouselContent>
-        <CarouselPrevious />
-        <CarouselNext />
+      <CarouselContent>
+        <CarouselItem>
+          <div className="p-1">
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center p-6 h-72 gap-5 bg-gradient-to-b from-red-900 to-70%">
+                <span className="text-4xl font-semibold">
+                  First Open Book DEX
+                </span>
+                <span className="text-xl font-semibold">on</span>
+                <span className="text-5xl font-semibold text-red-700">
+                  SOON
+                </span>
+              </CardContent>
+            </Card>
+          </div>
+        </CarouselItem>
+      </CarouselContent>
+      <CarouselPrevious />
+      <CarouselNext />
     </Carousel>
-});
-MainCarousel.displayName = "MainCarousel"
-
-const MainCarouselItem = React.forwardRef<
-    HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-    const classes = ""
-
-    return <CarouselItem ref={ref} className={cn(classes, className)} {...props} />
-})
-MainCarouselItem.displayName = "MainCarouselItem"
-
-const MainCarouselItem1 = React.forwardRef<
-    HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement>
->(({ className }, ref) => {
-    return <MainCarouselItem ref={ref} className={`${cn(className)}`}>
-        <h2 className="text-4xl font-bold mb-4 text-center">First Open Book DEX</h2>
-        <h2 className="text-3xl font-bold mb-4 text-center">on</h2>
-        <h2 className="text-4xl font-bold mb-4 text-center text-red-700">SOON</h2>
-    </MainCarouselItem>
-})
-MainCarouselItem1.displayName = "MainCarouselItem1"
-
-export { MainCarousel }
+  );
+}

@@ -5,46 +5,47 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 const geistSans = localFont({
-    src: "./fonts/GeistVF.woff",
-    variable: "--font-geist-sans",
-    weight: "100 900"
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900"
 });
 const geistMono = localFont({
-    src: "./fonts/GeistMonoVF.woff",
-    variable: "--font-geist-mono",
-    weight: "100 900"
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900"
 });
 
 export const metadata: Metadata = {
-    title: "Open Book Dex",
-    description: "First Open Book Dex on SOON"
+  title: "Open Book Dex",
+  description: "First Open Book Dex on SOON"
 };
 
 export default function RootLayout({
-    children
+  children
 }: Readonly<{
-    children: React.ReactNode;
+  children: React.ReactNode;
 }>) {
-    return (
-        <html lang="en">
-            <head />
+  return (
+    <html lang="en">
+      <head />
 
-            <body
-                className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-            >
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="dark"
-                    enableSystem
-                    disableTransitionOnChange
-                >
-                    <div className="relative flex min-h-screen flex-col bg-background">
-                        <SiteHeader />
-
-                        {children}
-                    </div>
-                </ThemeProvider>
-            </body>
-        </html>
-    );
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background antialiased`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div vaul-drawer-wrapper="">
+            <div className="container relative flex min-h-screen flex-col bg-background">
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+            </div>
+          </div>
+        </ThemeProvider>
+      </body>
+    </html>
+  );
 }
