@@ -1,6 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program, AnchorProvider, Wallet } from "@coral-xyz/anchor";
 import { OrderBookDex } from "../target/types/order_book_dex";
+import { assert } from "chai";
 
 import {
   getOrCreateAssociatedTokenAccount,
@@ -500,6 +501,78 @@ describe("order_book_dex", () => {
   })
 
 
+  it("Cancel Order Position -> Market Maker", async () => {
+    const signer = users[0].keypair;
+  
+    const {
+      tokenMintA,
+      tokenMintB,
+    } = orderBookConfigAddressList[0];
+  
+    const [orderBookConfig] = PublicKey.findProgramAddressSync([
+      tokenMintA.toBuffer(),
+      tokenMintB.toBuffer(),
+      Buffer.from('order-book-config'),
+    ], program.programId);
+  
+    const bufNum = Buffer.allocUnsafe(8);
+    const num = BigInt(0);
+    bufNum.writeBigUInt64LE(num, 0);
+    const [orderPosition] = PublicKey.findProgramAddressSync([
+      bufNum,
+      signer.publicKey.toBuffer(),
+      Buffer.from('order-position'),
+    ], program.programId);
+  
+    const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+      signer.publicKey.toBuffer(),
+      orderBookConfig.toBuffer(),
+      Buffer.from('order-position-config'),
+    ], program.programId);
+  
+    const [bidMarketPointer] = PublicKey.findProgramAddressSync([
+      Buffer.from('bid-market-pointer'),
+      orderBookConfig.toBuffer(),
+      Buffer.from('market-pointer'),
+    ], program.programId);
+  
+    const tokenAccounts = users[0].vaultAccountList[0].tokenAccounts
+      .find(list => list.side === 'bid');
+  
+    const tx = await program.methods
+      .cancelOrderPosition()
+      .accountsStrict({
+        signer: signer.publicKey,
+        orderBookConfig,
+        marketPointerRead: null,
+        marketPointerWrite: bidMarketPointer,
+        orderPosition,
+        orderPositionConfig,
+        prevOrderPosition: null,
+        nextOrderPosition: null,
+        capitalDestination: tokenAccounts.capitalSource.address,
+        source: tokenAccounts.source,
+        tokenMint: tokenMintA,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([signer])
+      .rpc();
+  
+    const latestBlockHash = await provider.connection.getLatestBlockhash();
+  
+    await provider.connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: tx,
+    });
+  
+    const orderPositionAccount = await program.account.orderPosition.fetchNullable(orderPosition);
+    assert.isNull(orderPositionAccount, "Order position should no longer exist");
+  });
+
+=======
+
   describe("Market Taker", () => {
 
     before(async () => {
@@ -753,4 +826,5 @@ describe("order_book_dex", () => {
     })
 
   })
+
 });
