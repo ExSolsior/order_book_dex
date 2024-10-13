@@ -20,7 +20,7 @@ pub struct OrderPosition {
     pub amount: u64,
     pub slot: u64,
     pub timestamp: i64,
-    pub is_avialable: bool,
+    pub is_available: bool,
 }
 
 impl OrderPosition {
@@ -60,7 +60,7 @@ impl OrderPosition {
         self.amount = amount;
         self.timestamp = unix_timestamp;
         self.slot = slot;
-        self.is_avialable = true;
+        self.is_available = true;
 
         Ok(())
     }
@@ -100,14 +100,14 @@ impl OrderPosition {
         self.amount -= amount;
 
         if self.amount == 0 {
-            self.is_avialable = false;
+            self.is_available = false;
         }
 
         return (amount, total);
     }
 
     pub fn is_next(&self) -> bool {
-        !self.is_avialable
+        !self.is_available
     }
 
     pub fn next(&mut self) -> Option<Pubkey> {

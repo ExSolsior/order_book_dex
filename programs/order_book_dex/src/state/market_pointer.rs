@@ -162,7 +162,7 @@ impl MarketPointer {
         self.execution_stats.as_ref().unwrap().next_position_pointer == order_position
     }
 
-    pub fn is_valid_position(
+    pub fn is_valid_position_add(
         &self,
         prev_order_position: Option<&Account<'_, OrderPosition>>,
         next_order_position: Option<&Account<'_, OrderPosition>>,
@@ -172,6 +172,33 @@ impl MarketPointer {
                 == next_order_position.unwrap().key();
         } else if self.order_position_pointer.is_some() && next_order_position.is_some() {
             return self.order_position_pointer.unwrap() == next_order_position.unwrap().key();
+        } else {
+            return self.order_position_pointer.is_none();
+        }
+    }
+
+    pub fn is_valid_position_remove(
+        &self,
+        order_position: &Account<'_, OrderPosition>,
+        prev_order_position: Option<&Account<'_, OrderPosition>>,
+        next_order_position: Option<&Account<'_, OrderPosition>>,
+    ) -> bool {
+        if prev_order_position.is_some() && next_order_position.is_some() {
+            return prev_order_position.unwrap().next_order_position.unwrap()
+                == order_position.key()
+                && order_position.next_order_position.unwrap()
+                    == next_order_position.unwrap().key();
+        } else if prev_order_position.is_some() && next_order_position.is_none() {
+            return prev_order_position.unwrap().next_order_position.unwrap()
+                == order_position.key()
+                && order_position.next_order_position.is_none();
+        } else if self.order_position_pointer.is_some() && next_order_position.is_some() {
+            return self.order_position_pointer.unwrap() == order_position.key()
+                && order_position.next_order_position.unwrap()
+                    == next_order_position.unwrap().key();
+        } else if self.order_position_pointer.is_some() && next_order_position.is_none() {
+            return self.order_position_pointer.unwrap() == order_position.key()
+                && order_position.next_order_position.is_none();
         } else {
             return self.order_position_pointer.is_none();
         }

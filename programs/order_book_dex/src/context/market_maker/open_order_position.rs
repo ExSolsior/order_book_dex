@@ -1,6 +1,6 @@
 use crate::{
     errors::ErrorCode,
-    state::{MarketPointer, OrderBookConfig, OrderPosition},
+    state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig},
 };
 use anchor_lang::prelude::*;
 
@@ -22,8 +22,8 @@ pub struct OpenOrderPosition<'info> {
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_read.is_valid_order_type_match(next_order_position.as_ref())
             @ ErrorCode::InvalidOrderType,
-        constraint = market_pointer_read.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_read.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPositionAdd,
         constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
             @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_read.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
@@ -41,8 +41,8 @@ pub struct OpenOrderPosition<'info> {
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_write.is_valid_order_type_match(next_order_position.as_ref())
             @ ErrorCode::InvalidOrderType,
-        constraint = market_pointer_write.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_write.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPositionAdd,
         constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
             @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_write.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
@@ -56,10 +56,19 @@ pub struct OpenOrderPosition<'info> {
         mut,
         constraint = order_position.is_valid_order_book_config(order_book_config.key())
             @ ErrorCode::InvalidOrderPosition,
-        constraint = order_position.is_avialable
+        constraint = order_position.is_available
             @ ErrorCode::OrderPositionIsNotAvailable,
     )]
     pub order_position: Account<'info, OrderPosition>,
+
+    #[account(
+        mut,
+        constraint = order_position_config.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPositionConfig,
+        constraint = order_position_config.is_valid_owner(signer.key())
+            @ ErrorCode::InvalidOrderPositionOwner,
+    )]
+    pub order_position_config: Account<'info, OrderPositionConfig>,
 
     #[account(
         mut,
@@ -71,6 +80,7 @@ pub struct OpenOrderPosition<'info> {
         // really added to the ledger, only an issue if there 3rd party clients exist.
         // will review this later if it turns out that it is an issue,
         // and if so just create a flag on order position to solve this
+        // -- it looks like though it will be a problem when doing a cancel so I will make the change
     )]
     pub prev_order_position: Option<Account<'info, OrderPosition>>,
 

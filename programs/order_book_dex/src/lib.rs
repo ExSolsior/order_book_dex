@@ -39,6 +39,15 @@ pub mod order_book_dex {
         ctx.accounts.exec()
     }
 
+    pub fn cancel_order_position(ctx: Context<CancelOrderPosition>) -> Result<()> {
+        ctx.accounts.exec()?;
+        ctx.accounts.refund()
+    }
+
+    pub fn close_order_position(ctx: Context<CloseOrderPosition>) -> Result<()> {
+        ctx.accounts.exec()
+    }
+
     pub fn create_market_order(
         ctx: Context<CreateMarketOrder>,
         order_type: state::Order,

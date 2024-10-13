@@ -59,9 +59,22 @@ pub enum ErrorCode {
     #[msg("Market Order Not In Progress")]
     MarketOrderNotInProgress,
 
-    #[msg("InvalidMarketOrderOwner")]
+    #[msg("Invalid Market Order Owner")]
     InvalidMarketOrderOwner,
 
-    #[msg("InvalidFillOfMarketOrder")]
+    #[msg("Invalid Fill Of Market Order")]
     InvalidFillOfMarketOrder,
+
+    #[msg("Invalid Available Status")]
+    InvalidAvailableStatus,
+
+    #[msg("Invalid Order Position Add")]
+    InvalidOrderPositionAdd,
+
+    #[msg("Invalid Order Position Remove")]
+    InvalidOrderPositionRemove,
+
+    
+    #[msg("Invalid Order Position Config")]
+    InvalidOrderPositionConfig
 }
