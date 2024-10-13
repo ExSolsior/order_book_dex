@@ -32,9 +32,8 @@ pub struct CancelOrderPosition<'info> {
     #[account(
         mut,
         constraint = order_position.is_valid_order_book_config(order_book_config.key()),
-        constraint = !order_position.is_avialable,
-        constraint = order_position.owner == order_position_config.key(),
-        close = signer
+        constraint = order_position.is_avialable,
+        constraint = order_position.order_position_config == order_position_config.key()
     )]
     pub order_position: Account<'info, OrderPosition>,
 
@@ -84,16 +83,19 @@ impl<'info> CancelOrderPosition<'info> {
             market_pointer.order_position_pointer = self.order_position.next_order_position;
         }
 
-        if let Some(next_order_position) = self.next_order_position.as_mut() {
-            // If there's a next order, update its previous pointer to skip over the current order
-            // This completes the removal of the current order from the linked list
-            next_order_position.prev_order_position = self.order_position.prev_order_position;
-        }
-
         // At this point, the current order has been removed from the linked list:
         // - If it was in the middle, the previous and next orders now point to each other
         // - If it was at the head, the market pointer now points to the next order (or None)
         // - If it was at the tail, the previous order now has its next pointer set to None
+
+        // Mark the order position as unavailable and next order as None
+        self.order_position.is_avialable = false;
+        self.order_position.next_order_position = None;
+
+        Ok(())
+    }
+
+    pub fn refund(&mut self) -> Result<()> {
 
         // Transfer funds back to the user
         let amount = self.order_position.amount;
@@ -110,9 +112,6 @@ impl<'info> CancelOrderPosition<'info> {
             amount,
             self.token_mint.decimals,
         )?;
-
-        // The order_position account will be automatically closed and its lamports 
-        // will be transferred to the signer due to the `close = signer` constraint
 
         Ok(())
     }
