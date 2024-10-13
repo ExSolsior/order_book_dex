@@ -1,4 +1,4 @@
-use crate::state::MarketPointer;
+use crate::{errors::ErrorCode, state::MarketPointer};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -11,8 +11,10 @@ pub struct ReturnExecutionMarketOrder<'info> {
 
     #[account(
         mut,
-        constraint = market_pointer.is_valid_order_book_config(order_book_config.key()),
-        constraint = market_pointer.is_valid_return(signer.key()),
+        constraint = market_pointer.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidMarketPointer,
+        constraint = market_pointer.is_valid_return(signer.key())
+            @ ErrorCode::InvalidProcessReturnExecutionStatus,
     )]
     pub market_pointer: Account<'info, MarketPointer>,
 }
