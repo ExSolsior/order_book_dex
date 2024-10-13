@@ -122,7 +122,8 @@ impl OrderPosition {
     }
 
     pub fn is_valid_order_type_match(&self, market_pointer: &Account<'_, MarketPointer>) -> bool {
-        self.order_type == market_pointer.order_type
+        self.order_type == Order::Ask && market_pointer.order_type == Order::Bid
+            || self.order_type == Order::Bid && market_pointer.order_type == Order::Sell
     }
 
     pub fn is_valid_source(
@@ -131,12 +132,12 @@ impl OrderPosition {
         source: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse && order_type == Order::Sell && source.mint == config.token_mint_b)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && source.mint == config.token_mint_a)
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
+            && source.mint == config.token_mint_a)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
+                && source.mint == config.token_mint_b)
     }
 
     pub fn is_valid_destination(
@@ -145,13 +146,11 @@ impl OrderPosition {
         destination: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse
-                && order_type == Order::Sell
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
+            && destination.mint == config.token_mint_b)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
                 && destination.mint == config.token_mint_a)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && destination.mint == config.token_mint_b)
     }
 }

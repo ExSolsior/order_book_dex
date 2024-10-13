@@ -20,7 +20,7 @@ pub struct OrderBookConfig {
 }
 
 impl OrderBookConfig {
-    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES * 4 + BYTE;
+    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES * 4 + BYTE + BYTE;
 
     pub fn init(
         &mut self,
@@ -83,9 +83,9 @@ impl OrderBookConfig {
         market_pointer: &Account<'_, MarketPointer>,
     ) -> bool {
         if !self.is_reverse && market_pointer.order_type == Order::Buy {
-            self.token_mint_a == dest
-        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
             self.token_mint_b == dest
+        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
+            self.token_mint_a == dest
         } else {
             false
         }

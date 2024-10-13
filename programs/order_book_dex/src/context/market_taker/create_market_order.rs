@@ -33,7 +33,7 @@ pub struct CreateMarketOrder<'info> {
     #[account(
         seeds = [
             order_book_config.key().as_ref(),
-            token_mint_source.key().as_ref(),
+            token_mint_dest.key().as_ref(),
             signer.key().as_ref(),
             VAULT_ACCOUNT_SEED.as_bytes(),
         ],

@@ -238,7 +238,8 @@ impl MarketPointer {
 
         let delta = slot - self.slot;
 
-        self.execution_stats.as_ref().unwrap().owner == owner || delta > 20
+        self.market_order.is_some() && self.execution_stats.as_ref().unwrap().owner == owner
+            || delta > 20
     }
 
     pub fn is_valid_source(&self, source: Pubkey) -> bool {

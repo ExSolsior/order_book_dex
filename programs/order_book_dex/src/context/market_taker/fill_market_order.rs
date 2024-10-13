@@ -93,44 +93,64 @@ pub struct FillMarketOrder<'info> {
 impl<'info> FillMarketOrder<'info> {
     pub fn exec(&mut self) -> Result<()> {
         let (token_mint_a, token_mint_b, token_program_a, token_program_b) =
-            if !self.order_book_config.is_reverse {
-                (
-                    &self.token_mint_a,
-                    &self.token_mint_b,
-                    &self.token_program_a,
-                    &self.token_program_b,
-                )
-            } else {
-                (
-                    &self.token_mint_b,
-                    &self.token_mint_a,
-                    &self.token_program_b,
-                    &self.token_program_a,
-                )
+            match self.market_pointer.order_type {
+                Order::Buy => {
+                    if !self.order_book_config.is_reverse {
+                        (
+                            &self.token_mint_a,
+                            &self.token_mint_b,
+                            &self.token_program_a,
+                            &self.token_program_b,
+                        )
+                    } else {
+                        (
+                            &self.token_mint_b,
+                            &self.token_mint_a,
+                            &self.token_program_b,
+                            &self.token_program_a,
+                        )
+                    }
+                }
+                _ => {
+                    if !self.order_book_config.is_reverse {
+                        (
+                            &self.token_mint_b,
+                            &self.token_mint_a,
+                            &self.token_program_b,
+                            &self.token_program_a,
+                        )
+                    } else {
+                        (
+                            &self.token_mint_a,
+                            &self.token_mint_b,
+                            &self.token_program_a,
+                            &self.token_program_b,
+                        )
+                    }
+                }
             };
 
         let decimals = token_mint_a.decimals + token_mint_b.decimals;
-        let balance = match self.market_pointer.order_type  {
+        let balance = match self.market_pointer.order_type {
             Order::Buy => self.taker_source.amount,
             Order::Sell => self.maker_source.amount,
             _ => return err!(ErrorCode::InvalidOrderType),
         };
 
-        let (amount, total) = self
-            .order_position
-            .update(self.market_pointer.delta_amount(), balance, decimals as u32);
+        let (amount, total) = self.order_position.update(
+            self.market_pointer.delta_amount(),
+            balance,
+            decimals as u32,
+        );
 
-        
-        self
-            .market_pointer
+        self.market_pointer
             .update(&mut self.order_position, amount, total)?;
 
-        let (sending_amount, receiving_amount) = match self.market_pointer.order_type  {
+        let (sending_amount, receiving_amount) = match self.market_pointer.order_type {
             Order::Buy => (total, amount),
             Order::Sell => (amount, total),
             _ => return err!(ErrorCode::InvalidOrderType),
         };
-
 
         let token_mint_a_key = self.token_mint_a.key();
         let token_mint_b_key = self.token_mint_b.key();
@@ -177,10 +197,3 @@ impl<'info> FillMarketOrder<'info> {
         Ok(())
     }
 }
-
-
-// convert to uszie 128 first to prevent interger overflow from mul
-// fixed cost calc by shift decimals, 
-// handling rounding up to 1 if total is 0
-// restructured market pointer state
-// handle partial and full conditions

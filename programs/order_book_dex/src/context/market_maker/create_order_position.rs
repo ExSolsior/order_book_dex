@@ -54,7 +54,7 @@ pub struct CreateOrderPosition<'info> {
     pub source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        constraint = order_position.is_valid_destination(&order_book_config, &source, order_type.clone()),
+        constraint = order_position.is_valid_destination(&order_book_config, &destination, order_type.clone()),
     )]
     pub destination: InterfaceAccount<'info, TokenAccount>,
 
