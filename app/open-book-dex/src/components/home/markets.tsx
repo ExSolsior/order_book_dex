@@ -28,7 +28,10 @@ const NewMarkets = () => {
         <Table>
           <TableBody>
             {newMarkets.map((market) => (
-              <Row {...market} />
+              <Row
+                key={market.tokenA + market.tokenB}
+                {...market}
+              />
             ))}
           </TableBody>
         </Table>
@@ -48,7 +51,10 @@ const TopGainers = () => {
         <Table>
           <TableBody>
             {sorted.map((market) => (
-              <Row {...market} />
+              <Row
+                key={market.tokenA + market.tokenB}
+                {...market}
+              />
             ))}
           </TableBody>
         </Table>
@@ -67,7 +73,10 @@ const Popular = () => {
         <Table>
           <TableBody>
             {popular.map((market) => (
-              <Row {...market} />
+              <Row
+                key={market.tokenA + market.tokenB}
+                {...market}
+              />
             ))}
           </TableBody>
         </Table>
