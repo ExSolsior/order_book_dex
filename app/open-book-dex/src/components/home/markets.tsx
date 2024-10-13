@@ -88,7 +88,12 @@ const Row = (market: (typeof newMarkets)[0]) => (
       </Avatar>
       {market.tokenA} / {market.tokenB}
     </TableCell>
-    <TableCell className="font-semibold text-right">${market.price}</TableCell>
+    <TableCell className="font-semibold text-right">
+      {market.price.toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD"
+      })}
+    </TableCell>
     <TableCell
       className={`font-semibold text-right ${market.change < 0 ? "text-red-500" : "text-green-500"}`}
     >
