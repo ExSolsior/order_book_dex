@@ -14,7 +14,7 @@ export function SiteHeader() {
           </div>
 
           <nav className="flex items-center">
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             Wallet adapter
           </nav>
         </div>

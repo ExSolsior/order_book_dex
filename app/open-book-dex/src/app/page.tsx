@@ -1,4 +1,4 @@
-import { MainCarousel } from "@/components/markets/main-carousel";
+import { MainCarousel } from "@/components/main-carousel";
 import Image from "next/image";
 
 export default function Home() {
