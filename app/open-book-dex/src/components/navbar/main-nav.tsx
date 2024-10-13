@@ -39,7 +39,9 @@ export function MainNav() {
           href="/trade"
           className={cn(
             "transition-colors hover:text-foreground/80 font-semibold",
-            pathname === "/trade" ? "text-foreground" : "text-foreground/60"
+            pathname.includes("/trade")
+              ? "text-foreground"
+              : "text-foreground/60"
           )}
         >
           Trade

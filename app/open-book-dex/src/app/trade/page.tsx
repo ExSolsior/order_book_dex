@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation";
+import { popular } from "@/lib/markets";
+
 export default function Trade() {
-    return (
-        <div>
-            <h1>Trade</h1>
-        </div>
-    )
+  redirect(`/trade/${popular[0].marketId}`);
 }
