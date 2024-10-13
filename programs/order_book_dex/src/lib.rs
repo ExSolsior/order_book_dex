@@ -48,9 +48,9 @@ pub mod order_book_dex {
         ctx.accounts.exec(order_type, fill, target_amount)
     }
 
-    // pub fn fill_market_order(ctx: Context<FillMarketOrder>) -> Result<()> {
-    //     ctx.accounts.exec()
-    // }
+    pub fn fill_market_order(ctx: Context<FillMarketOrder>) -> Result<()> {
+        ctx.accounts.exec()
+    }
 
     pub fn return_execution_market_order(ctx: Context<ReturnExecutionMarketOrder>) -> Result<()> {
         ctx.accounts.exec()

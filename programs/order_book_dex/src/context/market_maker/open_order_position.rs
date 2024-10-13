@@ -1,5 +1,7 @@
-// use crate::errors::ErrorCode;
-use crate::state::{MarketPointer, OrderBookConfig, OrderPosition};
+use crate::{
+    errors::ErrorCode,
+    state::{MarketPointer, OrderBookConfig, OrderPosition},
+};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -8,55 +10,80 @@ pub struct OpenOrderPosition<'info> {
     pub signer: Signer<'info>,
 
     #[account(
-        constraint = MarketPointer::validate_mutable_status(market_pointer_read.as_ref(), market_pointer_write.as_ref()),
+        constraint = MarketPointer::validate_mutable_status(market_pointer_read.as_ref(), market_pointer_write.as_ref())
+            @ ErrorCode::InvalidMarketPointer,
     )]
     pub order_book_config: Account<'info, OrderBookConfig>,
 
     #[account(
-        constraint = market_pointer_read.is_valid_order_book_config(order_book_config.key()),
-        constraint = market_pointer_read.is_valid_order_type_match(prev_order_position.as_ref()),
-        constraint = market_pointer_read.is_valid_order_type_match(next_order_position.as_ref()),
-        constraint = market_pointer_read.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref()),
-        constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref()),
-        constraint = market_pointer_read.is_valid_open_position_section(&order_position, next_position_pointer.as_ref()),
-        constraint = order_position.is_valid_order_type_match(&market_pointer_read),
+        constraint = market_pointer_read.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidMarketPointer,
+        constraint = market_pointer_read.is_valid_order_type_match(prev_order_position.as_ref())
+            @ ErrorCode::InvalidOrderType,
+        constraint = market_pointer_read.is_valid_order_type_match(next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderType,
+        constraint = market_pointer_read.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_read.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
+            @ ErrorCode::InvalidLedgerSection,
+        constraint = order_position.is_valid_order_type_match(&market_pointer_read)
+            @ ErrorCode::InvalidOrderType,
     )]
     pub market_pointer_read: Option<Account<'info, MarketPointer>>,
 
     #[account(
         mut,
-        constraint = market_pointer_write.is_valid_order_book_config(order_book_config.key()),
-        constraint = market_pointer_write.is_valid_order_type_match(prev_order_position.as_ref()),
-        constraint = market_pointer_write.is_valid_order_type_match(next_order_position.as_ref()),
-        constraint = market_pointer_write.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref()),
-        constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref()),
-        constraint = market_pointer_write.is_valid_open_position_section(&order_position, next_position_pointer.as_ref()),
-        constraint = order_position.is_valid_order_type_match(&market_pointer_write),
+        constraint = market_pointer_write.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidMarketPointer,
+        constraint = market_pointer_write.is_valid_order_type_match(prev_order_position.as_ref())
+            @ ErrorCode::InvalidOrderType,
+        constraint = market_pointer_write.is_valid_order_type_match(next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderType,
+        constraint = market_pointer_write.is_valid_position(prev_order_position.as_ref(), next_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer_write.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
+            @ ErrorCode::InvalidLedgerSection,
+        constraint = order_position.is_valid_order_type_match(&market_pointer_write)
+            @ ErrorCode::InvalidOrderType,
     )]
     pub market_pointer_write: Option<Account<'info, MarketPointer>>,
 
     #[account(
         mut,
-        constraint = order_position.is_valid_order_book_config(order_book_config.key()),
-        constraint = order_position.is_avialable,
+        constraint = order_position.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = order_position.is_avialable
+            @ ErrorCode::OrderPositionIsNotAvailable,
     )]
     pub order_position: Account<'info, OrderPosition>,
 
     #[account(
         mut,
-        constraint = prev_order_position.is_valid_order_book_config(order_book_config.key()),
+        constraint = prev_order_position.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPosition,
+        // something to note and whether or not it is a big issue to solve,
+        // there is no validation to check if prev_order_position is on the order book ledger
+        // no harm can really come from it just that the order position might not be
+        // really added to the ledger, only an issue if there 3rd party clients exist.
+        // will review this later if it turns out that it is an issue,
+        // and if so just create a flag on order position to solve this
     )]
     pub prev_order_position: Option<Account<'info, OrderPosition>>,
 
     #[account(
         mut,
-        constraint = next_order_position.is_valid_order_book_config(order_book_config.key()),
-
+        constraint = next_order_position.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPosition,
     )]
     pub next_order_position: Option<Account<'info, OrderPosition>>,
 
     #[account(
-        constraint = next_position_pointer.is_valid_order_book_config(order_book_config.key()),
+        constraint = next_position_pointer.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPosition,
     )]
     pub next_position_pointer: Option<Account<'info, OrderPosition>>,
 }

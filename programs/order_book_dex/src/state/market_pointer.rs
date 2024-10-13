@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::{
     constants::{BYTE, DISCRIMINATOR, U64_BYTES},
     state::{Fill, Order, OrderPosition},
@@ -14,19 +16,18 @@ pub struct MarketPointer {
     pub order_position_pointer: Option<Pubkey>,
     pub timestamp: i64,
     pub slot: u64,
-
-    // if fill order is None, it is available for execution of market order
-    // could name this market_order instead of market_order
     pub market_order: Option<MarketOrder>,
+    pub execution_stats: Option<ExecutionStats>,
 }
 
 impl MarketPointer {
     pub const LEN: usize = DISCRIMINATOR
-        + PUBKEY_BYTES
         + Order::LEN
+        + PUBKEY_BYTES
         + (BYTE + PUBKEY_BYTES)
         + U64_BYTES * 2
-        + (BYTE + MarketOrder::LEN);
+        + (BYTE + MarketOrder::LEN)
+        + (BYTE + ExecutionStats::LEN);
 
     pub fn init(&mut self, order_type: Order, order_book_config: Pubkey) -> Result<()> {
         let Clock {
@@ -41,6 +42,7 @@ impl MarketPointer {
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.market_order = None;
+        self.execution_stats = None;
 
         Ok(())
     }
@@ -68,7 +70,11 @@ impl MarketPointer {
             order_type,
             fill,
             target_amount,
+        });
+
+        self.execution_stats = Some(ExecutionStats {
             total_amount: 0,
+            total_paid: 0,
             owner,
             source,
             dest,
@@ -88,16 +94,17 @@ impl MarketPointer {
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.market_order = None;
+        self.execution_stats = None;
 
         Ok(())
     }
 
-    // will come back to this later
     pub fn update(
         &mut self,
         order_position: &mut OrderPosition,
         amount: u64,
-    ) -> Result<(u64, u64)> {
+        pay_amount: u64,
+    ) -> Result<()> {
         let Clock {
             slot,
             unix_timestamp,
@@ -106,12 +113,21 @@ impl MarketPointer {
         if order_position.is_next() {
             self.order_position_pointer = order_position.next();
         }
+
         self.timestamp = unix_timestamp;
         self.slot = slot;
 
-        self.market_order.as_mut().unwrap().update(amount);
+        self.execution_stats
+            .as_mut()
+            .unwrap()
+            .update(amount, pay_amount);
 
         Ok(())
+    }
+
+    pub fn delta_amount(&self) -> u64 {
+        self.market_order.as_ref().unwrap().target_amount
+            - self.execution_stats.as_ref().unwrap().total_amount
     }
 
     pub fn validate_mutable_status(
@@ -139,11 +155,11 @@ impl MarketPointer {
     }
 
     pub fn is_valid_market_order_owner(&self, owner: Pubkey) -> bool {
-        self.market_order.as_ref().unwrap().owner == owner
+        self.execution_stats.as_ref().unwrap().owner == owner
     }
 
     pub fn is_valid_order_pointer(&self, order_position: Pubkey) -> bool {
-        self.market_order.as_ref().unwrap().next_position_pointer == order_position
+        self.execution_stats.as_ref().unwrap().next_position_pointer == order_position
     }
 
     pub fn is_valid_position(
@@ -179,7 +195,7 @@ impl MarketPointer {
             && next_position_pointer.is_some()
             && self.order_type == Order::Buy
         {
-            let position_pointer = self.market_order.as_ref().unwrap().next_position_pointer;
+            let position_pointer = self.execution_stats.as_ref().unwrap().next_position_pointer;
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount < next_position_pointer.amount;
@@ -189,7 +205,7 @@ impl MarketPointer {
             && next_position_pointer.is_some()
             && self.order_type == Order::Sell
         {
-            let position_pointer = self.market_order.as_ref().unwrap().next_position_pointer;
+            let position_pointer = self.execution_stats.as_ref().unwrap().next_position_pointer;
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount > next_position_pointer.amount;
@@ -203,7 +219,7 @@ impl MarketPointer {
         prev_order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
         if self.market_order.is_some() && prev_order_position.is_some() {
-            return self.market_order.as_ref().unwrap().next_position_pointer
+            return self.execution_stats.as_ref().unwrap().next_position_pointer
                 != prev_order_position.unwrap().key();
         }
 
@@ -222,15 +238,27 @@ impl MarketPointer {
 
         let delta = slot - self.slot;
 
-        self.market_order.as_ref().unwrap().owner == owner || delta > 20
+        self.market_order.is_some() && self.execution_stats.as_ref().unwrap().owner == owner
+            || delta > 20
     }
 
     pub fn is_valid_source(&self, source: Pubkey) -> bool {
-        self.market_order.as_ref().unwrap().source == source
+        self.execution_stats.as_ref().unwrap().source == source
     }
 
     pub fn is_valid_dest(&self, dest: Pubkey) -> bool {
-        self.market_order.as_ref().unwrap().dest == dest
+        self.execution_stats.as_ref().unwrap().dest == dest
+    }
+
+    pub fn is_valid_fill(&self, current_price: u64) -> bool {
+        let order_type = self.order_type.borrow();
+        match self.market_order.as_ref().unwrap().fill {
+            Fill::Partial { target_price } => {
+                Order::Buy == *order_type && current_price <= target_price
+                    || Order::Sell == *order_type && current_price >= target_price
+            }
+            Fill::Full => true,
+        }
     }
 }
 
@@ -239,21 +267,27 @@ pub struct MarketOrder {
     pub order_type: Order,
     pub fill: Fill,
     pub target_amount: u64,
-    pub total_amount: u64,
+}
+
+impl MarketOrder {
+    pub const LEN: usize = Order::LEN + Fill::LEN + U64_BYTES;
+}
+
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct ExecutionStats {
     pub owner: Pubkey,
     pub source: Pubkey,
     pub dest: Pubkey,
     pub next_position_pointer: Pubkey,
+    pub total_amount: u64,
+    pub total_paid: u64,
 }
 
-impl MarketOrder {
-    pub const LEN: usize = Order::LEN + Fill::LEN + U64_BYTES * 2 + PUBKEY_BYTES;
+impl ExecutionStats {
+    pub const LEN: usize = (PUBKEY_BYTES * 4) + (U64_BYTES * 2);
 
-    pub fn update(&mut self, amount: u64) {
+    pub fn update(&mut self, amount: u64, pay_amount: u64) {
         self.total_amount += amount;
-    }
-
-    pub fn amount(&self) -> u64 {
-        self.target_amount - self.total_amount
+        self.total_paid += pay_amount;
     }
 }

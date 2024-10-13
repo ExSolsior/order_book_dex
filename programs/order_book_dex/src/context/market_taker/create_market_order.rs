@@ -1,5 +1,6 @@
 use crate::{
     constants::VAULT_ACCOUNT_SEED,
+    errors::ErrorCode,
     state::{Fill, MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
@@ -13,8 +14,10 @@ pub struct CreateMarketOrder<'info> {
 
     #[account(
         mut,
-        constraint = market_pointer.is_valid_order_book_config(order_book_config.key()),
-        constraint = market_pointer.is_valid_availability(),
+        constraint = market_pointer.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidMarketPointer,
+        constraint = market_pointer.is_valid_availability()
+            @ ErrorCode::MarketOrderAlreadyInProgress,
     )]
     pub market_pointer: Account<'info, MarketPointer>,
 
@@ -33,7 +36,7 @@ pub struct CreateMarketOrder<'info> {
     #[account(
         seeds = [
             order_book_config.key().as_ref(),
-            token_mint_source.key().as_ref(),
+            token_mint_dest.key().as_ref(),
             signer.key().as_ref(),
             VAULT_ACCOUNT_SEED.as_bytes(),
         ],
@@ -43,20 +46,24 @@ pub struct CreateMarketOrder<'info> {
     pub dest: UncheckedAccount<'info>,
 
     #[account(
-        constraint = order_book_config.is_valid_token_mint_source(token_mint_source.key(), &market_pointer),
+        constraint = order_book_config.is_valid_token_mint_source(token_mint_source.key(), &market_pointer)
+            @ ErrorCode::InvalidMint,
     )]
     /// CHECKED: validate mint pubkey agaist order book config and market pointer order type
     pub token_mint_source: UncheckedAccount<'info>,
 
     #[account(
-        constraint = order_book_config.is_valid_token_mint_dest(token_mint_dest.key(), &market_pointer),
+        constraint = order_book_config.is_valid_token_mint_dest(token_mint_dest.key(), &market_pointer)
+            @ ErrorCode::InvalidMint,
     )]
     /// CHECKED: validate mint pubkey agaist order book config and market pointer order type
     pub token_mint_dest: UncheckedAccount<'info>,
 
     #[account(
-        constraint = next_position_pointer.is_valid_order_book_config(order_book_config.key()),
-        constraint = next_position_pointer.is_valid_order_type_match(&market_pointer),
+        constraint = next_position_pointer.is_valid_order_book_config(order_book_config.key())
+            @ ErrorCode::InvalidOrderPosition,
+        constraint = next_position_pointer.is_valid_order_type_match(&market_pointer)
+            @ ErrorCode::InvalidOrderType,
     )]
     pub next_position_pointer: Account<'info, OrderPosition>,
 }

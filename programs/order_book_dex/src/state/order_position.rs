@@ -1,6 +1,6 @@
 use crate::{
     constants::{BYTE, DISCRIMINATOR, I64_BYTES, U64_BYTES},
-    state::{MarketOrder, MarketPointer, Order, OrderBookConfig},
+    state::{MarketPointer, Order, OrderBookConfig},
 };
 use anchor_lang::{
     prelude::*,
@@ -31,6 +31,8 @@ impl OrderPosition {
         + U64_BYTES * 3
         + I64_BYTES
         + BYTE;
+
+    pub const BASE10: u64 = 10;
 
     pub fn init(
         &mut self,
@@ -63,15 +65,37 @@ impl OrderPosition {
         Ok(())
     }
 
-    pub fn open(&mut self) {}
+    pub fn get_total(balance: u64, cost: u64) -> u64 {
+        return if balance > cost { cost } else { balance };
+    }
 
-    // problem with this. doesn't take into accout price and amount that is available
-    pub fn update(&mut self, market_order: &MarketOrder) -> u64 {
-        let amount = if market_order.amount() >= self.amount {
-            self.amount
+    // how to handle fees?
+    // how to handle some other thing that just escaped my mind?
+    // how to handle big ints?
+    pub fn update(&mut self, delta_amount: u64, balance: u64, decimals: u32) -> (u64, u64) {
+        let (amount, total) = if delta_amount >= self.amount {
+            self.amount;
+            (
+                self.amount,
+                OrderPosition::get_total(
+                    balance,
+                    ((self.price as u128 * self.amount as u128)
+                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
+                ),
+            )
         } else {
-            self.amount - market_order.amount()
+            let amount = self.amount - delta_amount;
+            (
+                amount,
+                OrderPosition::get_total(
+                    balance,
+                    ((self.price as u128 * amount as u128)
+                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
+                ),
+            )
         };
+
+        let total = if total == 0 { 1 } else { total };
 
         self.amount -= amount;
 
@@ -79,9 +103,7 @@ impl OrderPosition {
             self.is_avialable = false;
         }
 
-        self.price * amount;
-
-        return amount;
+        return (amount, total);
     }
 
     pub fn is_next(&self) -> bool {
@@ -99,13 +121,9 @@ impl OrderPosition {
         self.order_book_config == order_book_config
     }
 
-    // don't think I'll be using this
-    pub fn is_valid_order_position_config(&self, order_position_config: Pubkey) -> bool {
-        self.order_position_config == order_position_config
-    }
-
     pub fn is_valid_order_type_match(&self, market_pointer: &Account<'_, MarketPointer>) -> bool {
-        self.order_type == market_pointer.order_type
+        self.order_type == Order::Ask && market_pointer.order_type == Order::Bid
+            || self.order_type == Order::Bid && market_pointer.order_type == Order::Sell
     }
 
     pub fn is_valid_source(
@@ -114,12 +132,12 @@ impl OrderPosition {
         source: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse && order_type == Order::Sell && source.mint == config.token_mint_b)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && source.mint == config.token_mint_a)
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
+            && source.mint == config.token_mint_a)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
+                && source.mint == config.token_mint_b)
     }
 
     pub fn is_valid_destination(
@@ -128,13 +146,11 @@ impl OrderPosition {
         destination: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        (!config.is_reverse && order_type == Order::Buy
-            || config.is_reverse
-                && order_type == Order::Sell
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
+            && destination.mint == config.token_mint_b)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
                 && destination.mint == config.token_mint_a)
-            || (!config.is_reverse && order_type == Order::Sell
-                || config.is_reverse
-                    && order_type == Order::Buy
-                    && destination.mint == config.token_mint_b)
     }
 }
