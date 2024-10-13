@@ -132,11 +132,11 @@ impl OrderPosition {
         source: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        ((!config.is_reverse && order_type == Order::Bid
-            || config.is_reverse && order_type == Order::Ask)
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
             && source.mint == config.token_mint_a)
-            || ((!config.is_reverse && order_type == Order::Ask
-                || config.is_reverse && order_type == Order::Bid)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
                 && source.mint == config.token_mint_b)
     }
 
@@ -146,11 +146,11 @@ impl OrderPosition {
         destination: &TokenAccount,
         order_type: Order,
     ) -> bool {
-        ((!config.is_reverse && order_type == Order::Bid
-            || config.is_reverse && order_type == Order::Ask)
+        ((!config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell)
+            || config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy))
             && destination.mint == config.token_mint_b)
-            || ((!config.is_reverse && order_type == Order::Ask
-                || config.is_reverse && order_type == Order::Bid)
+            || ((!config.is_reverse && (order_type == Order::Ask || order_type == Order::Buy)
+                || config.is_reverse && (order_type == Order::Bid || order_type == Order::Sell))
                 && destination.mint == config.token_mint_a)
     }
 }
