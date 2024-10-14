@@ -112,6 +112,7 @@ database model | schema
         - columns
             - id:                       increment
             - order_book_config_pubkey: bytea | bit(256),
+            - order_type                ENUM::ORDER_TYPE{Buy, Sell}
             - last_price:               bigserial,
             - avg_price:                bigserial,
             - amount:                   bigserial,
