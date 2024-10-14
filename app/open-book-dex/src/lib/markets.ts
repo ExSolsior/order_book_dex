@@ -127,7 +127,7 @@ const popular: Market[] = [
   },
   {
     marketId: "123e4567-e89b-12d3-a456-426614174011",
-    tokenA: "WTBC",
+    tokenA: "WBTC",
     tokenB: "WETH",
     price: 62437.0,
     change: -1.37,
