@@ -1,5 +1,6 @@
 import Book from "@/components/trade/book";
 import CustomTabsTrigger from "@/components/trade/custom-tabs-trigger";
+import Trades from "@/components/trade/trades";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Market } from "@/lib/markets";
 
@@ -16,7 +17,9 @@ export default function OrderBook({ market }: { market: Market }) {
       <TabsContent value="book">
         <Book market={market} />
       </TabsContent>
-      <TabsContent value="trades">Change your password here.</TabsContent>
+      <TabsContent value="trades">
+        <Trades market={market} />
+      </TabsContent>
     </Tabs>
   );
 }
