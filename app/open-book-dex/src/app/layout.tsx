@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { WalletAdapter } from "@/components/wallet-adapter";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -35,19 +36,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div vaul-drawer-wrapper="">
-            <div className="container relative flex min-h-screen flex-col bg-background">
-              <SiteHeader />
-              <main className="flex-1">{children}</main>
+        <WalletAdapter>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div vaul-drawer-wrapper="">
+              <div className="container relative flex min-h-screen flex-col bg-background">
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+              </div>
             </div>
-          </div>
-        </ThemeProvider>
+          </ThemeProvider>
+        </WalletAdapter>
       </body>
     </html>
   );

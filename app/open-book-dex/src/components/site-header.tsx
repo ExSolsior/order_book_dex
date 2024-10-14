@@ -1,6 +1,6 @@
 import { MainNav } from "./navbar/main-nav";
 import { SearchBar } from "./navbar/search-bar";
-import { ThemeToggle } from "./navbar/theme-toggle";
+import { WalletConnection } from "./wallet-connection";
 
 export function SiteHeader() {
   return (
@@ -15,7 +15,10 @@ export function SiteHeader() {
 
           <nav className="flex items-center">
             {/* <ThemeToggle /> */}
-            Wallet adapter
+            <div>
+              <WalletConnection />
+              {/* <WalletDisconnectButtonDynamic /> */}
+            </div>
           </nav>
         </div>
       </div>
