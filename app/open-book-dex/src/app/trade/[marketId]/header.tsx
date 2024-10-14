@@ -1,7 +1,7 @@
 import { Market } from "@/lib/markets";
 import { MarketSwitcher } from "./market-switcher";
 
-export function MarketDetails({ market }: { market: Market }) {
+export function Header({ market }: { market: Market }) {
   const price = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

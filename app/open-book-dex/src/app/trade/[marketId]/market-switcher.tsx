@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Market, newMarkets, popular, topGainers } from "@/lib/markets";
 import { CaretDownIcon } from "@radix-ui/react-icons";
-import { columns } from "../markets-table/columns";
-import { MarketsTable } from "../markets-table/data-table";
-import { Avatar, AvatarImage } from "../ui/avatar";
+import { columns } from "@/components/markets-table/columns";
+import { MarketsTable } from "@/components/markets-table/data-table";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 export function MarketSwitcher({ market }: { market: Market }) {
   const markets = newMarkets
