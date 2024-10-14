@@ -20,7 +20,7 @@ export default function Page({ params }: { params: { marketId: string } }) {
       <div className="flex">
         <OrderBook market={market} />
         <Trade market={market} />
-        <MarketDetails />
+        <MarketDetails market={market} />
       </div>
     </>
   );
