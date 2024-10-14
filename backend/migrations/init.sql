@@ -25,7 +25,7 @@ CREATE TYPE interval as ENUM (
 )
 
 CREATE TABLE order_position_table (
-    "pubkey_id",                        bytea PRIMARY KEY,
+    "pubkey_id"                        bytea PRIMARY KEY,
     "order_type"                        order_type NOT NULL,
     "price"                             bigserial NOT NULL,
     "size"                              bigserial NOT NULL,
@@ -246,3 +246,5 @@ CREATE TABLE market_order_histry (
     "turnover",
     "timestamp"
 ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- one thing left to do, pubkey format in json sould be a 32 byte array
