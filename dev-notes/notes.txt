@@ -431,9 +431,8 @@ Notes:
 
 TODO:
     instructions:
-        - cancel order position -> set flag to close
-        - close order positions
-        - reclaim vaults / close vaults
+        - reclaim vaults / close vaults -> need to consider various edge cases to handle appropiately
+            -- could use a reference counter on the order position config
 
         - set flag to close order book config
         - set flag to close order position config
@@ -441,8 +440,8 @@ TODO:
         - close order position config
 
     other
-        - implement errors
-        - launch on dev net
+        - need to implement events and emit events
+        - implement fee system
 
     optimazitions:
         - lookup tables system via CPIs

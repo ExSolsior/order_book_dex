@@ -1,0 +1,155 @@
+database model | schema 
+    - index system
+        - order positions
+            - columns
+                - pubkey_id:                    bytea | BIT(256),                        Primary Key,
+                - order_type:                   ENUM::ORDER_TYPE::{BID, ASK},
+                - price:                        bigserial,
+                - size:                         bigserial,
+                - is_available:                 boolean,
+                - next_order_position_pubkey:   bytea | BIT(256),                        Reference 
+                - order_position_config_pubkey: bytea | BIT(256),                        Reference 
+                - slot:                         bigserial,
+                - timestamp:                    bigint,
+            - insert when order position is open event
+            - delete when order position is closed event
+            - update
+                - is_unavailable change     -> market order executed event
+                - size change               -> market order executed event
+
+        - order_position_config
+            - columns
+                - pubkey_id:                    bytea | BIT(256),        Primary Key,
+                - order_book_config_pubkey:     bytea | BIT(256),        Reference,
+                - market_maker_pubkey:          bytea | BIT(256),
+                - vault_a_pubkey:               bytea | BIT(256),     -> [source, destination]
+                - vault_b_pubkey:               bytea | BIT(256),     -> [source, destination]
+                - nonce:                        bigserial,
+                - referrence:                   bigserial,
+            - Notes:
+                -   the concept around vaults might change, 
+                    considering having a pair for bid side, a pair for ask side,
+                    to reduce risk of transaction failure, but at this time 
+                    not sure if it is necessary.
+            - insert when position config is created event
+            - delete when position config is closed event
+            - updated -> should we care about update nonce and reference?
+                - nonce change      -> when order position is created event
+                - reference change  -> when order position is closed event
+
+        - order_book_config
+            - columns
+                - pubkey_id                     bytea | BIT(256),            Primary Key,
+                - token_mint_a                  bytea | BIT(256),
+                - token_mint_b                  bytea | BIT(256),
+                - token_program_a               bytea | BIT(256),
+                - token_program_b               bytea | BIT(256),
+                - sell_market_maker_pubkey:     bytea | BIT(256),
+                - buy_market_maker_pubkey:      bytea | BIT(256),
+                - token_mint_a_decimal:         smallint,
+                - token_mint_b_decimal:         smallint
+                - token_mint_a_name:            String,
+                - token_mint_b_name:            String,
+                - is_reverse:                   boolean,
+            - Notes:
+                - will have fee vault pubkey in future, need to work out the fee system later
+            - insert when config is created
+            - delete when config is closed
+
+    -> read -> schema
+        - get order position list by order book config pubkey
+            {
+                order_book_config_pubkey:       Number[],   -> byte[] 32 bytes
+                token_mint_a:                   Number[],   -> byte[] 32 bytes
+                token_mint_b:                   Number[],   -> byte[] 32 bytes
+                token_program_a:                Number[],   -> byte[] 32 bytes
+                token_program_b:                Number[],   -> byte[] 32 bytes
+                sell_market_maker_pubkey:       Number[],   -> byte[] 32 bytes
+                buy_market_maker_pubkey:        Number[],   -> byte[] 32 bytes
+                token_mint_a_decimal:           Number,
+                token_mint_b_decimal:           Number,
+                token_mint_a_name:              String,
+                token_mint_b_name:              String,
+                is_reverse:                     Boolean,       -> method on how to determine the (Base / Quote)
+
+                order_position_list:            [{
+                    NOTES:
+                        -> price in sorted order depending on order_type [ASC, DESC]
+                        -> filter only is_avaialbe = true
+                        -> source and destination is determined based on order_type and is_reverse
+
+                    order_position_pubkey:          Number[],   -> byte[] 32 bytes
+                    order_position_config_pubkey:   Number[],   -> byte[] 32 bytes
+                    next_order_position_pubkey:     Number[],   -> byte[] 32 bytes
+                    market_maker_pubkey:            Number[],   -> byte[] 32 bytes
+                    order_type:                     String,
+                    price:                          String,     -> deserailze as BigInt or BN
+                    size:                           String,     -> deserailze as BigInt or BN
+                    source:                         String,     -> [vaultA, vaultB]
+                    destination:                    String,     -> [vaultA, vaultB]
+                    slot:                           Number,     -> deserailze as BigInt or BN
+                    timestamp:                      Number,     -> deserailze as BigInt or BN or Number
+                }]
+            }
+
+        - get list of order book configs 
+            [{
+                order_book_config_pubkey:       Number[],   -> byte[] 32 bytes
+                token_mint_a:                   Number[],   -> byte[] 32 bytes
+                token_mint_b:                   Number[],   -> byte[] 32 bytes
+                token_program_a:                Number[],   -> byte[] 32 bytes
+                token_program_b:                Number[],   -> byte[] 32 bytes
+                sell_market_maker_pubkey:       Number[],   -> byte[] 32 bytes
+                buy_market_maker_pubkey:        Number[],   -> byte[] 32 bytes
+                token_mint_a_decimal:           Number,
+                token_mint_b_decimal:           Number,
+                token_mint_a_name:              Number[],   -> byte[] 32 bytes
+                token_mint_b_name:              Number[],   -> byte[] 32 bytes
+                is_reverse:                     Boolean,
+            }]
+
+    - 24 hour trade data
+        - columns
+            - id:                       increment
+            - order_book_config_pubkey: bytea | bit(256),
+            - order_type                ENUM::ORDER_TYPE{Buy, Sell}
+            - last_price:               bigserial,
+            - avg_price:                bigserial,
+            - amount:                   bigserial,
+            - turnover                  bigserial,
+            - timestamp:                bigserial,
+            - slot:                     bigserial,
+        - insert when market order finish event is emitted
+        - delete at 24 hour intervail rate, delete those that are over 24 hours 
+    - market order history              
+        - columns
+            - id                        increment,
+            - order_book_config_pubkey: bytea | bit(256)
+            - interval:                 ENUM::INTERVAIL
+            - open:                     bigserial,
+            - low:                      bigserial,
+            - high:                     bigserial,
+            - close:                    bigserial,
+            - volume:                   bigserial,
+            - turnover:                 bigserial,
+            - timestamp:                datetime
+        - insert when new interval target is reached
+
+    - schema
+        - get market order history
+            {
+                order_book_config_pubkey:
+                interval
+                data [{
+                    open:                     bigserial,
+                    low:                      bigserial,
+                    high:                     bigserial,
+                    close:                    bigserial,
+                    volume:                   bigserial,
+                    turnover:                 bigserial,
+                    timestamp:                datetime
+                }]
+            }
+
+    - ENUM INTERVAIL    -> {1_min, 5_min, 10_min, 30_min, 1_hour, 2_hour, 4_hour, 6_hour, 12_hour, 24_hour, 1_week}
+    - ENUM ORDER_TYPE   -> {Buy, Sell, Ask, Bid}
