@@ -6,4 +6,8 @@ edition = "2021"
 [dependencies]
 actix-web = "4.9.0"
 postgres = "0.19.9"
-sqlx = "0.8.2"
+sqlx = { version = "0.8.2", features = [
+    "runtim-actix-rustls",
+    "postgres",
+    "macros",
+] }
