@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
-
 export function MainNav() {
   const pathname = usePathname();
 
@@ -44,16 +43,6 @@ export function MainNav() {
           )}
         >
           Trade
-        </Link>
-
-        <Link
-          href="/portfolio"
-          className={cn(
-            "transition-colors hover:text-foreground/80 font-semibold",
-            pathname === "/portfolio" ? "text-foreground" : "text-foreground/60"
-          )}
-        >
-          Portfolio
         </Link>
 
         <DropdownMenu>
