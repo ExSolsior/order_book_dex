@@ -1,7 +1,10 @@
 use crate::AppState;
 use actix_web::web;
-use sqlx::postgres::PgRow;
+use sqlx::{postgres::PgRow, prelude::FromRow};
 
+// -> Result<(), Box<dyn Error>>
+
+#[derive(FromRow)]
 pub struct TradePair {
     pub pubkey_id: String,
     pub token_mint_a: String,
@@ -49,6 +52,7 @@ pub struct RealTimeTrade {
     slot: String,
 }
 
+#[derive(FromRow)]
 pub struct MarketOrderHistory {
     order_book_config_pubkey: String,
     interval: String,
@@ -293,8 +297,8 @@ pub async fn get_trade_pair_list(
     limit: String,
     offset: String,
     app_state: web::Data<AppState>,
-) -> Result<Vec<PgRow>, sqlx::Error> {
-    let query = sqlx::query(
+) -> Result<Vec<TradePair>, sqlx::Error> {
+    let query = sqlx::query_as::<_, TradePair>(
         r#"
             -- need order by functionality
             SELECT * FROM order_book_config
@@ -305,9 +309,9 @@ pub async fn get_trade_pair_list(
     .bind(&limit)
     .bind(&offset)
     .fetch_all(&app_state.pool)
-    .await;
+    .await?;
 
-    return query;
+    Ok(query)
 }
 
 pub async fn get_market_order_history(
@@ -316,8 +320,8 @@ pub async fn get_market_order_history(
     limit: String,
     offset: String,
     app_state: web::Data<AppState>,
-) -> Result<Vec<PgRow>, sqlx::Error> {
-    let query = sqlx::query(
+) -> Result<Vec<MarketOrderHistory>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, MarketOrderHistory>(
         r#"
                 SELECT * FROM market_order_histry as m
                 WHERE m.order_book_config_pubkey == $1 AND interval == $2
@@ -331,9 +335,9 @@ pub async fn get_market_order_history(
     .bind(&limit)
     .bind(&offset)
     .fetch_all(&app_state.pool)
-    .await;
+    .await?;
 
-    return query;
+    Ok(rows)
 }
 
 pub async fn delete_order_position(pubkey_id: String, app_state: web::Data<AppState>) {
