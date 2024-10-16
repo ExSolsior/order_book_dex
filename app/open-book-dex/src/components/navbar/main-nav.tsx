@@ -14,7 +14,6 @@ import {
 
 export function MainNav() {
   const pathname = usePathname();
-  const { connected } = useWallet();
 
   return (
     <div className="mr-4 flex flex-1 items-center justify-between">
@@ -49,6 +48,18 @@ export function MainNav() {
             )}
           >
             Trade
+          </Link>
+
+          <Link
+            href="/portfolio"
+            className={cn(
+              "transition-colors hover:text-foreground/80 font-semibold text-sm",
+              pathname === "/portfolio"
+                ? "text-foreground"
+                : "text-foreground/60"
+            )}
+          >
+            Portfolio
           </Link>
 
           <DropdownMenu>
@@ -87,18 +98,6 @@ export function MainNav() {
           </DropdownMenu>
         </nav>
       </div>
-
-      {connected && (
-        <Link
-          href="/portfolio"
-          className={cn(
-            "transition-colors hover:text-foreground/80 font-semibold text-sm",
-            pathname === "/portfolio" ? "text-foreground" : "text-foreground/60"
-          )}
-        >
-          Portfolio
-        </Link>
-      )}
     </div>
   );
 }
