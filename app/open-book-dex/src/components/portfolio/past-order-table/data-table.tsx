@@ -12,8 +12,6 @@ import {
   useReactTable
 } from "@tanstack/react-table";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -24,13 +22,15 @@ import {
 } from "@/components/ui/table";
 import { ChevronLeftIcon, ChevronRightIcon, Search } from "lucide-react";
 import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function OpenOrdersTable<TData, TValue>({
+export function PastOrdersTable<TData, TValue>({
   columns,
   data
 }: DataTableProps<TData, TValue>) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { OpenOrder } from "@/app/portfolio/open-orders";
+import { PastOrder } from "@/app/portfolio/past-orders";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ function DataTableColumnHeader<TData, TValue>({
   );
 }
 
-export const columns: ColumnDef<OpenOrder>[] = [
+export const columns: ColumnDef<PastOrder>[] = [
   {
     accessorKey: "tokenA",
     header: ({ column }) => (
@@ -75,6 +75,25 @@ export const columns: ColumnDef<OpenOrder>[] = [
           className={`text-center font-mono font-bold ${row.original.type === "buy" ? "text-green-500" : "text-red-500"}`}
         >
           {row.original.type === "buy" ? "BUY" : "SELL"}
+        </div>
+      );
+    }
+  },
+  {
+    accessorKey: "status",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Status"
+        className="mx-auto"
+      />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div
+          className={`text-center font-mono font-bold ${row.original.status === "filled" ? "text-blue-500" : "text-gray-500"}`}
+        >
+          {row.original.status === "filled" ? "FILLED" : "CANCELLED"}
         </div>
       );
     }
@@ -167,7 +186,7 @@ export const columns: ColumnDef<OpenOrder>[] = [
       //     formatted = amount.toFixed(2);
       //   }
 
-      let time = new Date(row.original.createdAt * 1000).toLocaleString(
+      let time = new Date(row.original.updatedAt * 1000).toLocaleString(
         "en-US",
         {
           year: "numeric",

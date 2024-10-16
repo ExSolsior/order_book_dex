@@ -1,6 +1,6 @@
-import { PortfolioOrders } from "@/components/portfolio/portfolio-orders";
 import { PortfolioHeader } from "./header";
 import { PortfolioOpenOrders } from "./open-orders";
+import { PastOrders } from "./past-orders";
 import { PortfolioSummary } from "./summary";
 
 export default function PortfolioPage() {
@@ -9,7 +9,7 @@ export default function PortfolioPage() {
       <PortfolioHeader />
       <PortfolioSummary />
       <PortfolioOpenOrders />
-      <PortfolioOrders />
+      <PastOrders />
     </div>
   );
 }
