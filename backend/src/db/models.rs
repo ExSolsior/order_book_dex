@@ -69,7 +69,7 @@ pub struct MarketOrderHistory {
 pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppState>) {
     sqlx::query(
         r#"
-                INSERT INTO order_book_config_table (
+                INSERT INTO order_book_config (
                     "pubkey_id",
                     "token_mint_a", 
                     "token_mint_b", 
@@ -81,8 +81,9 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppSt
                     "token_mint_b_decimal",
                     "token_mint_a_symbol",
                     "token_mint_b_symbol",
+                    "ticker",
                     "is_reverse"
-                ) VALUES ('$1', '$2', '$3', '$4', '$5', '$6', '$7', $8, $9, '$10', '$11', '$12');
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, CAST($8 AS smallint), CAST($9 AS smallint), $10, $11, $12, $13);
             "#,
     )
     .bind(&trade_pair.pubkey_id)
@@ -92,12 +93,11 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppSt
     .bind(&trade_pair.token_program_b)
     .bind(&trade_pair.sell_market_pointer_pubkey)
     .bind(&trade_pair.buy_market_pointer_pubkey)
-    // WTF?
-    .bind([0, trade_pair.token_mint_a_decimal])
-    // WTF??
-    .bind([0, trade_pair.token_mint_b_decimal])
+    .bind(&trade_pair.token_mint_a_decimal.to_string())
+    .bind(&trade_pair.token_mint_b_decimal.to_string())
     .bind(&trade_pair.token_mint_a_symbol)
     .bind(&trade_pair.token_mint_b_symbol)
+    .bind(&trade_pair.ticker)
     .bind(&trade_pair.is_reverse)
     .execute(&app_state.pool)
     .await

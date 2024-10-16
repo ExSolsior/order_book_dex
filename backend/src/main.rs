@@ -1,5 +1,8 @@
-use crate::db::models::{get_market_order_history, get_trade_pair, get_trade_pair_list};
+use crate::db::models::{
+    get_market_order_history, get_trade_pair, get_trade_pair_list, insert_trade_pair,
+};
 use actix_web::{
+    dev::always_ready,
     get,
     web::{self, Data},
     App, HttpResponse, HttpServer, Responder,
@@ -96,8 +99,27 @@ async fn trade_pair_list(
     query: web::Query<TradePairList>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
-    // HttpResponse::Ok().body(query.offset.to_string())
-    // HttpResponse::Ok().body("test")
+    insert_trade_pair(
+        db::TradePair {
+            pubkey_id: String::from("36XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            token_mint_a: String::from("45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            token_mint_b: String::from("45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            token_program_a: String::from("45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            token_program_b: String::from("45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            sell_market_pointer_pubkey: String::from(
+                "45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC",
+            ),
+            buy_market_pointer_pubkey: String::from("45XbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhAC"),
+            token_mint_a_decimal: 8,
+            token_mint_b_decimal: 9,
+            token_mint_a_symbol: String::from("USDC"),
+            token_mint_b_symbol: String::from("btc"),
+            ticker: String::from("USDC/BTC"),
+            is_reverse: false,
+        },
+        app_state.clone(),
+    )
+    .await;
 
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
         Ok(data) => HttpResponse::Ok().json(data),

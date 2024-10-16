@@ -24,8 +24,9 @@ CREATE TABLE IF NOT EXISTS order_book_config (
     "buy_market_pointer_pubkey"     varchar(44) NOT NULL, 
     "token_mint_a_decimal"          smallint NOT NULL,
     "token_mint_b_decimal"          smallint NOT NULL,
-    "token_mint_a_symbol"           varchar(5) NOT NULL,
-    "token_mint_b_symbol"           varchar(5) NOT NULL,
+    "token_mint_a_symbol"           varchar(12) NOT NULL,
+    "token_mint_b_symbol"           varchar(12) NOT NULL,
+    "ticker"                        varchar(25) NOT NULL,
     "is_reverse"                    boolean NOT NULL
 );
 
