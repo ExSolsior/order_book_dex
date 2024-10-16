@@ -23,14 +23,16 @@ export function MainNav() {
           href="/"
           className="flex items-center space-x-2 lg:mr-6"
         >
-          <span className="font-bold lg:inline-block tracking-widest">OBDEX</span>
+          <span className="font-bold lg:inline-block tracking-widest">
+            OBDEX
+          </span>
         </Link>
 
         <nav className="flex items-center gap-4 text-sm lg:gap-6">
           <Link
             href="/"
             className={cn(
-              "transition-colors hover:text-foreground/80 font-semibold",
+              "transition-colors hover:text-foreground font-semibold",
               pathname === "/" ? "text-foreground" : "text-foreground/60"
             )}
           >
@@ -40,7 +42,7 @@ export function MainNav() {
           <Link
             href="/trade"
             className={cn(
-              "transition-colors hover:text-foreground/80 font-semibold",
+              "transition-colors hover:text-foreground font-semibold",
               pathname.includes("/trade")
                 ? "text-foreground"
                 : "text-foreground/60"
@@ -52,7 +54,7 @@ export function MainNav() {
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                "flex transition-colors hover:text-foreground/80 font-semibold text-foreground/60"
+                "flex transition-colors hover:text-foreground font-semibold text-foreground/60"
               )}
             >
               <span>More</span>
@@ -62,7 +64,7 @@ export function MainNav() {
               <Link
                 href="/api"
                 className={cn(
-                  "transition-colors hover:text-foreground/80 font-semibold",
+                  "transition-colors hover:text-foreground font-semibold",
                   pathname === "/api" ? "text-foreground" : "text-foreground/60"
                 )}
               >
@@ -72,7 +74,7 @@ export function MainNav() {
               <Link href="/docs">
                 <DropdownMenuItem
                   className={cn(
-                    "transition-colors hover:text-foreground/80 font-semibold",
+                    "transition-colors hover:text-foreground font-semibold",
                     pathname === "/docs"
                       ? "text-foreground"
                       : "text-foreground/60"
