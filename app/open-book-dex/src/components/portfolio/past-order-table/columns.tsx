@@ -167,11 +167,11 @@ export const columns: ColumnDef<PastOrder>[] = [
     }
   },
   {
-    accessorKey: "createdAt",
+    accessorKey: "updatedAt",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Created"
+        title="Updated"
         className="ml-auto"
       />
     ),
