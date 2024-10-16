@@ -14,7 +14,7 @@ CREATE TYPE interval as ENUM (
     '12M'
 );
 
-CREATE TABLE IF NOT EXISTS order_book_config_table (
+CREATE TABLE IF NOT EXISTS order_book_config (
     "pubkey_id"                     varchar(44) PRIMARY KEY,
     "token_mint_a"                  varchar(44) NOT NULL, 
     "token_mint_b"                  varchar(44) NOT NULL, 
@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS order_book_config_table (
     "is_reverse"                    boolean NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS order_position_config_table (
+CREATE TABLE IF NOT EXISTS order_position_config (
     "pubkey_id"                 varchar(44) PRIMARY KEY,
-    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config_table (pubkey_id),
+    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "market_maker_pubkye"       varchar(44) NOT NULL,
     "vault_a_pubkey"            varchar(44) NOT NULL,
     "vault_b_pubkey"            varchar(44) NOT NULL,
@@ -39,14 +39,14 @@ CREATE TABLE IF NOT EXISTS order_position_config_table (
     "reference"                 bigserial
 );
 
-CREATE TABLE IF NOT EXISTS order_position_table (
+CREATE TABLE IF NOT EXISTS order_position (
     "pubkey_id"                         varchar(44) PRIMARY KEY,
     "order_type"                        order_type NOT NULL,
     "price"                             bigserial NOT NULL,
     "size"                              bigserial NOT NULL,
     "is_available"                      boolean NOT NULL,
     "next_order_position_pubkey"        varchar(44) NOT NULL,
-    "order_position_config_pubkey"      varchar(44) NOT NULL REFERENCES order_position_config_table (pubkey_id),
+    "order_position_config_pubkey"      varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
     "slot"                              bigserial NOT NULL,
     "timestamp"                         bigserial NOT NULL
 );
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS order_position_table (
 -- real time data
 CREATE TABLE IF NOT EXISTS real_time_trade_data (
     "id"                        bigserial PRIMARY KEY,
-    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config_table (pubkey_id),
+    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "order_type"                order_type NOT NULL,
     "last_price"                bigserial NOT NULL,
     "avg_price"                 bigserial NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS real_time_trade_data (
 
 CREATE TABLE IF NOT EXISTS market_order_history (
     "id"                        bigserial PRIMARY KEY,
-    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config_table (pubkey_id),
+    "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "interval"                  interval NOT NULL,
     "open"                      bigserial NOT NULL,
     "high"                      bigserial NOT NULL,

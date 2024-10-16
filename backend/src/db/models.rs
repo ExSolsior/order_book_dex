@@ -1,10 +1,11 @@
 use crate::AppState;
 use actix_web::web;
-use sqlx::{postgres::PgRow, prelude::FromRow};
+use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgRow, prelude::FromRow, Row};
 
 // -> Result<(), Box<dyn Error>>
 
-#[derive(FromRow)]
+#[derive(FromRow, Serialize, Deserialize, Clone)]
 pub struct TradePair {
     pub pubkey_id: String,
     pub token_mint_a: String,
@@ -13,8 +14,8 @@ pub struct TradePair {
     pub token_program_b: String,
     pub sell_market_pointer_pubkey: String,
     pub buy_market_pointer_pubkey: String,
-    pub token_mint_a_decimal: String,
-    pub token_mint_b_decimal: String,
+    pub token_mint_a_decimal: u8,
+    pub token_mint_b_decimal: u8,
     pub token_mint_a_symbol: String,
     pub token_mint_b_symbol: String,
     pub ticker: String,
@@ -52,7 +53,7 @@ pub struct RealTimeTrade {
     slot: String,
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Serialize, Deserialize)]
 pub struct MarketOrderHistory {
     order_book_config_pubkey: String,
     interval: String,
@@ -91,8 +92,10 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppSt
     .bind(&trade_pair.token_program_b)
     .bind(&trade_pair.sell_market_pointer_pubkey)
     .bind(&trade_pair.buy_market_pointer_pubkey)
-    .bind(&trade_pair.token_mint_a_decimal)
-    .bind(&trade_pair.token_mint_b_decimal)
+    // WTF?
+    .bind([0, trade_pair.token_mint_a_decimal])
+    // WTF??
+    .bind([0, trade_pair.token_mint_b_decimal])
     .bind(&trade_pair.token_mint_a_symbol)
     .bind(&trade_pair.token_mint_b_symbol)
     .bind(&trade_pair.is_reverse)
@@ -293,25 +296,58 @@ pub async fn get_trade_pair(
     return trade_pair;
 }
 
+// need to figure out how to use u64 or larger with postgress
 pub async fn get_trade_pair_list(
-    limit: String,
-    offset: String,
+    limit: u64,
+    offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Vec<TradePair>, sqlx::Error> {
-    let query = sqlx::query_as::<_, TradePair>(
+    let query = sqlx::query(
         r#"
             -- need order by functionality
             SELECT * FROM order_book_config
-            LIMIT $2 
-            OFFSET $3;
+            LIMIT $1
+            OFFSET $2;
         "#,
     )
-    .bind(&limit)
-    .bind(&offset)
+    .bind(limit as i64)
+    .bind(offset as i64)
     .fetch_all(&app_state.pool)
     .await?;
 
-    Ok(query)
+    let list = query
+        .iter()
+        .map(|row| TradePair {
+            pubkey_id: row.try_get("pubkey_id").unwrap(),
+            token_mint_a: row.try_get("token_mint_a").unwrap(),
+            token_mint_b: row.try_get("token_mint_b").unwrap(),
+            token_program_a: row.try_get("token_program_a").unwrap(),
+            token_program_b: row.try_get("token_program_b").unwrap(),
+            sell_market_pointer_pubkey: row.try_get("sell_market_pointer_pubkey").unwrap(),
+            buy_market_pointer_pubkey: row.try_get("buy_market_pointer_pubkey").unwrap(),
+
+            // WHAT THE FUCK???
+            token_mint_a_decimal: u8::from_be_bytes([row
+                .try_get_raw("token_mint_a_decimal")
+                .unwrap()
+                .as_bytes()
+                .unwrap()[1]]),
+
+            // WHAT THE FUCK???
+            token_mint_b_decimal: u8::from_be_bytes([row
+                .try_get_raw("token_mint_b_decimal")
+                .unwrap()
+                .as_bytes()
+                .unwrap()[1]]),
+
+            token_mint_a_symbol: row.try_get("token_mint_a_symbol").unwrap(),
+            token_mint_b_symbol: row.try_get("token_mint_b_symbol").unwrap(),
+            ticker: row.try_get("pubkey_id").unwrap(),
+            is_reverse: row.try_get("is_reverse").unwrap(),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(list)
 }
 
 pub async fn get_market_order_history(
