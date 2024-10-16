@@ -22,15 +22,15 @@ import {
 } from "@/components/ui/table";
 import { ChevronLeftIcon, ChevronRightIcon, Search } from "lucide-react";
 import React from "react";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function MarketsTable<TData, TValue>({
+export function OpenOrdersTable<TData, TValue>({
   columns,
   data
 }: DataTableProps<TData, TValue>) {
