@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS order_book_config (
 CREATE TABLE IF NOT EXISTS order_position_config (
     "pubkey_id"                 varchar(44) PRIMARY KEY,
     "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
-    "market_maker_pubkye"       varchar(44) NOT NULL,
+    "market_maker_pubkey"       varchar(44) NOT NULL,
     "vault_a_pubkey"            varchar(44) NOT NULL,
     "vault_b_pubkey"            varchar(44) NOT NULL,
     "nonce"                     bigserial,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS order_position (
     "price"                             bigserial NOT NULL,
     "size"                              bigserial NOT NULL,
     "is_available"                      boolean NOT NULL,
-    "next_order_position_pubkey"        varchar(44) NOT NULL,
+    "next_order_position_pubkey"        varchar(44),
     "order_position_config_pubkey"      varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
     "slot"                              bigserial NOT NULL,
     "timestamp"                         bigserial NOT NULL

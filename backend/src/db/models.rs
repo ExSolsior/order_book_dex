@@ -8,6 +8,21 @@ use sqlx::{postgres::PgRow, prelude::FromRow, Row};
 // -> Result<(), Box<dyn Error>>
 
 #[derive(FromRow, Serialize, Deserialize, Clone)]
+pub struct OrderBook {
+    pub pubkey_id: String,
+    pub token_mint_a: String,
+    pub token_mint_b: String,
+    pub token_program_a: String,
+    pub token_program_b: String,
+    pub sell_market_pointer_pubkey: String,
+    pub buy_market_pointer_pubkey: String,
+    pub token_mint_a_symbol: String,
+    pub token_mint_b_symbol: String,
+    pub is_reverse: bool,
+    pub order_book: String,
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone)]
 pub struct TradePair {
     pub pubkey_id: String,
     pub token_mint_a: String,
@@ -35,13 +50,13 @@ pub struct PositionConfig {
 pub struct OrderPosition {
     pub pubkey_id: String,
     pub order_type: String,
-    pub price: String,
-    pub size: String,
+    pub price: u64,
+    pub size: u64,
     pub is_available: bool,
     pub next_order_position_pubkey: Option<String>,
     pub order_position_config_pubkey: String,
-    pub slot: String,
-    pub timestamp: String,
+    pub slot: u64,
+    pub timestamp: u64,
 }
 
 pub struct RealTimeTrade {
@@ -113,7 +128,7 @@ pub async fn insert_order_position_config(
 ) {
     sqlx::query(
         r#"
-                INSERT INTO order_position_config_table (
+                INSERT INTO order_position_config (
                     "pubkey_id",
                     "order_book_config_pubkey",
                     "market_maker_pubkey",
@@ -121,7 +136,7 @@ pub async fn insert_order_position_config(
                     "vault_b_pubkey",
                     "nonce",
                     "reference"
-                ) VALUES ('$1', '$2', '$3', '$4', '$5', 0, 0);
+                ) VALUES ($1, $2, $3, $4, $5, 0, 0);
             "#,
     )
     .bind(&position_config.pubkey_id)
@@ -147,19 +162,19 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: web
                     "order_position_config_pubkey",
                     "slot",
                     "timestamp"
-                ) VALUES ('$1', '$2', '$3', '$4', '$5', 0, 0);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0);
             "#,
     )
     .bind(&order_position.pubkey_id)
     .bind(&order_position.order_type)
-    .bind(&order_position.price)
-    .bind(&order_position.size)
+    .bind(&order_position.price.to_string())
+    .bind(&order_position.size.to_string())
     .bind(&order_position.is_available)
     // can be Null, how to handle that?
     .bind(&order_position.next_order_position_pubkey)
     .bind(&order_position.order_position_config_pubkey)
-    .bind(&order_position.slot)
-    .bind(&order_position.timestamp)
+    .bind(&order_position.slot.to_string())
+    .bind(&order_position.timestamp.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
@@ -177,7 +192,7 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: web::Data<A
                     "turnover",
                     "timestamp",
                     "slot"
-                ) VALUES ('$1', '$2', '$3', '$4', '$5', '$6', '$7', $8);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
             "#,
     )
     .bind(&trade.order_book_config_pubkey)
@@ -230,74 +245,110 @@ pub async fn insert_market_order_history(
 pub async fn get_trade_pair(
     pubkey_id: String,
     app_state: web::Data<AppState>,
-) -> Result<Vec<PgRow>, sqlx::Error> {
-    let trade_pair = sqlx::query(
+) -> Result<OrderBook, sqlx::Error> {
+    let query = sqlx::query(
         r#"
-            WITH s AS (
-                SELECT * FROM order_book_config AS obc
-                WHERE obc.pubkey_id == $1
-            ), t AS (
-                SELECT
-                    jsong_agg(
-                        op.pubkey_id AS "pubkey_id",
-                        opc.pubkey_id AS "order_pos_config",
-                        op.next_order_position_pubkey AS "next_order_pos",
-                        opc.market_maker_pubkey AS "market_maker_pubkey",
-                        op.order_type AS "order_type",
-                        op.price AS "price",
-                        op.size AS "size",
-                        op.is_available AS "is_available" ,
-
+                WITH s AS (
+                    SELECT * FROM order_book_config AS obc
+                    WHERE obc.pubkey_id = $1
+                ), t AS (
+                    SELECT
+                        op.pubkey_id AS "pubkey_id", 
+                        opc.pubkey_id AS "order_pos_config", 
+                        op.next_order_position_pubkey AS "next_order_pos", 
+                        opc.market_maker_pubkey AS "market_maker_pubkey", 
+                        op.order_type AS "order_type", 
+                        op.price AS "price", 
+                        op.size AS "size", 
+                        op.is_available AS  "is_available", 
+                        
                         CASE
-                            WHEN (NOT s.is_reverse AND op.order_type == order_type.bid)
-                                OR (s.is_reverse AND op.order_type == order_type.ask)
+                            WHEN (NOT s.is_reverse AND op.order_type = 'bid')
+                                OR (s.is_reverse AND op.order_type = 'ask')
                                 THEN opc.vault_a_pubkey
-                            WHEN (NOT s.is_reverse AND op.order_type == order_type.ask)
-                                OR (s.is_reverse AND op.order_type == order_type.bid)
+                            WHEN (NOT s.is_reverse AND op.order_type = 'ask')
+                                OR (s.is_reverse AND op.order_type = 'bid')
                                 THEN opc.vault_b_pubkey
                         END AS "source",
 
+                        
                         CASE
-                            WHEN (NOT s.is_reverse AND op.order_type == order_type.bid)
-                                OR (s.is_reverse AND op.order_type == order_type.ask)
+                            WHEN (NOT s.is_reverse AND op.order_type = 'bid')
+                                OR (s.is_reverse AND op.order_type = 'ask')
                                 THEN opc.vault_b_pubkey
-                            WHEN (NOT s.is_reverse AND op.order_type == order_type.ask)
-                                OR (s.is_reverse AND op.order_type == order_type.bid)
+                            WHEN (NOT s.is_reverse AND op.order_type = 'ask')
+                                OR (s.is_reverse AND op.order_type = 'bid')
                                 THEN opc.vault_a_pubkey
-                        END AS  "destination",
+                        END AS "destination",
 
-                        op.slot AS "slot",
+                        op.slot AS "slot", 
                         op.timestamp AS "timestamp"
-                    ) AS order_position_list
 
-                FROM order_position_config AS opc
-                JOIN order_position AS op ON op.order_position_config_pubkey == opc.pubkey_id,
-                WHERE opc.order_book_config_pubkey == $1
-                ORDER BY op.price ASC
-            )
+                    FROM order_position_config AS opc
+                    JOIN order_position AS op ON op.order_position_config_pubkey = opc.pubkey_id
+                    JOIN s ON s.pubkey_id = $1
+                    WHERE opc.order_book_config_pubkey = $1
+                    ORDER BY op.price ASC
 
-            SELECT
-                s.pubkey,
-                s.token_mint_a,
-                s.token_mint_b,
-                s.token_program_a,
-                s.token_program_b,
-                s.sell_market_pointer,
-                s.buy_market_pointer,
-                s.token_mint_a_decimal,
-                s.token_mint_b_decimal,
-                s.token_mint_a_symbol,
-                s.token_mint_b_symbol,
-                s.is_reverse,
-                t.order_position_list,
-            FROM s;
+                ), j AS (
+                    SELECT
+                        $1 AS "pubkey_id",
+                        json_agg(
+                            json_build_object(
+                                'pubkeyId', t.pubkey_id,
+                                'orderPosConfig', t.order_pos_config,
+                                'nextOrderPos', t.next_order_pos,
+                                'marketMakerPubkey', t.market_maker_pubkey,
+                                'orderType', t.order_type,
+                                'price', t.price,
+                                'size', t.size,
+                                'isAvailable', t.is_available,
+                                'source', t.source,
+                                'destination', t.destination,
+                                'slot', t.slot,
+                                'timestamp', t.timestamp
+                            )
+                        ) as list
+                    FROM t
+                    JOIN s ON s.pubkey_id = $1
+                    GROUP BY s.pubkey_id
+                )
+
+                SELECT
+                    s.pubkey_id,
+                    s.token_mint_a,
+                    s.token_mint_b,
+                    s.token_program_a,
+                    s.token_program_b,
+                    s.sell_market_pointer_pubkey,
+                    s.buy_market_pointer_pubkey,
+                    s.token_mint_a_decimal,
+                    s.token_mint_b_decimal,
+                    s.token_mint_a_symbol,
+                    s.token_mint_b_symbol,
+                    s.is_reverse,
+                    j.list
+                FROM s
+                JOIN j ON s.pubkey_id = j.pubkey_id; 
         "#,
     )
     .bind(&pubkey_id)
-    .fetch_all(&app_state.pool)
-    .await;
+    .fetch_one(&app_state.pool)
+    .await?;
 
-    return trade_pair;
+    Ok(OrderBook {
+        pubkey_id: query.get("pubkey_id"),
+        token_mint_a: query.get("token_mint_a"),
+        token_mint_b: query.get("token_mint_b"),
+        token_program_a: query.get("token_program_a"),
+        token_program_b: query.get("token_program_b"),
+        sell_market_pointer_pubkey: query.get("sell_market_pointer_pubkey"),
+        buy_market_pointer_pubkey: query.get("buy_market_pointer_pubkey"),
+        token_mint_a_symbol: query.get("token_mint_a_symbol"),
+        token_mint_b_symbol: query.get("token_mint_b_symbol"),
+        is_reverse: query.get("is_reverse"),
+        order_book: String::from(query.try_get_raw("list").unwrap().as_str().unwrap()),
+    })
 }
 
 // need to figure out how to use u64 or larger with postgress

@@ -69,7 +69,7 @@ async fn order_position_list(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair(query.pubkey_id.clone(), app_state).await {
-        Ok(_) => HttpResponse::Ok().body("json order book config list"),
+        Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::BadRequest().into(),
     }
 }

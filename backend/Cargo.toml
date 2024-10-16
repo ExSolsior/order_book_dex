@@ -11,5 +11,6 @@ sqlx = { version = "0.8.2", features = [
     # "runtime-actix-rustls",
     "runtime-async-std-native-tls",
     "postgres",
+    # "json",
     # "macros",
 ] }
