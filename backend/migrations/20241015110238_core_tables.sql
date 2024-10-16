@@ -5,14 +5,14 @@ CREATE TYPE order_type as ENUM (
     'ask'
 );
 
-CREATE TYPE interval as ENUM (
-    '1m', '2m', '5m', '10m', '15m', 
-    '20m', '30m', '1h', '2h', '3h', 
-    '4h', '6h', '8h', '12h', 'D', 
-    '2D', '3D', 'W', '2W', '3W',  
-    'M', '2M', '3M', '4M', '6M',
-    '12M'
-);
+-- CREATE TYPE interval_type as ENUM (
+--     '1m', '2m', '5m', '10m', '15m', 
+--     '20m', '30m', '1h', '2h', '3h', 
+--     '4h', '6h', '8h', '12h', 'D', 
+--     '2D', '3D', 'W', '2W', '3W',  
+--     'M', '2M', '3M', '4M', '6M',
+--     '12M'
+-- );
 
 CREATE TABLE IF NOT EXISTS order_book_config (
     "pubkey_id"                     varchar(44) PRIMARY KEY,

@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::AppState;
 use actix_web::web;
 use serde::{Deserialize, Serialize};
@@ -57,13 +59,14 @@ pub struct RealTimeTrade {
 pub struct MarketOrderHistory {
     order_book_config_pubkey: String,
     interval: String,
-    open: String,
-    low: String,
-    high: String,
-    close: String,
-    volume: String,
-    turnover: String,
-    timestamp: String,
+    // should be u32, but I get a fucking error.. need figure out how to handle
+    open: i64,
+    low: i64,
+    high: i64,
+    close: i64,
+    volume: i64,
+    turnover: i64,
+    timestamp: i64,
 }
 
 pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppState>) {
@@ -206,18 +209,19 @@ pub async fn insert_market_order_history(
                     "volume",
                     "turnover",
                     "timestamp"
-                ) VALUES ('$1', '$2', '$3', '$4', '$5', '$6', '$7', $8, $9);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
             "#,
     )
     .bind(&market_history.order_book_config_pubkey)
-    .bind(&market_history.interval)
-    .bind(&market_history.open)
-    .bind(&market_history.high)
-    .bind(&market_history.low)
-    .bind(&market_history.close)
-    .bind(&market_history.volume)
-    .bind(&market_history.turnover)
-    .bind(&market_history.timestamp)
+    // this sucker might have issues... ugh! I'll just comment out and insert directly
+    // .bind(&market_history.interval)
+    .bind(&market_history.open.to_string())
+    .bind(&market_history.high.to_string())
+    .bind(&market_history.low.to_string())
+    .bind(&market_history.close.to_string())
+    .bind(&market_history.volume.to_string())
+    .bind(&market_history.turnover.to_string())
+    .bind(&market_history.timestamp.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
@@ -353,27 +357,53 @@ pub async fn get_trade_pair_list(
 pub async fn get_market_order_history(
     pubkey_id: String,
     interval: String,
-    limit: String,
-    offset: String,
+    limit: u64,
+    offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Vec<MarketOrderHistory>, sqlx::Error> {
-    let rows = sqlx::query_as::<_, MarketOrderHistory>(
+    let query = sqlx::query(&format!(
         r#"
-                SELECT * FROM market_order_histry as m
-                WHERE m.order_book_config_pubkey == $1 AND interval == $2
+                -- can't do this like this
+                -- SET intervalstyle = iso_8601;
+
+                SELECT 
+                    *,
+                    CAST(m.interval AS TEXT) AS interval
+                FROM market_order_history as m
+                WHERE m.order_book_config_pubkey = $1
+                AND m.interval = '{}'
                 ORDER BY m.timestamp DESC
-                LIMIT $3 
-                OFFSET $4;
+                LIMIT $2
+                OFFSET $3;
             "#,
-    )
-    .bind(&pubkey_id)
-    .bind(&interval)
-    .bind(&limit)
-    .bind(&offset)
+        interval
+    ))
+    .bind(pubkey_id)
+    // well I can'g get this bind to work so I just insert it directly into the SQL
+    // .bind(interval)
+    .bind(limit as i64)
+    .bind(offset as i64)
     .fetch_all(&app_state.pool)
     .await?;
 
-    Ok(rows)
+    println!("this");
+
+    let list = query
+        .iter()
+        .map(|row| MarketOrderHistory {
+            order_book_config_pubkey: row.try_get("order_book_config_pubkey").unwrap(),
+            interval: interval.clone(),
+            open: row.try_get("open").unwrap(),
+            high: row.try_get("high").unwrap(),
+            low: row.try_get("low").unwrap(),
+            close: row.try_get("close").unwrap(),
+            volume: row.try_get("volume").unwrap(),
+            turnover: row.try_get("turnover").unwrap(),
+            timestamp: row.try_get("timestamp").unwrap(),
+        })
+        .collect::<Vec<_>>();
+
+    Ok(list)
 }
 
 pub async fn delete_order_position(pubkey_id: String, app_state: web::Data<AppState>) {
