@@ -1,11 +1,4 @@
-use actix_web::{web::Data, App, HttpServer};
-use services::{market_history, market_list, market_order_book};
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-mod db;
-mod services;
-mod websocket_client;
-
-// use anyhow::Result;
+use anyhow::Result;
 use futures_util::StreamExt;
 use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;
 use solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter};
@@ -13,22 +6,27 @@ use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::unbounded_channel;
 
-#[derive(Clone)]
-pub struct AppState {
-    pub pool: Pool<Postgres>,
-}
+//
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    // const DB_URL: &str = "postgres://postgres:somepassword@127.0.0.1:5431/order-book-dex-test";
-    const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
-    const WS_URL: &str = "wss://api.devnet.solana.com/";
+// use crate::services::{market_history, market_list, market_order_book};
+// use actix_web::{web::Data, App, HttpServer};
+// use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(DB_URL)
-        .await
-        .expect("Error building a connection pool.");
+// #[derive(Clone)]
+// pub struct AppState {
+//     pub pool: Pool<Postgres>,
+// }
+
+pub async fn watch_subscriptions(websocket_url: &str) -> Result<()> {
+    println!("HELP");
+
+    // const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
+
+    // let pool = PgPoolOptions::new()
+    //     .max_connections(5)
+    //     .connect(DB_URL)
+    //     .await
+    //     .expect("Error building a connection pool.");
 
     // Subscription tasks will send a ready signal when they have subscribed.
     let (ready_sender, mut ready_receiver) = unbounded_channel::<()>();
@@ -39,7 +37,7 @@ async fn main() -> std::io::Result<()> {
     let (unsubscribe_sender, mut unsubscribe_receiver) = unbounded_channel::<(_, &'static str)>();
 
     // The `PubsubClient` must be `Arc`ed to share it across tasks.
-    let pubsub_client = Arc::new(PubsubClient::new(WS_URL).await.unwrap());
+    let pubsub_client = Arc::new(PubsubClient::new(websocket_url).await?);
 
     let mut join_handles = vec![];
 
@@ -101,25 +99,28 @@ async fn main() -> std::io::Result<()> {
     while let Some(_) = ready_receiver.recv().await {}
 
     // Do application logic here.
-    HttpServer::new(move || {
-        App::new()
-            .app_data(Data::new(AppState { pool: pool.clone() }))
-            .service(market_order_book)
-            .service(market_list)
-            .service(market_history)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await?;
+    println!("no idea????");
+    // HttpServer::new(move || {
+    //     App::new()
+    //         .app_data(Data::new(AppState { pool: pool.clone() }))
+    //         .service(market_order_book)
+    //         .service(market_list)
+    //         .service(market_history)
+    // })
+    // .bind(("127.0.0.1", 8080))?
+    // .run()
+    // .await?;
 
     // Wait for input or some application-specific shutdown condition.
     tokio::io::stdin().read_u8().await?;
+    println!("no juice????");
 
     // Unsubscribe from everything, which will shutdown all the tasks.
     while let Some((unsubscribe, name)) = unsubscribe_receiver.recv().await {
         println!("unsubscribing from {}", name);
         unsubscribe().await
     }
+    println!("no beast????");
 
     // Wait for the tasks.
     for (name, handle) in join_handles {
@@ -128,22 +129,7 @@ async fn main() -> std::io::Result<()> {
             println!("task {} failed: {}", name, e);
         }
     }
+    println!("last????");
 
     Ok(())
 }
-
-// migrate build-script
-// docker run --name order-book-dex -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -d postgres
-// $ docker run -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=dbuser -e POSTGRES_DB=bookstore  -p 5432:5432 postgres:1
-// docker exec -it order-book-dex psql -U postgres
-// docker stop order-book-dex
-// docker rm order-book-dex
-// docker ps -a
-// docker volume create postgres-data
-
-// persisteded database instance
-// docker run --name order-book-dex-test -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -v postgres-data:/var/lib/postgresql/data -d postgres
-
-// sqlx migrate run --database-url postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/
-// sqlx migrate info --database-url postgres://postgres:somepassword@127.0.0.1:5431/
-// sqlx migrate add core_tables
