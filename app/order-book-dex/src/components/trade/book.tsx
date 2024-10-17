@@ -27,7 +27,10 @@ export default function Book({ market }: { market: Market }) {
         <BookHeader market={market} />
         <TableBody>
           {sells.map((sell) => (
-            <TableRow key={sell.price}>
+            <TableRow
+              key={sell.price}
+              className="text-xs"
+            >
               <TableCell className="text-red-500 font-mono">
                 {sell.price}
               </TableCell>
@@ -44,7 +47,7 @@ export default function Book({ market }: { market: Market }) {
         </TableBody>
       </Table>
 
-      <div className="text-lg	font-mono font-semibold px-2 py-1 border-t-2 border-b-2 text-green-500">
+      <div className="font-mono font-semibold px-2 py-1 border-t-2 border-b-2 text-green-500">
         {market.price}
       </div>
 
@@ -52,7 +55,10 @@ export default function Book({ market }: { market: Market }) {
         <BookHeader market={market} />
         <TableBody>
           {buys.map((buy) => (
-            <TableRow key={buy.price}>
+            <TableRow
+              key={buy.price}
+              className="text-xs"
+            >
               <TableCell className="text-green-500 font-mono">
                 {buy.price}
               </TableCell>
@@ -75,11 +81,11 @@ function BookHeader({ market }: { market: Market }) {
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className="font-semibold">Price ({market.tokenB})</TableHead>
-        <TableHead className="font-semibold text-right">
+        <TableHead className="text-xs">Price ({market.tokenB})</TableHead>
+        <TableHead className="text-xs text-right">
           Size ({market.tokenA})
         </TableHead>
-        <TableHead className="font-semibold text-right">
+        <TableHead className="text-xs text-right">
           Total ({market.tokenA})
         </TableHead>
       </TableRow>
