@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WalletAdapter } from "@/components/wallet-adapter";
+import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -22,8 +23,8 @@ const montserrat = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Open Book Dex",
-  description: "First Open Book Dex on SOON"
+  title: siteConfig.name,
+  description: siteConfig.description
 };
 
 export default function RootLayout({
