@@ -9,7 +9,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
-  useReactTable
+  useReactTable,
+  VisibilityState
 } from "@tanstack/react-table";
 
 import {
@@ -21,7 +22,8 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { ChevronLeftIcon, ChevronRightIcon, Search } from "lucide-react";
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
@@ -38,6 +40,8 @@ export function MarketsTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -48,11 +52,19 @@ export function MarketsTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
+    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
-      columnFilters
+      columnFilters,
+      columnVisibility
     }
   });
+
+  const router = useRouter();
+
+  useEffect(() => {
+    table.getColumn("marketId")?.toggleVisibility(false);
+  }, [table]);
 
   return (
     <div className="p-1">
@@ -93,6 +105,11 @@ export function MarketsTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer"
+                  onClick={() => {
+                    const marketId = row.getAllCells()[0].getValue();
+                    router.push(`/trade/${marketId}`);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
