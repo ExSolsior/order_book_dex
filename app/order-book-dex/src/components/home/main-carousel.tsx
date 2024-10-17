@@ -8,6 +8,7 @@ import {
   CarouselPrevious
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
 import * as React from "react";
 import { Card, CardContent } from "../ui/card";
 
@@ -25,9 +26,11 @@ export function MainCarousel() {
         <CarouselItem>
           <div className="p-1">
             <Card className="relative">
-              <img
+              <Image
                 src="/assets/images/banner-1.jpg"
                 alt="Banner 1"
+                width={1000}
+                height={1000}
                 className="w-full h-72 opacity-50"
               />
               <CardContent className="absolute inset-0 flex flex-col items-center justify-center p-6 h-72 gap-5">
@@ -46,9 +49,11 @@ export function MainCarousel() {
         <CarouselItem>
           <div className="p-1">
             <Card className="relative">
-              <img
+              <Image
                 src="/assets/images/banner-2.jpg"
                 alt="Banner 2"
+                width={1000}
+                height={1000}
                 className="w-full h-72"
               />
               <CardContent className="absolute inset-0 rounded-xl flex flex-col items-center justify-center p-6 h-72 gap-5">
@@ -64,9 +69,11 @@ export function MainCarousel() {
         <CarouselItem>
           <div className="p-1">
             <Card className="relative">
-              <img
+              <Image
                 src="/assets/images/banner-3.webp"
                 alt="Banner 3"
+                width={1000}
+                height={1000}
                 className="w-full h-72 object-cover opacity-80 rounded-xl"
               />
               <CardContent className="absolute inset-0 rounded-xl flex flex-col items-start justify-end p-6 h-72 gap-5 bg-gradient-to-tr from-black">
