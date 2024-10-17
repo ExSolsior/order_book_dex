@@ -8,7 +8,7 @@ export default function OrderBook({ market }: { market: Market }) {
   return (
     <Tabs
       defaultValue="book"
-      className="w-1/3 border-l-2 border-b-2"
+      className="w-1/5 border-l-2 border-b-2"
     >
       <TabsList className="bg-transparent gap-3">
         <CustomTabsTrigger value="book">Book</CustomTabsTrigger>

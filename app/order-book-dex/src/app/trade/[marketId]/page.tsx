@@ -1,7 +1,9 @@
 "use client";
 
+import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
+import { candles } from "@/lib/candles";
 import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { useEffect } from "react";
 import { Header } from "./header";
@@ -28,9 +30,9 @@ export default function Page({ params }: { params: { marketId: string } }) {
       </div>
       <Separator />
       <div className="flex">
+        <CandlestickChart data={candles} />
         <OrderBook market={market} />
         <Trade market={market} />
-        <MarketDetails market={market} />
       </div>
     </>
   );

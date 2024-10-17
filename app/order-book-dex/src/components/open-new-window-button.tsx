@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 export default function OpenNewWindowButton({ link }: { link: string }) {
   return (
     <Button
-      variant="ghost"
+      variant="link"
       className="p-0 self-center"
       onClick={() => window.open(link, "_blank")}
     >
