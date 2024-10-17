@@ -35,6 +35,7 @@ export default function MarketOrder({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log(values);
     {
       /* TODO: Implement functionality */
     }

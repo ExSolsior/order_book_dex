@@ -7,8 +7,6 @@ import {
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { ReactNode, useMemo } from "react";
 
-require("@solana/wallet-adapter-react-ui/styles.css");
-
 export const WalletAdapter = ({ children }: { children: ReactNode }) => {
   const endpoint = "https://rpc.devnet.soo.network/rpc";
   const wallets = useMemo(() => [], []);

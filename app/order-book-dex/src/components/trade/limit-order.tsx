@@ -23,6 +23,9 @@ export default function LimitOrder({
   market: Market;
   type: "buy" | "sell";
 }) {
+  // Dummy log to prevent lint error for `type` until functionality is implemented
+  console.log(`Trade type: ${type}`);
+
   const formSchema = z.object({
     price: z.number(),
     quantity: z.number(),
@@ -39,6 +42,7 @@ export default function LimitOrder({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log(values);
     {
       /* TODO: Implement functionality */
     }

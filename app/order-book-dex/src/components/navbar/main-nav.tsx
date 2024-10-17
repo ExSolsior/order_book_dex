@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { CaretDownIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useWallet } from "@solana/wallet-adapter-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

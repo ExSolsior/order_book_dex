@@ -186,7 +186,7 @@ export const columns: ColumnDef<PastOrder>[] = [
       //     formatted = amount.toFixed(2);
       //   }
 
-      let time = new Date(row.original.updatedAt * 1000).toLocaleString(
+      const time = new Date(row.original.updatedAt * 1000).toLocaleString(
         "en-US",
         {
           year: "numeric",

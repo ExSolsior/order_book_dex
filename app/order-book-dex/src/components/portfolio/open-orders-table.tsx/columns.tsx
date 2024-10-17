@@ -167,7 +167,7 @@ export const columns: ColumnDef<OpenOrder>[] = [
       //     formatted = amount.toFixed(2);
       //   }
 
-      let time = new Date(row.original.createdAt * 1000).toLocaleString(
+      const time = new Date(row.original.createdAt * 1000).toLocaleString(
         "en-US",
         {
           year: "numeric",
