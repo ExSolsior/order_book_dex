@@ -1,5 +1,5 @@
 {
-  "name": "open-book-dex",
+  "name": "order-book-dex",
   "version": "0.1.0",
   "private": true,
   "scripts": {
