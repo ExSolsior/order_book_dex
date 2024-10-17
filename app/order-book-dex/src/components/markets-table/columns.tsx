@@ -36,6 +36,22 @@ function DataTableColumnHeader<TData, TValue>({
 
 export const columns: ColumnDef<Market>[] = [
   {
+    accessorKey: "marketId",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="Market ID"
+      />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="text-left font-semibold">
+          <span>{row.original.marketId}</span>
+        </div>
+      );
+    }
+  },
+  {
     accessorKey: "tokenA",
     header: ({ column }) => (
       <DataTableColumnHeader
