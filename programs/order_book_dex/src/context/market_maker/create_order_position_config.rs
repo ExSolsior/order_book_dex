@@ -1,4 +1,5 @@
 use crate::constants::ORDER_POSITION_CONFIG_SEED;
+use crate::events::NewOrderPositionConfigEvent;
 use crate::state::{OrderBookConfig, OrderPositionConfig};
 use anchor_lang::prelude::*;
 
@@ -29,6 +30,19 @@ impl<'info> CreateOrderPositionConfig<'info> {
     pub fn init(&mut self) -> Result<()> {
         self.order_position_config
             .init(self.order_book_config.key(), self.signer.key());
+
+        let Clock {
+            slot,
+            unix_timestamp,
+            ..
+        } = Clock::get()?;
+
+        emit!(NewOrderPositionConfigEvent {
+            book_config: self.order_book_config.key(),
+            pos_config: self.order_position_config.key(),
+            slot: slot,
+            timestamp: unix_timestamp,
+        });
 
         Ok(())
     }

@@ -1,6 +1,7 @@
 use crate::{
     constants::VAULT_ACCOUNT_SEED,
     errors::ErrorCode,
+    events::MarketOrderTriggerEvent,
     state::{Fill, MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
@@ -69,6 +70,8 @@ pub struct CreateMarketOrder<'info> {
 }
 
 impl<'info> CreateMarketOrder<'info> {
+    // I don't think I need the order_type since it already exist on the market pointer
+    // also the order_type is not being validated so it is a current security concern.
     pub fn exec(&mut self, order_type: Order, fill: Fill, target_amount: u64) -> Result<()> {
         self.market_pointer.add_market_order(
             order_type,
@@ -78,6 +81,24 @@ impl<'info> CreateMarketOrder<'info> {
             self.source.key(),
             self.dest.key(),
             self.next_position_pointer.key(),
-        )
+        )?;
+
+        let Clock {
+            slot,
+            unix_timestamp,
+            ..
+        } = Clock::get()?;
+
+        emit!(MarketOrderTriggerEvent {
+            market_pointer: self.market_pointer.key(),
+            book_config: self.order_book_config.key(),
+            pointer: self.market_pointer.order_position_pointer,
+            order_type: self.market_pointer.order_type.clone(),
+            is_available: self.market_pointer.market_order.is_none(),
+            slot: slot,
+            timestamp: unix_timestamp,
+        });
+
+        Ok(())
     }
 }

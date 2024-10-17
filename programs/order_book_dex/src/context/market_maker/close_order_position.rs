@@ -1,5 +1,6 @@
 use crate::{
     errors::ErrorCode,
+    events::CloseLimitOrderEvent,
     state::{OrderBookConfig, OrderPosition, OrderPositionConfig},
 };
 use anchor_lang::prelude::*;
@@ -44,6 +45,13 @@ impl<'info> CloseOrderPosition<'info> {
     pub fn exec(&mut self) -> Result<()> {
         // The account will be automatically closed and its lamports
         // will be transferred to the signer due to the `close = signer` constraint
+
+        emit!(CloseLimitOrderEvent {
+            pos_pubkey: self.order_position.key(),
+            book_config: self.order_book_config.key(),
+            pos_config: self.order_position_config.key(),
+        });
+
         Ok(())
     }
 }

@@ -4,6 +4,7 @@ use context::*;
 mod constants;
 mod context;
 mod errors;
+mod events;
 mod state;
 
 declare_id!("Ho5fe2xYQX84C5kXTSB34hZCudUB4Z1KDhFViPFtGoP");

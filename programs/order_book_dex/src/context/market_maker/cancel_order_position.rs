@@ -1,4 +1,4 @@
-use crate::{constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
+use crate::{constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, events::CancelLimitOrderEvent, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
@@ -157,6 +157,14 @@ impl<'info> CancelOrderPosition<'info> {
             amount,
             self.token_mint.decimals,
         )?;
+
+        emit!(CancelLimitOrderEvent {
+            pos_pubkey: self.order_position.key(),
+            book_config: self.order_book_config.key(),
+            pos_config: self.order_position_config.key(),
+            amount: amount,
+            is_available: self.order_position.is_available,
+        });
 
         Ok(())
     }

@@ -447,7 +447,6 @@ TODO:
         - lookup tables system via CPIs
 
     backend
-        - create server -> node express | golang gorilla | maybe rust?
         - websockets collecting events from rpc
         - postgress database -> store and manage events
         - redis -> cache storage

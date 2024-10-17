@@ -74,7 +74,8 @@ impl MarketPointer {
 
         self.execution_stats = Some(ExecutionStats {
             total_amount: 0,
-            total_paid: 0,
+            total_cost: 0,
+            last_price: 0,
             owner,
             source,
             dest,
@@ -84,19 +85,21 @@ impl MarketPointer {
         Ok(())
     }
 
-    pub fn remove_market_order(&mut self) -> Result<()> {
+    pub fn remove_market_order(&mut self) -> Result<ExecutionStats> {
         let Clock {
             slot,
             unix_timestamp,
             ..
         } = Clock::get()?;
 
+        let market_data = self.execution_stats.as_mut().unwrap().clone();
+
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.market_order = None;
         self.execution_stats = None;
 
-        Ok(())
+        Ok(market_data)
     }
 
     pub fn update(
@@ -120,7 +123,7 @@ impl MarketPointer {
         self.execution_stats
             .as_mut()
             .unwrap()
-            .update(amount, pay_amount);
+            .update(amount, pay_amount, order_position.price);
 
         Ok(())
     }
@@ -307,14 +310,16 @@ pub struct ExecutionStats {
     pub dest: Pubkey,
     pub next_position_pointer: Pubkey,
     pub total_amount: u64,
-    pub total_paid: u64,
+    pub total_cost: u64,
+    pub last_price: u64,
 }
 
 impl ExecutionStats {
     pub const LEN: usize = (PUBKEY_BYTES * 4) + (U64_BYTES * 2);
 
-    pub fn update(&mut self, amount: u64, pay_amount: u64) {
+    pub fn update(&mut self, amount: u64, pay_amount: u64, price: u64) {
         self.total_amount += amount;
-        self.total_paid += pay_amount;
+        self.total_cost += pay_amount;
+        self.last_price = price;
     }
 }
