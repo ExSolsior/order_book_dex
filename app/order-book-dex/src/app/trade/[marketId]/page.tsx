@@ -24,7 +24,7 @@ export default function Page({ params }: { params: { marketId: string } }) {
   }, [market]);
 
   return (
-    <>
+    <div className="h-full">
       <div className="py-2">
         <Header market={market} />
       </div>
@@ -34,6 +34,6 @@ export default function Page({ params }: { params: { marketId: string } }) {
         <OrderBook market={market} />
         <Trade market={market} />
       </div>
-    </>
+    </div>
   );
 }
