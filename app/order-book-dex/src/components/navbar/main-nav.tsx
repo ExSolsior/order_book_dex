@@ -22,7 +22,7 @@ export function MainNav() {
           className="flex items-center space-x-2 lg:mr-6"
         >
           <span className="font-bold lg:inline-block tracking-widest">
-            OBDEX
+            CHRONO
           </span>
         </Link>
 
