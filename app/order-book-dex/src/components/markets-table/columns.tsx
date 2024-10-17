@@ -25,7 +25,7 @@ function DataTableColumnHeader<TData, TValue>({
   return (
     <Button
       variant="ghost"
-      className="text-right font-semibold"
+      className={cn("text-right font-semibold flex", className)}
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {title}
@@ -56,7 +56,7 @@ export const columns: ColumnDef<Market>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="Market"
+        title="Trading Pairs"
       />
     ),
     cell: ({ row }) => {
@@ -82,6 +82,7 @@ export const columns: ColumnDef<Market>[] = [
       <DataTableColumnHeader
         column={column}
         title="Price"
+        className="ml-auto"
       />
     ),
     cell: ({ row }) => {
@@ -97,23 +98,16 @@ export const columns: ColumnDef<Market>[] = [
     }
   },
   {
-    accessorKey: "change",
+    accessorKey: "turnover",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
-        title="24h Change"
+        title="24h Turnover"
+        className="ml-auto"
       />
     ),
     cell: ({ row }) => {
-      return (
-        <div
-          className={`text-right font-semibold ${
-            row.original.change < 0 ? "text-red-500" : "text-green-500"
-          }`}
-        >
-          {row.original.change}%
-        </div>
-      );
+      return <div className="text-right font-semibold">-</div>;
     }
   },
   {
@@ -122,6 +116,7 @@ export const columns: ColumnDef<Market>[] = [
       <DataTableColumnHeader
         column={column}
         title="24h Volume"
+        className="ml-auto"
       />
     ),
     cell: ({ row }) => {
@@ -136,6 +131,27 @@ export const columns: ColumnDef<Market>[] = [
       }
 
       return <div className="text-right font-semibold">{formatted}</div>;
+    }
+  },
+  {
+    accessorKey: "change",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        column={column}
+        title="24h Change"
+        className="ml-auto"
+      />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div
+          className={`text-right font-semibold ${
+            row.original.change < 0 ? "text-red-500" : "text-green-500"
+          }`}
+        >
+          {row.original.change}%
+        </div>
+      );
     }
   }
 ];
