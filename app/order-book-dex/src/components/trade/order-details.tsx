@@ -23,7 +23,7 @@ export default function OrderDetails({
       </TabsList>
       <TabsContent
         value="limit"
-        className="space-y-3 container pt-2"
+        className="space-y-3 px-2 pt-2"
       >
         <Balance token={type === "buy" ? market.tokenB : market.tokenA} />
         <LimitOrder
@@ -33,7 +33,7 @@ export default function OrderDetails({
       </TabsContent>
       <TabsContent
         value="market"
-        className="space-y-3 container pt-2"
+        className="space-y-3 px-2 pt-2"
       >
         <Balance token={type === "buy" ? market.tokenB : market.tokenA} />
         <MarketOrder
