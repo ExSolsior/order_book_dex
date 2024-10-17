@@ -106,7 +106,7 @@ export const columns: ColumnDef<Market>[] = [
         className="ml-auto"
       />
     ),
-    cell: ({ row }) => {
+    cell: ({}) => {
       return <div className="text-right font-semibold">-</div>;
     }
   },

@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "./ui/dropdown-menu";
+import { WalletName } from "@solana/wallet-adapter-base";
 
 export function WalletConnection() {
   const { select, wallet, wallets, publicKey, disconnect, connecting } =
@@ -25,7 +26,7 @@ export function WalletConnection() {
 
   const [open, setOpen] = useState<boolean>(false);
 
-  const handleWalletSelect = async (walletName: any) => {
+  const handleWalletSelect = async (walletName: WalletName) => {
     if (walletName) {
       try {
         select(walletName);
