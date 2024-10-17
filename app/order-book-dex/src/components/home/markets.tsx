@@ -1,8 +1,10 @@
+"use client";
+
 import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { Avatar, AvatarImage } from "@radix-ui/react-avatar";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Table, TableBody, TableCell, TableRow } from "../ui/table";
-import Link from "next/link";
 
 export function Markets() {
   return (
@@ -86,33 +88,39 @@ const Popular = () => {
   );
 };
 
-const Row = (market: (typeof newMarkets)[0]) => (
-  <TableRow key={market.tokenA + market.tokenB}>
-    <TableCell>
-      <Link
-        href={`/trade/${market.marketId}`}
-        className="font-semibold flex gap-1"
-      >
-        <Avatar>
-          <AvatarImage
-            src={market.image}
-            alt={market.tokenA}
-            className="w-5 h-5 rounded-full"
-          />
-        </Avatar>
-        {market.tokenA} / {market.tokenB}
-      </Link>
-    </TableCell>
-    <TableCell className="font-semibold text-right">
-      {market.price.toLocaleString("en-US", {
-        style: "currency",
-        currency: "USD"
-      })}
-    </TableCell>
-    <TableCell
-      className={`font-semibold text-right ${market.change < 0 ? "text-red-500" : "text-green-500"}`}
+const Row = (market: (typeof newMarkets)[0]) => {
+  const router = useRouter();
+  return (
+    <TableRow
+      key={market.tokenA + market.tokenB}
+      className="cursor-pointer"
+      onClick={() => {
+        router.push(`/trade/${market.marketId}`);
+      }}
     >
-      {market.change}%
-    </TableCell>
-  </TableRow>
-);
+      <TableCell>
+        <div className="font-semibold flex gap-1">
+          <Avatar>
+            <AvatarImage
+              src={market.image}
+              alt={market.tokenA}
+              className="w-5 h-5 rounded-full"
+            />
+          </Avatar>
+          {market.tokenA} / {market.tokenB}
+        </div>
+      </TableCell>
+      <TableCell className="font-semibold text-right">
+        {market.price.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD"
+        })}
+      </TableCell>
+      <TableCell
+        className={`font-semibold text-right ${market.change < 0 ? "text-red-500" : "text-green-500"}`}
+      >
+        {market.change}%
+      </TableCell>
+    </TableRow>
+  );
+};
