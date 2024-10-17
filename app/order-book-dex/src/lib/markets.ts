@@ -119,7 +119,7 @@ const popular: Market[] = [
     marketId: "123e4567-e89b-12d3-a456-426614174010",
     tokenA: "WETH",
     tokenB: "USDT",
-    price: 2454.77,
+    price: 2496.75,
     change: -0.32,
     volume: 710970000,
     image:

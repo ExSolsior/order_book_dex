@@ -18,7 +18,7 @@ export default function Book({ market }: { market: Market }) {
     .slice(0, 5);
   const buys = orders
     .filter((order) => order.action === "buy")
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => b.price - a.price)
     .slice(0, 5);
 
   return (
