@@ -1,5 +1,6 @@
 use crate::constants::{BUY_SEED, MARKET_POINTER_SEED, ORDER_BOOK_CONFIG_SEED, SELL_SEED};
 use crate::errors::ErrorCode;
+use crate::events::NewOrderBookConfigEvent;
 use crate::state::{MarketPointer, Order, OrderBookConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
@@ -85,7 +86,24 @@ impl<'info> CreateTradePair<'info> {
         self.sell_market_pointer
             .init(Order::Sell, self.order_book_config.key())?;
 
-        msg!("New Trade Pair Created: {}", self.order_book_config.key());
+        let Clock {
+            slot,
+            unix_timestamp,
+            ..
+        } = Clock::get()?;
+
+        emit!(NewOrderBookConfigEvent {
+            book_config: self.order_book_config.key(),
+            token_mint_a: self.token_mint_a.key(),
+            token_mint_b: self.token_mint_b.key(),
+            token_program_a: self.token_program_a.key(),
+            token_program_b: self.token_program_b.key(),
+            sell_market_pointer: self.sell_market_pointer.key(),
+            buy_market_pointer: self.buy_market_pointer.key(),
+            is_reverse: is_reverse,
+            slot: slot,
+            timestamp: unix_timestamp,
+        });
 
         Ok(())
     }
