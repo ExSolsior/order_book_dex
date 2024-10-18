@@ -7,6 +7,7 @@ use crate::{
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
+#[instruction(order_type: Order)]
 pub struct CreateMarketOrder<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -19,6 +20,8 @@ pub struct CreateMarketOrder<'info> {
             @ ErrorCode::InvalidMarketPointer,
         constraint = market_pointer.is_valid_availability()
             @ ErrorCode::MarketOrderAlreadyInProgress,
+        constraint = order_type == Order::Buy || order_type == Order::Sell
+            @ ErrorCode::InvalidMarketOrder,
     )]
     pub market_pointer: Account<'info, MarketPointer>,
 

@@ -22,3 +22,8 @@ sqlx migrate info --database-url postgres://postgres:somepassword@127.0.0.1:5431
 
 -- connection to db
 postgres://postgres:somepassword@127.0.0.1:5431/
+
+
+DB password
+lnB71KGgfbtut8lR
+postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres

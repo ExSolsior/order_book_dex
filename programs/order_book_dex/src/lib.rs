@@ -14,9 +14,18 @@ pub mod order_book_dex {
 
     use super::*;
 
-    pub fn create_trade_pair(ctx: Context<CreateTradePair>, is_reverse: bool) -> Result<()> {
-        ctx.accounts
-            .initialize(is_reverse, ctx.bumps.order_book_config)
+    pub fn create_trade_pair(
+        ctx: Context<CreateTradePair>,
+        token_symbol_a: String,
+        token_symbol_b: String,
+        is_reverse: bool,
+    ) -> Result<()> {
+        ctx.accounts.initialize(
+            token_symbol_a,
+            token_symbol_b,
+            is_reverse,
+            ctx.bumps.order_book_config,
+        )
     }
 
     pub fn create_vault_accounts(ctx: Context<CreateVaultAccounts>) -> Result<()> {

@@ -6,6 +6,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_interface::Mint;
 
 #[derive(Accounts)]
+#[instruction(token_symbol_a: String, token_symbol_b: String)]
 pub struct CreateTradePair<'info> {
     #[account(
         mut,
@@ -20,6 +21,9 @@ pub struct CreateTradePair<'info> {
             &token_program_a.to_account_info(),
             &token_program_b.to_account_info(),
         ) @ ErrorCode::InvalidMint,
+        constraint = OrderBookConfig::is_valid_symbol(token_symbol_a) 
+            && OrderBookConfig::is_valid_symbol(token_symbol_b)
+            @ ErrorCode::InvalidSymbolLength,
         init,
         payer = authority,
         space = OrderBookConfig::LEN,
@@ -71,12 +75,20 @@ pub struct CreateTradePair<'info> {
 }
 
 impl<'info> CreateTradePair<'info> {
-    pub fn initialize(&mut self, is_reverse: bool, bump: u8) -> Result<()> {
+    pub fn initialize(
+        &mut self,
+        token_symbol_a: String,
+        token_symbol_b: String,
+        is_reverse: bool,
+        bump: u8,
+    ) -> Result<()> {
         self.order_book_config.init(
             self.token_program_a.key(),
             self.token_program_b.key(),
             self.token_mint_a.key(),
             self.token_mint_b.key(),
+            token_symbol_a,
+            token_symbol_b,
             is_reverse,
             bump,
         );
@@ -100,7 +112,9 @@ impl<'info> CreateTradePair<'info> {
             token_program_b: self.token_program_b.key(),
             sell_market_pointer: self.sell_market_pointer.key(),
             buy_market_pointer: self.buy_market_pointer.key(),
-            is_reverse: is_reverse,
+            token_symbol_a: self.order_book_config.token_symbol_a.clone(),
+            token_symbol_b: self.order_book_config.token_symbol_b.clone(),
+            is_reverse: self.order_book_config.is_reverse,
             slot: slot,
             timestamp: unix_timestamp,
         });

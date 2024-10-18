@@ -11,7 +11,7 @@ pub struct CancelOrderPosition<'info> {
         constraint = MarketPointer::validate_mutable_status(market_pointer_read.as_ref(), market_pointer_write.as_ref())
             @ ErrorCode::InvalidMarketPointer,
     )]
-    pub order_book_config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Box<Account<'info, OrderBookConfig>>,
 
     #[account(
         constraint = market_pointer_read.is_valid_order_book_config(order_book_config.key())
