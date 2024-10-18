@@ -3,6 +3,7 @@ import {
   createChart,
   CrosshairMode,
   IChartApi,
+  TickMarkType,
   Time
 } from "lightweight-charts";
 import React, { useEffect, useRef, useState } from "react";
@@ -64,7 +65,48 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data }) => {
       const timeScaleOptions = {
         borderColor: "#71649C",
         rightOffset: 10,
-        timeVisible: true
+        timeVisible: true,
+        tickMarkFormatter: (time: number, tickMarkType: TickMarkType) => {
+          const date = new Date(time * 1000);
+
+          switch (tickMarkType) {
+            case TickMarkType.Year:
+              return date.getFullYear();
+
+            case TickMarkType.Month:
+              const monthFormatter = new Intl.DateTimeFormat(
+                navigator.language,
+                {
+                  month: "short"
+                }
+              );
+              return monthFormatter.format(date);
+
+            case TickMarkType.DayOfMonth:
+              return date.getDate();
+
+            case TickMarkType.Time:
+              const timeFormatter = new Intl.DateTimeFormat(
+                navigator.language,
+                {
+                  hour: "numeric",
+                  minute: "numeric"
+                }
+              );
+              return timeFormatter.format(date);
+
+            case TickMarkType.TimeWithSeconds:
+              const timeWithSecondsFormatter = new Intl.DateTimeFormat(
+                navigator.language,
+                {
+                  hour: "numeric",
+                  minute: "numeric",
+                  second: "numeric"
+                }
+              );
+              return timeWithSecondsFormatter.format(date);
+          }
+        }
       };
 
       const candleStickSeriesOptions = {
