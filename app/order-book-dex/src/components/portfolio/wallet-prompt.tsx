@@ -1,6 +1,5 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletConnection } from "../wallet-connection";
 
 export function WalletPrompt() {

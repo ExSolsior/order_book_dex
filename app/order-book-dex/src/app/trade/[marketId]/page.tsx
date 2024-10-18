@@ -7,7 +7,6 @@ import { candles } from "@/lib/candles";
 import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { useEffect } from "react";
 import { Header } from "./header";
-import MarketDetails from "./market-details";
 import OrderBook from "./order-book";
 import Trade from "./trade";
 
