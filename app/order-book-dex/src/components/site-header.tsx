@@ -1,5 +1,6 @@
 import { MainNav } from "./navbar/main-nav";
 import { SearchBar } from "./navbar/search-bar";
+import { NoticeBanner } from "./notice-banner";
 import { WalletConnection } from "./wallet-connection";
 
 export function SiteHeader() {
@@ -18,6 +19,7 @@ export function SiteHeader() {
           </nav>
         </div>
       </div>
+      <NoticeBanner />
     </header>
   );
 }
