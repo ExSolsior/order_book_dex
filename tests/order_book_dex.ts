@@ -250,6 +250,16 @@ describe("order_book_dex", () => {
 
     console.log('SETUP FINISHED\n');
 
+    // program.addEventListener("newOpenPositionEvent", (event, slot, sig) => {
+    //   console.log("this", slot, sig)
+    //   console.log(event)
+    // })
+
+    // provider.connection.onLogs(new PublicKey("Ho5fe2xYQX84C5kXTSB34hZCudUB4Z1KDhFViPFtGoP"), (logs, ctx) => {
+    //   console.log(logs, ctx)
+    // })
+
+    // console.log("event set")
   })
 
   it("Create Trade Pair", async () => {

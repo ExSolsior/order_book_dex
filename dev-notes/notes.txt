@@ -457,3 +457,74 @@ TODO:
         - page view listing all order pairs
         - page view order pair trade
         - algorithm to handle transactions
+
+
+program id: 4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9
+
+// - Create some token mints and testing accounts
+// - Create some testing trading pairs
+// - Create mock data on DB
+// - deploy backend
+// - Connect DB with web socket client
+// - Work on the data models for user portfolio
+
+anchor upgrade --program-id 4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9 --provider.cluster https://rpc.devnet.soo.network/rpc target/deploy/order_book_dex.so
+
+
+Creating token FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c
+Decimals:  9
+Signature: 2u5o9gb8F55vPUfi15cHopCQhJRrzmfDVeQdv535HHPYkFN2vceCXGhin1YayTTq5ybMQMGCey7V8bXgG39CQa5s
+
+Creating token 9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP
+Decimals:  9
+Signature: 3h8LRzTNHWcphecACL5c4TM2BdYFZ55Udw1aBYPNzpoNgLTLeZyeaHua47MxG3HpqQSSjKu6b2BsUvYZw8hMzTLp
+
+0.066906344 SOL
+0.066832764 SOL
+
+Creating token 4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4 under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4
+Decimals:  9
+Signature: 2kJ5zaeHcfYcYXymj5XgNhYwLmiq42Fa5gNzw6zDoWvC97PQrKzY9XW3kmwPws7Cbi1acUC2yQUGv48YxdW78ccP
+
+Creating token 5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG
+Decimals:  9
+Signature: 5JL4UcqzvYSWEqLGjZrXdY31UQj95Zo7EkMpyKgbRB26uiFiMf9DjQSryEuYxuiggSAP37wnVmtYsNGga2DZSPpZ
+
+Creating token ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej
+Decimals:  9
+Signature: 3YWDProeYagHAzSEcwsgWo716a4weqbN2gn98tAo54xRdua6ME4zxYzobF1EDNWwdrC5nuchqTVpvnPoBYyCTj3i
+
+// FAKE USDC
+Creating token 84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun
+Decimals:  6
+Signature: T978bRWsDXAwzvHw3be1cxqc9q4tKrNh9j8F2yo82csYH4am2QTzELj9BRcE2dNRfRwTZEAzTv2HcUH8aoHAhoP
+
+    Creating account Aoe6wNas3jhEAcPuYA4ssTnZTkdqEnCi5aCSmEjwQBcN
+    Signature: 5gh9zETQkPusaP7cN97i2C9fVoX3VfjbV1gns34L2SFPnqXNgZp9j5LBb7f1dSAbWFcdCPE7UGejjYdxuf9U2xc3
+
+        Minting 1000000000000000 tokens
+        Token: 84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun
+        Recipient: Aoe6wNas3jhEAcPuYA4ssTnZTkdqEnCi5aCSmEjwQBcN
+        Signature: 5fpZE8B9aHzz58z1fyU5z7qKuULzE1YcYFUNhBMsNWUkVQXUeUu1EEZiNo3dMMzj284Lk4FcGdQ7srdwVffG5aGm
+
+// FAKE WRAP BTC
+Creating token YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf
+Decimals:  8
+Signature: 341XoSFwmYnF5mz4NsChFRhZVV4CFmo2KuPWABQCCLiEntFMnXjHNSDGRkdLihYaYXWHHtsnKPVFEaWoVcLngTbZ
+
+Creating token 9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+Address:  9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW
+Decimals:  4
+Signature: 36LjMWSy7RiAMWZqJghkbLgJh3tdRQYzgPY36N23U6neU4nuQuVUh3PT6vi8WLEmtxXos1WaNBm3bPG8zmNN5mAz
+
+
+
+
+    Program data: dZ8ne9W/HgV8bvJdd+98rkojnNoEg8nXWExo8PU35p+DYp5L2pRJsQOk1a2oBjpi8xqRGmxKgdXw6hwb5RtKzB7Jo9vJQAUUAX27IS4+H8hRv51I0Jmtrqmp7/1mwQqR2VQ0BDdshF9vAQEAAAAAAAAAWgAAAAAAAABkAAAAAAAAAAFyAAAAAAAAAFhaEWcAAAAA
