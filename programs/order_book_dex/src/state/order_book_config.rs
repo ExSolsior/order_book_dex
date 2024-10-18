@@ -15,12 +15,14 @@ pub struct OrderBookConfig {
     pub token_mint_b: Pubkey,
     // pub sell_market_pointer: Pubkey,
     // pub buy_market_pointer: Pubkey,
+    pub token_symbol_a: String,
+    pub token_symbol_b: String,
     pub is_reverse: bool,
     pub bump: u8,
 }
 
 impl OrderBookConfig {
-    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES * 4 + BYTE + BYTE;
+    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES * 4 + (BYTE * 8) * 2 + BYTE + BYTE;
 
     pub fn init(
         &mut self,
@@ -30,6 +32,8 @@ impl OrderBookConfig {
         token_mint_b: Pubkey,
         // sell_market_pointer: Pubkey,
         // buy_market_pointer: Pubkey,
+        token_symbol_a: String,
+        token_symbol_b: String,
         is_reverse: bool,
         bump: u8,
     ) {
@@ -39,8 +43,14 @@ impl OrderBookConfig {
         self.token_mint_b = token_mint_b;
         // self.sell_market_pointer = sell_market_pointer;
         // self.buy_market_pointer = buy_market_pointer;
+        self.token_symbol_a = token_symbol_a;
+        self.token_symbol_b = token_symbol_b;
         self.is_reverse = is_reverse;
         self.bump = bump
+    }
+
+    pub fn is_valid_symbol(symbol: String) -> bool {
+        symbol.len() <= 8
     }
 
     pub fn is_valid_mints(

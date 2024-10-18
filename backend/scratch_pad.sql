@@ -497,3 +497,110 @@ SELECT
     j.list
 FROM s
 JOIN j ON s.pubkey_id = j.pubkey_id; 
+
+
+INSERT INTO order_position_config (
+    "pubkey_id",
+    "order_book_config_pubkey",
+    "market_maker_pubkey",
+    "vault_a_pubkey",
+    "vault_b_pubkey",
+    "nonce",
+    "reference"
+) VALUES (
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    0, 
+    0
+);
+
+
+    INSERT INTO order_book_config (
+        "pubkey_id",
+        "token_mint_a", 
+        "token_mint_b", 
+        "token_program_a", 
+        "token_program_b", 
+        "sell_market_pointer_pubkey", 
+        "buy_market_pointer_pubkey", 
+        "token_mint_a_decimal",
+        "token_mint_b_decimal",
+        "token_mint_a_symbol",
+        "token_mint_b_symbol",
+        "ticker",
+        "is_reverse"
+    ) VALUES (
+        '',
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+        '',
+        '',
+        '',
+        '',
+        6, 8, 'USDC', 'BTC', 'BTC/USDC', 'true'
+    );
+
+
+    -- USDC
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+
+
+    -- BTC
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    -- CHRONO
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    -- WETH
+    
