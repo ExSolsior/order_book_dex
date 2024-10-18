@@ -8,7 +8,7 @@ import { PastOrders } from "./past-orders";
 import { PortfolioSummary } from "./summary";
 
 export default function PortfolioPage() {
-  let wallet = useWallet();
+  const wallet = useWallet();
 
   if (!wallet.publicKey) {
     return <WalletPrompt />;

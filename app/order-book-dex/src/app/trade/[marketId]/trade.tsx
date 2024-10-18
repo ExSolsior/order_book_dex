@@ -1,9 +1,7 @@
 import OpenNewWindowButton from "@/components/open-new-window-button";
 import OrderDetails from "@/components/trade/order-details";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Market } from "@/lib/markets";
-import Link from "next/link";
 
 const SOON_EXPLORER_URL = "https://explorer.devnet.soo.network";
 
