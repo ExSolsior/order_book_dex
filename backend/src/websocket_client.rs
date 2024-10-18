@@ -100,6 +100,10 @@ pub async fn watch_subscriptions(websocket_url: &str) -> Result<()> {
 
     // Do application logic here.
     println!("no idea????");
+
+    // Wait for input or some application-specific shutdown condition.
+    tokio::io::stdin().read_u8().await?;
+    println!("no juice????");
     // HttpServer::new(move || {
     //     App::new()
     //         .app_data(Data::new(AppState { pool: pool.clone() }))
@@ -110,10 +114,6 @@ pub async fn watch_subscriptions(websocket_url: &str) -> Result<()> {
     // .bind(("127.0.0.1", 8080))?
     // .run()
     // .await?;
-
-    // Wait for input or some application-specific shutdown condition.
-    tokio::io::stdin().read_u8().await?;
-    println!("no juice????");
 
     // Unsubscribe from everything, which will shutdown all the tasks.
     while let Some((unsubscribe, name)) = unsubscribe_receiver.recv().await {
