@@ -1,4 +1,9 @@
-import { ColorType, createChart, IChartApi } from "lightweight-charts";
+import {
+  ColorType,
+  createChart,
+  CrosshairMode,
+  IChartApi
+} from "lightweight-charts";
 import React, { useEffect, useRef } from "react";
 import { Candle } from "../lib/candles";
 
@@ -20,6 +25,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data }) => {
         grid: {
           vertLines: { color: "rgba(70, 70, 70, 0.5)" },
           horzLines: { color: "rgba(70, 70, 70, 0.5)" }
+        },
+        crosshair: {
+          mode: CrosshairMode.Normal
         }
       };
 
@@ -27,11 +35,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data }) => {
       const chart = chartRef.current;
 
       const candlestickSeries = chart.addCandlestickSeries({
-        upColor: "#26a69a",
-        downColor: "#ef5350",
+        upColor: "#22c55e",
+        downColor: "#ef4444",
         borderVisible: false,
-        wickUpColor: "#26a69a",
-        wickDownColor: "#ef5350"
+        wickUpColor: "#22c55e",
+        wickDownColor: "#ef4444"
       });
 
       candlestickSeries.setData(data);
