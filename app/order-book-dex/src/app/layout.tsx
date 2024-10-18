@@ -1,6 +1,7 @@
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WalletAdapter } from "@/components/wallet-adapter";
+import { siteConfig } from "@/config/site";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -17,8 +18,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Open Book Dex",
-  description: "First Open Book Dex on SOON"
+  title: siteConfig.name,
+  description: siteConfig.description
 };
 
 export default function RootLayout({
@@ -44,7 +45,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <div vaul-drawer-wrapper="">
-              <div className="container relative flex min-h-screen flex-col bg-background">
+              <div className="relative flex min-h-screen flex-col bg-background">
                 <SiteHeader />
                 <main className="flex-1">{children}</main>
               </div>

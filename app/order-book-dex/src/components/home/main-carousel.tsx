@@ -35,7 +35,7 @@ export function MainCarousel() {
               />
               <CardContent className="absolute inset-0 flex flex-col items-center justify-center p-6 h-72 gap-5">
                 <span className="text-4xl font-semibold">
-                  First Open Book DEX
+                  First Order Book DEX
                 </span>
                 <span className="text-2xl font-semibold">on</span>
                 <span className="text-6xl font-medium text-red-600 tracking-widest">
