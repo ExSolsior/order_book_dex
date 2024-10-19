@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, React } from "react";
+import { createContext, useContext, useMemo, React } from "react";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -29,7 +29,8 @@ enum OrderType {
 }
 
 type Fill = {
-  full : {full: { }}, // eslint-disable-next-line no-empty-object
+  // eslint-disable-next-line no-empty-object
+  full : {full: { }}, 
   partial: {partial: {targetPrice: BN}}
 }
 
