@@ -63,3 +63,8 @@ pub async fn market_list(
         Err(_) => HttpResponse::BadRequest().into(),
     }
 }
+
+#[get("/sanity_check")]
+pub async fn sanity_check() -> impl Responder {
+    HttpResponse::Ok().body("it works")
+}

@@ -74,7 +74,12 @@ pub enum ErrorCode {
     #[msg("Invalid Order Position Remove")]
     InvalidOrderPositionRemove,
 
-    
+    #[msg("Invalid Symbol Length")]
+    InvalidSymbolLength,
+
     #[msg("Invalid Order Position Config")]
-    InvalidOrderPositionConfig
+    InvalidOrderPositionConfig,
+
+    #[msg("Invalid Market Order")]
+    InvalidMarketOrder,
 }

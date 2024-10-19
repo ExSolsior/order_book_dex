@@ -9,19 +9,19 @@ pub struct CreateVaultAccounts<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    pub order_book_config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Box<Account<'info, OrderBookConfig>>,
 
     #[account(
         constraint = order_book_config.token_mint_a == token_mint_a.key()
             @ ErrorCode::InvalidMint,
     )]
-    pub token_mint_a: InterfaceAccount<'info, Mint>,
+    pub token_mint_a: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         constraint = order_book_config.token_mint_b == token_mint_b.key()
             @ ErrorCode::InvalidMint,
     )]
-    pub token_mint_b: InterfaceAccount<'info, Mint>,
+    pub token_mint_b: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         init,
@@ -37,7 +37,7 @@ pub struct CreateVaultAccounts<'info> {
         token::authority = order_book_config,
         token::token_program = token_program_a,
     )]
-    pub vault_a: InterfaceAccount<'info, TokenAccount>,
+    pub vault_a: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         init,
@@ -53,7 +53,7 @@ pub struct CreateVaultAccounts<'info> {
         token::authority = order_book_config,
         token::token_program = token_program_b,
     )]
-    pub vault_b: InterfaceAccount<'info, TokenAccount>,
+    pub vault_b: Box<InterfaceAccount<'info, TokenAccount>>,
 
     #[account(
         constraint = order_book_config.token_program_a == token_program_a.key()
@@ -72,8 +72,6 @@ pub struct CreateVaultAccounts<'info> {
 
 impl<'info> CreateVaultAccounts<'info> {
     pub fn initialize(&mut self) -> Result<()> {
-        msg!("order escrows created");
-
         Ok(())
     }
 }

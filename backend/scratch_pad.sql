@@ -497,3 +497,370 @@ SELECT
     j.list
 FROM s
 JOIN j ON s.pubkey_id = j.pubkey_id; 
+
+
+INSERT INTO order_position_config (
+    "pubkey_id",
+    "order_book_config_pubkey",
+    "market_maker_pubkey",
+    "vault_a_pubkey",
+    "vault_b_pubkey",
+    "nonce",
+    "reference"
+) VALUES (
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
+    0, 
+    0
+);
+
+
+    INSERT INTO order_book_config (
+        "pubkey_id",
+        "token_mint_a", 
+        "token_mint_b", 
+        "token_program_a", 
+        "token_program_b", 
+        "sell_market_pointer_pubkey", 
+        "buy_market_pointer_pubkey", 
+        "token_mint_a_decimal",
+        "token_mint_b_decimal",
+        "token_mint_a_symbol",
+        "token_mint_b_symbol",
+        "ticker",
+        "is_reverse"
+    ) VALUES 
+
+    (
+        'F8X9syRb9HycoJUmvpopjdyiiUSaScdGXCeSwSuvrj3z'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'HioB7cBHwyFMjeXee13ajygWHNiyk1JWm1og7sfmqbiA'
+        'F7UbiLGGqrihPXiJmQoSjerC2uFD7Pj4qVHpSWH7FB7o'
+        8, 6,
+        'BTC'
+        'USDC'
+        'BTC/USDC'
+        'false'
+    ),
+
+    (
+        'GmK5PpkDizrejQ1eZUvXqVw2pgtDqDSPmTBhZKF4ah5z'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '93rZYhxGW46hKSepL4BK5QuCDeW5hWjV6bAnBBgZaHMB'
+        'EG7uGBo7ob4PLJzwutUB9kUL6wMdKVwbjs6DTG8h2sYg'
+        6, 9,
+        'USDC'
+        'CHRONO'
+        'CHRONO/USDC'
+        'false'
+    ),
+
+    (
+        '4ocHFR6EB2vmKshhyPH5nezXTJp7otMwwqgfCnSu2BJr'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'GrLZGvrgdZ3qHPY22pfhfNobsTuMBHi2t4m2C8BV132W'
+        '4Z1V2g3jhSmbMffdCsNiftWDdTgB71TL5ZuWvNL78hBe'
+        6, 9,
+        'USDC'
+        'SAM'
+        'SAM/USDC'
+        'false'
+    ),
+
+    (
+        '4QevZFgFaKfXRr8JWqNM6KnDE4Euy4m6j8N5WRK2QtcM'
+        '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'FZzmpbMkx1w8U26JpqsuEQhkvZBCJnsmXjUPcXd4AKXk'
+        '9bQMvtXZwBwcXPJtNnGqCfrSmLPB4AXjUisq4sgEutw6'
+        9, 6,
+        'RINSE'
+        'USDC'
+        'RINSE/USDC'
+        'true'
+    ),
+
+    (
+        '3QCyPmNfdWUyLkwNafwNdv8Wqu5QB8eAgWPCRm5bfGEz'
+        '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '6TjroP2jvNntpVVCBLQcRRzuTp7nh6HtUrpaD45NRSp5'
+        '8swSq1KLeYXKVMvyPdWS2aXJP1zzGe7wSLo8gLMG3GKo'
+        9, 6,
+        'MISTY'
+        'USDC'
+        'MISTY/USDC'
+        'true'
+    ),
+
+    (
+        '8APUse7WwB4UrPMWZYvns6Mqcbze56sbuQ7VDfkhyTFh'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '91ecJFhe9xRn1dD7HkYBqFRtoFSir5yqx6TA3v4EYpQ6'
+        'DkCeE7SaRBMLXA4xC5EhmNTJA4bVhyJvWHRvumXKe9NJ'
+        6, 9,
+        'USDC'
+        'MUTINY'
+        'MUTINY/USDC'
+        'false'
+    ),
+
+    (
+        '79qykQ5t3teAayoRPazNZ8DWRUShSBjKTZq9GWDkfuSZ'
+        '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '6RpaJDaDbo9iyxKGybohCKyEeYgQyMbkCEqWG1gtiHng'
+        '7AyxQtYXgheJdQV36cNS9CrEuqsHr3JGWoyg8PS1swby'
+        6, 4,
+        'USDC'
+        'SOON'
+        'SOON/USDC'
+        'false'
+    ),
+-- POINT
+    (
+        '7hKepVqbM7n1cnJTNWizQs8KYWuZ1xD2wjNnPJLebK6i'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '7sucQD63KUoiuJuwh53t4UvSntK76bv8gj9KeadwrFKQ'
+        'HQs9h2s2S1TxRL8SUkVr4AQFw1YyhW3ovtdoU1Fxsoeq'
+        9, 8,
+        'CHRONO'
+        'BTC'
+        'CHRONO/BTC'
+        'false'
+    ),
+
+    (
+        '4EzfBzn173YJ8671akDngWoXL5UXerfYQauYbZ9qusbZ'
+        '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'BovsHKb9arQQux5zkhkjvCVzYBRH5YmHTTM41vZvx7fa'
+        '7qENrxH8Zp4BqamqHujgEArxejgfuDuiiBi6G9UmF315'
+        9, 8,
+        'SAM'
+        'BTC'
+        'SAM/BTC'
+        'false'
+    ),
+
+    (
+        '9AhsCV1L6x2iptY9MAVNfHDvav4XXTTrguo4zmZtQAXS'
+        '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '6hqJL31AX6WgKi3KAfWHFfwsfmmdNYyQNFAA95eZGQWR'
+        '8yV65uWURsQn7SqWjdL51W2bowSQCskdNTY25NzDknno'
+        9, 8,
+        'RINSE'
+        'BTC'
+        'RINSE/BTC'
+        'false'
+    ),
+
+    (
+        'ESb8ReVMkNWpDMtPKxaFQB9aqEswG2KoCs8GoDihAJrj'
+        '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'HEr2gAMhzvAtyXkxZsf94tHeNeDJUgTHw87DZh2wsnRM'
+        'HQrwbj4iMnCxjpvZPeWvduH8GYrwQ3ha1dBgDWm8BaC'
+        9, 8,
+        'MISTY'
+        'BTC'
+        'MISTY/BTC'
+        'false'
+    ),
+
+    (
+        'CqqpDqCZMrmK5ufUSFWdYPeger77DUtHKLP8Vs3cETxd'
+        'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'GCATJrvH2DmAntmRcJJ2Y8RPBAjAc9m3a2Qp9WS3p1qS'
+        '7PisLjYuxqDzhMJzPEzQCgCshWRKnKAMKbbP2jdq3bPQ'
+        9, 8,
+        'MUTINY'
+        'BTC'
+        'MUTINY/BTC'
+        'false'
+    ),
+
+    (
+        'EQRmYLvTM6kzqTSQ8jjEkifaJVDpT4hAQWUXDtGtgWow'
+        '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
+        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'AD76GtF4Xz5uswaanQDu8ZSFkBKiVexZ5ksWgree2Kik'
+        'DkgoD1osWGoKTxUHWAXuvA4V8BPHxMpRfRPG16DxN4VF'
+        4, 8,
+        'SOON'
+        'BTC'
+        'SOON/BTC'
+        'false'
+    ),
+
+    (
+        'bfYFWfA4jjH9nk6FyyNZijoujTd9jaK3T5Nb4sEqEGn'
+        '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'Fg6MKfoZJAT2C8JgAACEyPq1qd72JH8ytkTPoSaDeuU9'
+        '29SVzqxNW72ZqdC3rBWoLHgkY3sJLsah6uuxdjJLVrk1'
+        9, 9,
+        'SAM'
+        'CHRONO'
+        'SAM/CHRONO'
+        'false'
+    ),
+
+    (
+        'GPJHWM2PHS1qxdBrMQSaQw59mDiWQFQqiVwGGq5AU7DP'
+        '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'DDdUv9YLVGWDHZ5qHQmgbvBKKWozXsrjyiquPS6P9fwz'
+        '29su29KuoA7vgyy6VfdthxPTeLfZ8rxuBVPoc8A4mYaS'
+        9, 9,
+        'RINSE'
+        'CHRONO'
+        'RINSE/CHRONO'
+        'false'
+    ),
+
+    (
+        'ECxbsZVDwwyVwUE3DubeCWQVd9G52qe9vc5dqjZqVc5Y'
+        '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '6MBsgPH3UNX4CPTbUkchZNUramxnLzEW2VPgrZ3Fjf2W'
+        '5VtN8kQWL1bZ1s4rSP6SqC5N24ZRgQAP7emDXkEHXj5P'
+        9, 9,
+        'MISTY'
+        'CHRONO'
+        'MISTY/CHRONO'
+        'false'
+    ),
+
+    (
+        'TdYz6wrNpEeqphKCCz3eB3Ng8ceByoesQimhn69X4Jn'
+        'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        '7sTeGFFXzFrAux2SvH7hibwakLNu6dwrLVjbcbYwrpRf'
+        '4g3DoLpHx15E7BLgQqENJ6WP3RqFStPPiGvde8X4VzTi'
+        9, 9,
+        'MUTINY'
+        'CHRONO'
+        'MUTINY/CHRONO'
+        'false'
+    ),
+
+    (
+        'Bz61dywXBsG33YcvLHexcodrCLKPYDVMSUUi58WiLNC8'
+        '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
+        'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+        'DaAbLDsXPfwZ352KVMW8mhN1J7F2fep2zDVZiuY6zyjg'
+        '3UNrBjKab3PoTFZR6qLbGb5EN5cb7rxcbvZk2bETsFVS'
+        4, 9,
+        'SOON'
+        'CHRONO'
+        'SOON/CHRONO'
+        'false'
+    );
+
+    -- USDC
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+
+
+    -- BTC
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+    'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf',
+
+    -- CHRONO
+    '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+
+    -- WETH
+    
