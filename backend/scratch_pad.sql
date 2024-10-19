@@ -535,14 +535,14 @@ INSERT INTO order_position_config (
     ) VALUES 
 
     (
-        'F8X9syRb9HycoJUmvpopjdyiiUSaScdGXCeSwSuvrj3z'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'HioB7cBHwyFMjeXee13ajygWHNiyk1JWm1og7sfmqbiA'
         'F7UbiLGGqrihPXiJmQoSjerC2uFD7Pj4qVHpSWH7FB7o'
-        8, 6,
+        6, 8,
         'BTC'
         'USDC'
         'BTC/USDC'
@@ -550,7 +550,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        'GmK5PpkDizrejQ1eZUvXqVw2pgtDqDSPmTBhZKF4ah5z'
+        'AX1bxytJSXyjDpzc2YpYDyNxkS3FmT2HibAfSF4MsRnA'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -565,7 +565,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        '4ocHFR6EB2vmKshhyPH5nezXTJp7otMwwqgfCnSu2BJr'
+        'BRgmdPzrzqf5hwDyMApeU9KyH7CtmL9Ah2kkFkLNVX5P'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -580,7 +580,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        '4QevZFgFaKfXRr8JWqNM6KnDE4Euy4m6j8N5WRK2QtcM'
+        'BfDBofHfN3CUt2dnSeJfqM8JewDf7LycXfCAHtPzMvGA'
         '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -595,7 +595,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        '3QCyPmNfdWUyLkwNafwNdv8Wqu5QB8eAgWPCRm5bfGEz'
+        '8zc43HPcFESPK3CvpHvSoSB2gfr6tNhgbiF9mYnLADZ3'
         '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -610,7 +610,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        '8APUse7WwB4UrPMWZYvns6Mqcbze56sbuQ7VDfkhyTFh'
+        '562RPkZ1PaimxMRmESn63yLvwQycnAZGXA8Kp3iJHJSu'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -625,7 +625,7 @@ INSERT INTO order_position_config (
     ),
 
     (
-        '79qykQ5t3teAayoRPazNZ8DWRUShSBjKTZq9GWDkfuSZ'
+        'AtAtUaptquv5Nrw5wmngiL258oA9GkfXQ2rrkb18Yz85'
         '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun'
         '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -638,11 +638,11 @@ INSERT INTO order_position_config (
         'SOON/USDC'
         'false'
     ),
--- POINT
+
     (
-        '7hKepVqbM7n1cnJTNWizQs8KYWuZ1xD2wjNnPJLebK6i'
+        'Cs4fZzrzQAuDeukc9rHjBcEoHMfGmCmJqXC5AgqMpDFx'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         '7sucQD63KUoiuJuwh53t4UvSntK76bv8gj9KeadwrFKQ'
@@ -651,13 +651,13 @@ INSERT INTO order_position_config (
         'CHRONO'
         'BTC'
         'CHRONO/BTC'
-        'false'
+        'true'
     ),
 
     (
-        '4EzfBzn173YJ8671akDngWoXL5UXerfYQauYbZ9qusbZ'
+        'H1qCwypkThni55xR3eK5FiV6AB5oCt22ow5jZTifu3KS'
         '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'BovsHKb9arQQux5zkhkjvCVzYBRH5YmHTTM41vZvx7fa'
@@ -666,13 +666,13 @@ INSERT INTO order_position_config (
         'SAM'
         'BTC'
         'SAM/BTC'
-        'false'
+        'true'
     ),
 
     (
-        '9AhsCV1L6x2iptY9MAVNfHDvav4XXTTrguo4zmZtQAXS'
+        'AtCF41RSb53wrZdv7j4FDdYgF6gJZMNzJwwoPwUHeZTK'
         '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         '6hqJL31AX6WgKi3KAfWHFfwsfmmdNYyQNFAA95eZGQWR'
@@ -681,13 +681,13 @@ INSERT INTO order_position_config (
         'RINSE'
         'BTC'
         'RINSE/BTC'
-        'false'
+        'true'
     ),
 
     (
-        'ESb8ReVMkNWpDMtPKxaFQB9aqEswG2KoCs8GoDihAJrj'
+        '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6'
         '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'HEr2gAMhzvAtyXkxZsf94tHeNeDJUgTHw87DZh2wsnRM'
@@ -696,13 +696,13 @@ INSERT INTO order_position_config (
         'MISTY'
         'BTC'
         'MISTY/BTC'
-        'false'
+        'true'
     ),
 
     (
-        'CqqpDqCZMrmK5ufUSFWdYPeger77DUtHKLP8Vs3cETxd'
+        '9ap51HYH5sHMSaPMVRq8QQXAWJzfbheQCnXUFVnGt6K6'
         'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'GCATJrvH2DmAntmRcJJ2Y8RPBAjAc9m3a2Qp9WS3p1qS'
@@ -711,13 +711,13 @@ INSERT INTO order_position_config (
         'MUTINY'
         'BTC'
         'MUTINY/BTC'
-        'false'
+        'true'
     ),
 
     (
-        'EQRmYLvTM6kzqTSQ8jjEkifaJVDpT4hAQWUXDtGtgWow'
+        '7apmtkt4NQZrXLRNQrLsLrvHgab61EzdBnmyaVbPv6NT'
         '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
-        'YSMcxbaK3SXax6CRCYpsDhGhPRdaBgrAtFoCY7QFovf'
+        'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
         'AD76GtF4Xz5uswaanQDu8ZSFkBKiVexZ5ksWgree2Kik'
@@ -726,11 +726,11 @@ INSERT INTO order_position_config (
         'SOON'
         'BTC'
         'SOON/BTC'
-        'false'
+        'true'
     ),
 
     (
-        'bfYFWfA4jjH9nk6FyyNZijoujTd9jaK3T5Nb4sEqEGn'
+        '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6'
         '9mR2ij7R6eZgf8GFs9SmCycuLpSMLzkt52qmGqiDn9qP'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -741,11 +741,11 @@ INSERT INTO order_position_config (
         'SAM'
         'CHRONO'
         'SAM/CHRONO'
-        'false'
+        'true'
     ),
 
     (
-        'GPJHWM2PHS1qxdBrMQSaQw59mDiWQFQqiVwGGq5AU7DP'
+        'HugxcH6t1n6b4ngEEPnpnkDBau1bRzRSUsWzjnh5UMuS'
         '4rHKMSrDnZEwFa9fV2xzgjMGyj5oNDrX9Njwc32Kghc4'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -756,11 +756,11 @@ INSERT INTO order_position_config (
         'RINSE'
         'CHRONO'
         'RINSE/CHRONO'
-        'false'
+        'true'
     ),
 
     (
-        'ECxbsZVDwwyVwUE3DubeCWQVd9G52qe9vc5dqjZqVc5Y'
+        'AewAzcavuon5CYiDajmUaQu5YZfra33DmihW2cD6BFd6'
         '5yVazF5qf35Y4ppeeKP9D74L3mLWSEJJXhcTweF4uaGG'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -771,11 +771,11 @@ INSERT INTO order_position_config (
         'MISTY'
         'CHRONO'
         'MISTY/CHRONO'
-        'false'
+        'true'
     ),
 
     (
-        'TdYz6wrNpEeqphKCCz3eB3Ng8ceByoesQimhn69X4Jn'
+        'BB78B7KR3F4X5EWEtXshNJBMEJR1YTNnaYGfNcNovkfC'
         'ErT9aiLJauBvRBb8Epf3mgAuGVmCqKmNdRWPwscLp7ej'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -786,11 +786,11 @@ INSERT INTO order_position_config (
         'MUTINY'
         'CHRONO'
         'MUTINY/CHRONO'
-        'false'
+        'true'
     ),
 
     (
-        'Bz61dywXBsG33YcvLHexcodrCLKPYDVMSUUi58WiLNC8'
+        'Gsa3PBumYDsSSmnn9VmXmNwkKMpLwHyTff4D44GckaBR'
         '9GUVRmud5UeAwtrg9V3bVsXpKoxu6gKfHjnWoKWX5wKW'
         'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c'
         'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -801,7 +801,7 @@ INSERT INTO order_position_config (
         'SOON'
         'CHRONO'
         'SOON/CHRONO'
-        'false'
+        'true'
     );
 
     -- USDC

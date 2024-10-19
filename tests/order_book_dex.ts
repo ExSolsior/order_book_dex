@@ -9,25 +9,19 @@ import {
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
-  createAccount,
   mintToChecked,
-  getMinimumBalanceForRentExemptAccount,
-  getAccount,
 } from "@solana/spl-token";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
+// WHY AM I GETTING LINTER ERROR? THOUGH IT RUNS FINE?
 describe("order_book_dex", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const {
-    Connection,
     Keypair,
     PublicKey,
-    Transaction,
-    TransactionInstruction,
     SystemProgram,
-    sendAndConfirmTransaction,
   } = anchor.web3
 
   const provider = <AnchorProvider>anchor.getProvider();
@@ -888,8 +882,5 @@ describe("order_book_dex", () => {
     })
 
   })
-
-
-
 
 });
