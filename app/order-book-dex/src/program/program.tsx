@@ -1,21 +1,27 @@
-import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
 import {
   CHRONO_IDL,
   PROGRAM_ID,
 } from "./utils/constants";
+import { AnchorWallet } from "@solana/wallet-adapter-react";
 
 // Fetching Program
-export const getProgram = (connection: Connection, wallet: Wallet) => {
-    const provider = new AnchorProvider(connection, wallet, {
-      commitment: "confirmed",
-    });
-  
-    const program = new Program(CHRONO_IDL, PROGRAM_ID, provider);
-  
-    console.log("Program ID:", PROGRAM_ID.toBase58());
-  
-    return program;
+export const getProgram = (connection: Connection, wallet: undefined | AnchorWallet) => {
+
+  if (!wallet){
+    return;
+  }
+
+  const provider = new AnchorProvider(connection, wallet, {
+    commitment: "confirmed",
+  });
+
+  const program = new Program(CHRONO_IDL, PROGRAM_ID, provider);
+
+  console.log("Program ID:", PROGRAM_ID.toBase58());
+
+  return program;
 };
 
 /* Deriving PDA accounts addresses */

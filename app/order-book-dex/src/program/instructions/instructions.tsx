@@ -3,7 +3,7 @@ import {
   PublicKey, 
   SystemProgram, 
 } from '@solana/web3.js';
-import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 import toast from "react-hot-toast";
