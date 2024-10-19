@@ -153,7 +153,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 		tokenProgramB: PublicKey,
     price: BN,
     amount: BN,
-		nonce: number | null,
+		nonce: number, // need to put null later
 		vaultA: PublicKey | null,
     vaultB : PublicKey | null,
 		isReverse: boolean,      // requred to find source and dest
@@ -161,8 +161,10 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 		
   ) => {
     try {
+      
 			// Get nonce from order position config if it doesn't exist
-      const resolvedNonce = nonce || await program.account.orderPositionConfig.fetch(clientOrderPositionConfig).then((acc: { nonce: number; }) => acc.nonce);
+      const resolvedNonce = nonce;
+      // || await program.account.orderPositionConfig.fetch(clientOrderPositionConfig).then((acc: { nonce: number; }) => acc.nonce);
       
 			const orderPosition = await getOrderPosition(clientOrderPositionConfig, new BN(resolvedNonce), wallet!.publicKey);
 
@@ -476,7 +478,7 @@ interface Value {
     tokenProgramB: PublicKey,
     price: BN,
     amount: BN,
-    nonce: number | null,
+    nonce: number, // need to put null later
     vaultA: PublicKey | null,
     vaultB: PublicKey | null,
     isReverse: boolean,
