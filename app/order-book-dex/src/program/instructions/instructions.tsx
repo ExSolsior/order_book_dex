@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, React } from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { 
   PublicKey, 
   SystemProgram, 
@@ -35,7 +35,7 @@ type Fill = {
 
 export const AppContext = createContext(null);
 
-export const AppProvider = ({ children }: {children: React.ReactNode}) => {
+export const AppProvider = ({ children }: {children: ReactNode}) => {
 
   // Get provider
   const { connection } = useConnection();
