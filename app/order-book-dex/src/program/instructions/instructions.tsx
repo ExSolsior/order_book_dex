@@ -29,8 +29,7 @@ enum OrderType {
 }
 
 type Fill = {
-  // eslint-disable-next-line no-empty-object
-  full : {full: { }}, 
+  full : {full: object}, 
   partial: {partial: {targetPrice: BN}}
 }
 
