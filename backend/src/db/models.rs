@@ -397,7 +397,7 @@ pub async fn get_trade_pair_list(
 
             token_mint_a_symbol: row.try_get("token_mint_a_symbol").unwrap(),
             token_mint_b_symbol: row.try_get("token_mint_b_symbol").unwrap(),
-            ticker: row.try_get("pubkey_id").unwrap(),
+            ticker: row.try_get("ticker").unwrap(),
             is_reverse: row.try_get("is_reverse").unwrap(),
         })
         .collect::<Vec<_>>();
