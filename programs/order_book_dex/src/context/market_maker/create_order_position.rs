@@ -1,10 +1,10 @@
 use crate::constants::ORDER_POSITION_SEED;
 use crate::errors::ErrorCode;
+use crate::events::CreateOrderPositionEvent;
 use crate::state::{Order, OrderBookConfig, OrderPosition, OrderPositionConfig};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
-#[event_cpi]
 #[derive(Accounts)]
 #[instruction(order_type: Order)]
 pub struct CreateOrderPosition<'info> {
@@ -125,6 +125,13 @@ impl<'info> CreateOrderPosition<'info> {
             amount,
             token_mint.decimals,
         )?;
+
+        emit!(CreateOrderPositionEvent {
+            pos_pubkey: self.order_position.key(),
+            book_config: self.order_book_config.key(),
+            pos_config: self.order_position_config.key(),
+            order_type: self.order_position.order_type.clone(),
+        });
 
         Ok(())
     }

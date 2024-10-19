@@ -1,8 +1,7 @@
-use crate::{constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
+use crate::{constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, events::CancelLimitOrderEvent, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
-#[event_cpi]
 #[derive(Accounts)]
 pub struct CancelOrderPosition<'info> {
     #[account(mut)]
@@ -128,7 +127,7 @@ impl<'info> CancelOrderPosition<'info> {
         Ok(())
     }
 
-    pub fn refund(&mut self) -> Result<u64> {
+    pub fn refund(&mut self) -> Result<()> {
         // Transfer funds back to the user
 
         let token_mint_a_key = self.order_book_config.token_mint_a;
@@ -159,8 +158,14 @@ impl<'info> CancelOrderPosition<'info> {
             self.token_mint.decimals,
         )?;
 
+        emit!(CancelLimitOrderEvent {
+            pos_pubkey: self.order_position.key(),
+            book_config: self.order_book_config.key(),
+            pos_config: self.order_position_config.key(),
+            amount: amount,
+            is_available: self.order_position.is_available,
+        });
 
-
-        Ok(amount)
+        Ok(())
     }
 }
