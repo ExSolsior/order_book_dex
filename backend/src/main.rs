@@ -1,10 +1,5 @@
-use actix_web::{
-    web::Data,
-    // App,
-    // HttpServer
-};
-use services::{market_history, market_list, market_order_book};
-// use sqlx::PgPool;
+use actix_web::web::Data;
+use services::{market_history, market_list, market_order_book, sanity_check};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 mod db;
 mod services;
@@ -12,29 +7,23 @@ mod services;
 use actix_web::web::{self, ServiceConfig};
 use shuttle_actix_web::ShuttleActixWeb;
 
-// use anyhow::Result;
-use futures_util::StreamExt;
-use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;
-use solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter};
-use std::sync::Arc;
-use tokio::io::AsyncReadExt;
-use tokio::sync::mpsc::unbounded_channel;
+// use futures_util::StreamExt;
+// use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;
+// use solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter};
+// use std::sync::Arc;
+// use tokio::io::AsyncReadExt;
+// use tokio::sync::mpsc::unbounded_channel;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool<Postgres>,
 }
-// shuttle_runtime::Error;
-// Result<(), shuttle_runtime::Error>
 
-// #[actix_web::main]
+const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
+// const WS_URL: &str = "wss://api.devnet.solana.com/";
+
 #[shuttle_runtime::main]
-// async fn main() -> std::io::Result<()> {
 async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
-    // const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
-    const WS_URL: &str = "wss://api.devnet.solana.com/";
-
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(DB_URL)
@@ -139,27 +128,12 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
                 .service(market_order_book)
                 .service(market_list)
                 .service(market_history)
+                .service(sanity_check)
                 .app_data(Data::new(AppState { pool: pool.clone() })),
         );
     };
 
-    let info = config.into();
+    println!("THIS");
 
-    Ok(info)
+    Ok(config.into())
 }
-
-// migrate build-script
-// docker run --name order-book-dex -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -d postgres
-// $ docker run -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_USER=dbuser -e POSTGRES_DB=bookstore  -p 5432:5432 postgres:1
-// docker exec -it order-book-dex psql -U postgres
-// docker stop order-book-dex
-// docker rm order-book-dex
-// docker ps -a
-// docker volume create postgres-data
-
-// persisteded database instance
-// docker run --name order-book-dex-test -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -v postgres-data:/var/lib/postgresql/data -d postgres
-
-// sqlx migrate run --database-url postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/
-// sqlx migrate info --database-url postgres://postgres:somepassword@127.0.0.1:5431/
-// sqlx migrate add core_tables
