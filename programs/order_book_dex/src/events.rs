@@ -12,6 +12,8 @@ pub struct NewOrderBookConfigEvent {
     pub buy_market_pointer: Pubkey,
     pub token_symbol_a: String,
     pub token_symbol_b: String,
+    pub token_decimals_a: u8,
+    pub token_decimals_b: u8,
     pub is_reverse: bool,
     pub slot: u64,
     pub timestamp: i64,

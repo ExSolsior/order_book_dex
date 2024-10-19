@@ -26,9 +26,8 @@ export function PortfolioSummary() {
               24h Change
             </CardTitle>
             <span
-              className={`text-xl font-bold font-montserrat tracking-wide ${
-                change < 0 ? "text-red-500" : "text-green-500"
-              }`}
+              className={`text-xl font-bold font-montserrat tracking-wide ${change < 0 ? "text-red-500" : "text-green-500"
+                }`}
             >
               {change > 0 ? "+" : ""}
               {change}%

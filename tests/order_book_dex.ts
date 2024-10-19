@@ -14,7 +14,6 @@ import {
   getMinimumBalanceForRentExemptAccount,
   getAccount,
 } from "@solana/spl-token";
-import { publicKey } from "@coral-xyz/anchor/dist/cjs/utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 describe("order_book_dex", () => {
@@ -22,6 +21,7 @@ describe("order_book_dex", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const {
+    Connection,
     Keypair,
     PublicKey,
     Transaction,
@@ -36,7 +36,6 @@ describe("order_book_dex", () => {
   const users = [];
   const tokenMints = [];
   const orderBookConfigAddressList = [];
-
 
 
   before(async () => {
@@ -286,7 +285,7 @@ describe("order_book_dex", () => {
     ], program.programId);
 
     const tx = await program.methods
-      .createTradePair(false)
+      .createTradePair("USDC", "BTC", false)
       .accountsStrict({
         authority: wallet.publicKey,
         orderBookConfig: orderBookConfig,
@@ -899,5 +898,8 @@ describe("order_book_dex", () => {
     })
 
   })
+
+
+
 
 });
