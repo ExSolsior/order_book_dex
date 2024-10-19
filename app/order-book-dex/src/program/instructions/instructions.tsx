@@ -29,7 +29,7 @@ enum OrderType {
 }
 
 type Fill = {
-  full : {full: {}},
+  full : {full: { }}, // eslint-disable-next-line no-empty-object
   partial: {partial: {targetPrice: BN}}
 }
 
@@ -40,19 +40,14 @@ export const AppProvider = ({ children }: {children: React.ReactNode}) => {
   // Get provider
   const { connection } = useConnection();
   const wallet = useAnchorWallet();
+  
   const program = useMemo(() => {
     if (connection) {
       return getProgram(connection, wallet);
     }
   }, [connection, wallet]);
 
-  useEffect(() => {
-    updateState()
-  }, [program])
-
-  const updateState = async () => {
-    if(!program) return;
-  }
+  if(!program) return;
 
   /* Instruction: Create Trade Pair */
   const createTradePair = async (
@@ -453,7 +448,6 @@ export const AppProvider = ({ children }: {children: React.ReactNode}) => {
       toast.error(err.message);
     }
   }
-
 
 	return (
 		<AppContext.Provider
