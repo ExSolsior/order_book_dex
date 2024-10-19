@@ -1,6 +1,10 @@
-use crate::{errors::ErrorCode, events::MarketOrderCompleteEvent, state::MarketPointer};
+use crate::{
+    errors::ErrorCode,
+    state::{ExecutionStats, MarketPointer},
+};
 use anchor_lang::prelude::*;
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct ReturnExecutionMarketOrder<'info> {
     #[account(mut)]
@@ -20,28 +24,9 @@ pub struct ReturnExecutionMarketOrder<'info> {
 }
 
 impl<'info> ReturnExecutionMarketOrder<'info> {
-    pub fn exec(&mut self) -> Result<()> {
-        let Clock {
-            slot,
-            unix_timestamp,
-            ..
-        } = Clock::get()?;
-
+    pub fn exec(&mut self) -> Result<ExecutionStats> {
         let market_data = self.market_pointer.remove_market_order()?;
 
-        emit!(MarketOrderCompleteEvent {
-            market_pointer: self.market_pointer.key(),
-            book_config: self.order_book_config.key(),
-            new_pointer: self.market_pointer.order_position_pointer,
-            order_type: self.market_pointer.order_type.clone(),
-            total_cost: market_data.total_cost,
-            total_amount: market_data.total_amount,
-            last_price: market_data.last_price,
-            is_available: self.market_pointer.market_order.is_none(),
-            slot: slot,
-            timestamp: unix_timestamp,
-        });
-
-        Ok(())
+        Ok(market_data)
     }
 }

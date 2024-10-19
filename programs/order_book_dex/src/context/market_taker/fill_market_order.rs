@@ -1,12 +1,12 @@
 use crate::{
     constants::ORDER_BOOK_CONFIG_SEED,
     errors::ErrorCode,
-    events::MarketOrderFillEvent,
     state::{MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct FillMarketOrder<'info> {
     #[account(mut)]
@@ -108,7 +108,7 @@ pub struct FillMarketOrder<'info> {
 }
 
 impl<'info> FillMarketOrder<'info> {
-    pub fn exec(&mut self) -> Result<()> {
+    pub fn exec(&mut self) -> Result<(u64, u64)> {
         let (token_mint_a, token_mint_b, token_program_a, token_program_b) =
             match self.market_pointer.order_type {
                 Order::Buy => {
@@ -212,26 +212,10 @@ impl<'info> FillMarketOrder<'info> {
             token_mint_b.decimals,
         )?;
 
-        let Clock {
-            slot,
-            unix_timestamp,
-            ..
-        } = Clock::get()?;
 
-        emit!(MarketOrderFillEvent {
-            market_pointer: self.market_pointer.key(),
-            book_config: self.order_book_config.key(),
-            pos_pubkey: self.order_position.key(),
-            order_type: self.market_pointer.order_type.clone(),
-            price: self.order_position.price,
-            total: total,
-            amount: amount,
-            new_size: self.order_position.amount,
-            slot: slot,
-            timestamp: unix_timestamp,
-            is_available: self.order_position.is_available,
-        });
 
-        Ok(())
+
+
+        Ok((amount, total))
     }
 }

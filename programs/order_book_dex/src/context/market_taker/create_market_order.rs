@@ -1,11 +1,11 @@
 use crate::{
     constants::VAULT_ACCOUNT_SEED,
     errors::ErrorCode,
-    events::MarketOrderTriggerEvent,
     state::{Fill, MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
 
+#[event_cpi]
 #[derive(Accounts)]
 #[instruction(order_type: Order)]
 pub struct CreateMarketOrder<'info> {
@@ -85,22 +85,6 @@ impl<'info> CreateMarketOrder<'info> {
             self.dest.key(),
             self.next_position_pointer.key(),
         )?;
-
-        let Clock {
-            slot,
-            unix_timestamp,
-            ..
-        } = Clock::get()?;
-
-        emit!(MarketOrderTriggerEvent {
-            market_pointer: self.market_pointer.key(),
-            book_config: self.order_book_config.key(),
-            pointer: self.market_pointer.order_position_pointer,
-            order_type: self.market_pointer.order_type.clone(),
-            is_available: self.market_pointer.market_order.is_none(),
-            slot: slot,
-            timestamp: unix_timestamp,
-        });
 
         Ok(())
     }

@@ -31,6 +31,41 @@ describe("order_book_dex", () => {
   const tokenMints = [];
   const orderBookConfigAddressList = [];
 
+  program.addEventListener("newOrderBookConfigEvent", (event) => {
+    console.log("this event ------ >>>>>", event)
+  })
+
+  const [eventAuthority] = PublicKey.findProgramAddressSync([
+    Buffer.from([
+      95,
+      95,
+      101,
+      118,
+      101,
+      110,
+      116,
+      95,
+      97,
+      117,
+      116,
+      104,
+      111,
+      114,
+      105,
+      116,
+      121
+    ])
+  ], program.programId)
+
+
+
+
+
+
+
+
+
+
 
   before(async () => {
 
@@ -268,6 +303,8 @@ describe("order_book_dex", () => {
       Buffer.from('market-pointer'),
     ], program.programId);
 
+
+
     const tx = await program.methods
       .createTradePair("USDC", "BTC", false)
       .accountsStrict({
@@ -280,6 +317,8 @@ describe("order_book_dex", () => {
         tokenProgramA: TOKEN_PROGRAM_ID,
         tokenProgramB: TOKEN_PROGRAM_ID,
         systemProgram: SYSTEM_PROGRAM_ID,
+        eventAuthority: eventAuthority,
+        program: program.programId,
       })
       .signers([wallet.payer])
       .rpc();
@@ -417,6 +456,8 @@ describe("order_book_dex", () => {
           tokenProgramA,
           tokenProgramB,
           systemProgram: SYSTEM_PROGRAM_ID,
+          eventAuthority,
+          program: program.programId,
         })
         .signers([signer])
         .rpc();
@@ -485,6 +526,8 @@ describe("order_book_dex", () => {
           prevOrderPosition: null,
           nextOrderPosition: null,
           nextPositionPointer: null,
+          eventAuthority,
+          program: program.programId,
         })
         .signers([signer])
         .rpc();
@@ -810,6 +853,8 @@ describe("order_book_dex", () => {
           tokenMint: tokenMintA,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
+          eventAuthority,
+          program: program.programId,
         })
         .signers([signer])
         .rpc();
@@ -864,6 +909,8 @@ describe("order_book_dex", () => {
           orderPosition,
           orderPositionConfig,
           systemProgram: SYSTEM_PROGRAM_ID,
+          eventAuthority,
+          program: program.programId,
         })
         .signers([wallet.payer])
         .rpc();

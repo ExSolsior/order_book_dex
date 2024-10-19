@@ -1,5 +1,6 @@
 use crate::db::models::{get_market_order_history, get_trade_pair, get_trade_pair_list};
 use actix_web::{get, web, HttpResponse, Responder};
+use solana_rpc_client_api::response::{Response, RpcLogsResponse};
 
 use crate::AppState;
 use serde::Deserialize;
@@ -67,4 +68,13 @@ pub async fn market_list(
 #[get("/sanity_check")]
 pub async fn sanity_check() -> impl Responder {
     HttpResponse::Ok().body("it works")
+}
+
+pub async fn logs_handler(logs_info: Response<RpcLogsResponse>) {
+    // let log = logs_info.value.logs[0].clone();
+
+    let logs = logs_info.value.logs;
+
+    // Program data:
+    logs.iter().find(|log| println!("{log}"))
 }

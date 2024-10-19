@@ -1,10 +1,10 @@
 use crate::{
     errors::ErrorCode,
-    events::OpenLimitOrderEvent,
     state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig},
 };
 use anchor_lang::prelude::*;
 
+#[event_cpi]
 #[derive(Accounts)]
 pub struct OpenOrderPosition<'info> {
     #[account(mut)]
@@ -112,27 +112,6 @@ impl<'info> OpenOrderPosition<'info> {
         } else {
             self.order_position.next_order_position = None;
         };
-
-        let Clock {
-            slot,
-            unix_timestamp,
-            ..
-        } = Clock::get()?;
-
-        emit!(OpenLimitOrderEvent {
-            pos_pubkey: self.order_position.key(),
-            book_config: self.order_book_config.key(),
-            pos_config: self.order_position_config.key(),
-            source: self.order_position.source.key(),
-            destination: self.order_position.destination.key(),
-            next_pos_pubkey: self.order_position.next_order_position,
-            order_type: self.order_position.order_type.clone(),
-            price: self.order_position.price,
-            size: self.order_position.amount,
-            slot: slot,
-            timestamp: unix_timestamp,
-            is_available: true,
-        });
 
         Ok(())
     }
