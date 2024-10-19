@@ -50,14 +50,14 @@ pub struct CreateMarketOrder<'info> {
     pub dest: UncheckedAccount<'info>,
 
     #[account(
-        constraint = order_book_config.is_valid_token_mint_source(token_mint_source.key(), &market_pointer)
+        constraint = order_book_config.is_valid_token_mint_source(token_mint_source.key(), market_pointer.order_type.clone())
             @ ErrorCode::InvalidMint,
     )]
     /// CHECKED: validate mint pubkey agaist order book config and market pointer order type
     pub token_mint_source: UncheckedAccount<'info>,
 
     #[account(
-        constraint = order_book_config.is_valid_token_mint_dest(token_mint_dest.key(), &market_pointer)
+        constraint = order_book_config.is_valid_token_mint_dest(token_mint_dest.key(), market_pointer.order_type.clone())
             @ ErrorCode::InvalidMint,
     )]
     /// CHECKED: validate mint pubkey agaist order book config and market pointer order type

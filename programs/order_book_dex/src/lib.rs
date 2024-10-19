@@ -7,7 +7,7 @@ mod errors;
 mod events;
 mod state;
 
-declare_id!("Ho5fe2xYQX84C5kXTSB34hZCudUB4Z1KDhFViPFtGoP");
+declare_id!("4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9");
 
 #[program]
 pub mod order_book_dex {
