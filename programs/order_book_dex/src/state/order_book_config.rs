@@ -1,11 +1,9 @@
+use crate::constants::{BYTE, DISCRIMINATOR};
+use crate::state::{Order, OrderPosition};
 use anchor_lang::{
     prelude::*,
     solana_program::pubkey::{Pubkey, PUBKEY_BYTES},
 };
-
-use crate::constants::{BYTE, DISCRIMINATOR};
-
-use crate::state::{MarketPointer, Order, OrderPosition};
 
 #[account]
 pub struct OrderBookConfig {
@@ -13,8 +11,6 @@ pub struct OrderBookConfig {
     pub token_program_b: Pubkey,
     pub token_mint_a: Pubkey,
     pub token_mint_b: Pubkey,
-    // pub sell_market_pointer: Pubkey,
-    // pub buy_market_pointer: Pubkey,
     pub token_symbol_a: String,
     pub token_symbol_b: String,
     pub is_reverse: bool,
@@ -30,8 +26,6 @@ impl OrderBookConfig {
         token_program_b: Pubkey,
         token_mint_a: Pubkey,
         token_mint_b: Pubkey,
-        // sell_market_pointer: Pubkey,
-        // buy_market_pointer: Pubkey,
         token_symbol_a: String,
         token_symbol_b: String,
         is_reverse: bool,
@@ -41,8 +35,6 @@ impl OrderBookConfig {
         self.token_program_b = token_program_b;
         self.token_mint_a = token_mint_a;
         self.token_mint_b = token_mint_b;
-        // self.sell_market_pointer = sell_market_pointer;
-        // self.buy_market_pointer = buy_market_pointer;
         self.token_symbol_a = token_symbol_a;
         self.token_symbol_b = token_symbol_b;
         self.is_reverse = is_reverse;
@@ -73,31 +65,25 @@ impl OrderBookConfig {
             || order_position.as_ref().is_none()
     }
 
-    pub fn is_valid_token_mint_source(
-        &self,
-        source: Pubkey,
-        market_pointer: &Account<'_, MarketPointer>,
-    ) -> bool {
-        if !self.is_reverse && market_pointer.order_type == Order::Buy {
-            self.token_mint_a == source
-        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
-            self.token_mint_b == source
-        } else {
-            false
-        }
+    pub fn is_valid_token_mint_source(&self, source: Pubkey, order_type: Order) -> bool {
+        // mint B
+        ((!self.is_reverse && (order_type == Order::Ask || order_type == Order::Sell)
+            || self.is_reverse && (order_type == Order::Bid || order_type == Order::Buy))
+            && source == self.token_mint_b)
+            // mint A
+            || ((!self.is_reverse && (order_type == Order::Bid || order_type == Order::Buy)
+                || self.is_reverse && (order_type == Order::Ask || order_type == Order::Sell))
+                && source == self.token_mint_a)
     }
 
-    pub fn is_valid_token_mint_dest(
-        &self,
-        dest: Pubkey,
-        market_pointer: &Account<'_, MarketPointer>,
-    ) -> bool {
-        if !self.is_reverse && market_pointer.order_type == Order::Buy {
-            self.token_mint_b == dest
-        } else if !self.is_reverse && market_pointer.order_type == Order::Sell {
-            self.token_mint_a == dest
-        } else {
-            false
-        }
+    pub fn is_valid_token_mint_dest(&self, dest: Pubkey, order_type: Order) -> bool {
+        // mint A
+        ((!self.is_reverse && (order_type == Order::Ask || order_type == Order::Sell)
+            || self.is_reverse && (order_type == Order::Bid || order_type == Order::Buy))
+            && dest == self.token_mint_a)
+            // mint B
+            || ((!self.is_reverse && (order_type == Order::Bid || order_type == Order::Buy)
+                || self.is_reverse && (order_type == Order::Ask || order_type == Order::Sell))
+                && dest == self.token_mint_b)
     }
 }

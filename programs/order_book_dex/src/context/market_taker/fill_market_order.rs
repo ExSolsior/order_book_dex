@@ -1,9 +1,11 @@
 use crate::{
-    constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, events::MarketOrderFillEvent, state::{MarketPointer, Order, OrderBookConfig, OrderPosition}
+    constants::ORDER_BOOK_CONFIG_SEED,
+    errors::ErrorCode,
+    events::MarketOrderFillEvent,
+    state::{MarketPointer, Order, OrderBookConfig, OrderPosition},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
-
 
 #[derive(Accounts)]
 pub struct FillMarketOrder<'info> {
@@ -49,10 +51,9 @@ pub struct FillMarketOrder<'info> {
         mut,
         constraint = maker_destination.owner == order_book_config.key()
             @ ErrorCode::InvalidVaultAccount,
-        constraint = order_position.is_valid_destination(
-            &order_book_config, 
-            &maker_destination, 
-            market_pointer.order_type.clone(),
+        constraint = order_book_config.is_valid_token_mint_dest(
+            maker_destination.mint, 
+            order_position.order_type.clone(),
         ) @ ErrorCode::InvalidMakerDestination,
     )]
     pub maker_destination: InterfaceAccount<'info, TokenAccount>,
@@ -63,10 +64,9 @@ pub struct FillMarketOrder<'info> {
             @ ErrorCode::InvalidMint,
         constraint = maker_source.owner == order_book_config.key()
             @ ErrorCode::InvalidVaultAccount,
-        constraint = order_position.is_valid_source(         
-            &order_book_config, 
-            &maker_source, 
-            market_pointer.order_type.clone(),
+        constraint = order_book_config.is_valid_token_mint_source(         
+            maker_source.mint, 
+            order_position.order_type.clone(),
         ) @ ErrorCode::InvalidMakerSource,
     )]
     pub maker_source: InterfaceAccount<'info, TokenAccount>,
@@ -231,7 +231,7 @@ impl<'info> FillMarketOrder<'info> {
             timestamp: unix_timestamp,
             is_available: self.order_position.is_available,
         });
-        
+
         Ok(())
     }
 }

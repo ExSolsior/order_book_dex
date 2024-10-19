@@ -56,13 +56,13 @@ pub struct CreateOrderPosition<'info> {
 
     #[account(
         mut,
-        constraint = order_position.is_valid_source(&order_book_config, &source, order_type.clone())
+        constraint = order_book_config.is_valid_token_mint_source(source.mint, order_type.clone())
             @ ErrorCode::InvalidSource,
     )]
     pub source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        constraint = order_position.is_valid_destination(&order_book_config, &destination, order_type.clone())
+        constraint = order_book_config.is_valid_token_mint_dest(destination.mint, order_type.clone())
             @ ErrorCode::InvalidDestination,
     )]
     pub destination: InterfaceAccount<'info, TokenAccount>,
