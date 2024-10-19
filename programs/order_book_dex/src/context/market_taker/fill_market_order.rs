@@ -1,8 +1,5 @@
 use crate::{
-    constants::ORDER_BOOK_CONFIG_SEED,
-    errors::ErrorCode,
-    events::MarketOrderFillEvent,
-    state::{MarketPointer, Order, OrderBookConfig, OrderPosition},
+    constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, events::MarketOrderFillEvent, state::{MarketPointer, Order, OrderBookConfig, OrderPosition}
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
@@ -211,6 +208,7 @@ impl<'info> FillMarketOrder<'info> {
             receiving_amount,
             token_mint_b.decimals,
         )?;
+
 
         let Clock {
             slot,

@@ -34,7 +34,7 @@ pub struct CreateTradePair<'info> {
         ],
         bump
     )]
-    pub order_book_config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Box<Account<'info, OrderBookConfig>>,
 
     #[account(
         init,
@@ -47,7 +47,7 @@ pub struct CreateTradePair<'info> {
         ],
         bump
     )]
-    pub buy_market_pointer: Account<'info, MarketPointer>,
+    pub buy_market_pointer: Box<Account<'info, MarketPointer>>,
 
     #[account(
         init,
@@ -97,6 +97,7 @@ impl<'info> CreateTradePair<'info> {
             .init(Order::Buy, self.order_book_config.key())?;
         self.sell_market_pointer
             .init(Order::Sell, self.order_book_config.key())?;
+
 
         let Clock {
             slot,

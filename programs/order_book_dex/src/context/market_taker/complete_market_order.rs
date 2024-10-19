@@ -21,13 +21,13 @@ pub struct ReturnExecutionMarketOrder<'info> {
 
 impl<'info> ReturnExecutionMarketOrder<'info> {
     pub fn exec(&mut self) -> Result<()> {
+        let market_data = self.market_pointer.remove_market_order()?;
+
         let Clock {
             slot,
             unix_timestamp,
             ..
         } = Clock::get()?;
-
-        let market_data = self.market_pointer.remove_market_order()?;
 
         emit!(MarketOrderCompleteEvent {
             market_pointer: self.market_pointer.key(),

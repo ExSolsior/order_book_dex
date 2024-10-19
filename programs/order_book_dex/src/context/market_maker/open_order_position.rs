@@ -131,7 +131,7 @@ impl<'info> OpenOrderPosition<'info> {
             size: self.order_position.amount,
             slot: slot,
             timestamp: unix_timestamp,
-            is_available: true,
+            is_available: self.order_position.is_available,
         });
 
         Ok(())
