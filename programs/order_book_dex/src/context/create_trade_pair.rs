@@ -114,6 +114,8 @@ impl<'info> CreateTradePair<'info> {
             buy_market_pointer: self.buy_market_pointer.key(),
             token_symbol_a: self.order_book_config.token_symbol_a.clone(),
             token_symbol_b: self.order_book_config.token_symbol_b.clone(),
+            token_decimals_a: self.token_mint_a.decimals,
+            token_decimals_b: self.token_mint_b.decimals,
             is_reverse: self.order_book_config.is_reverse,
             slot: slot,
             timestamp: unix_timestamp,
