@@ -33,7 +33,7 @@ type Fill = {
   partial: {partial: {targetPrice: BN}}
 }
 
-export const AppContext = createContext(null);
+export const AppContext = createContext<Value | null>(null);
 
 export const AppProvider = ({ children }: {children: ReactNode}) => {
 
@@ -67,7 +67,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			const txHash = await program.methods
 				.createTradePair(isReverse)
 				.accountsStrict({
-				authority: wallet.publicKey, 
+				authority: wallet?.publicKey, 
 				orderBookConfig,
 				buyMarketPointer,
 				sellMarketPointer,
@@ -82,8 +82,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			await confirmTx(txHash, connection);
 			toast.success("Trade pair created successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
 	}
 
@@ -93,8 +92,8 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 		tokenMintA: PublicKey, 
 		tokenMintB: PublicKey) => {
 		try {
-			const vaultA = await getVaultAccount(orderBookConfig, tokenMintA, wallet.publicKey);
-			const vaultB = await getVaultAccount(orderBookConfig, tokenMintB, wallet.publicKey);
+			const vaultA = await getVaultAccount(orderBookConfig, tokenMintA, wallet!.publicKey);
+			const vaultB = await getVaultAccount(orderBookConfig, tokenMintB, wallet!.publicKey);
 			
 			// Derive token programs from mints
 			const mintA = await getAccount(connection, tokenMintA);
@@ -103,7 +102,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			const txHash = await program.methods
 				.createVaultAccounts()
 				.accountsStrict({
-				signer: wallet.publicKey,
+				signer: wallet?.publicKey,
 				orderBookConfig,
 				tokenMintA,
 				tokenMintB,
@@ -119,19 +118,18 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			toast.success("Vault accounts created successfully!");
 		} catch (err) {
 		console.error(err);
-		toast.error(err.message);
 		}
 	}
 
 	/* Instruction: Create Order Position Config */
 	const createOrderPositionConfig = async (orderBookConfig: PublicKey) => {
 		try {
-			const orderPositionConfig = await getOrderPositionConfig(wallet.publicKey, orderBookConfig);
+			const orderPositionConfig = await getOrderPositionConfig(wallet!.publicKey, orderBookConfig);
 
 			const txHash = await program.methods
 				.createOrderPositionConfig()
 				.accountsStrict({
-					signer: wallet.publicKey,
+					signer: wallet?.publicKey,
 					orderBookConfig,
 					orderPositionConfig,
 					systemProgram: SystemProgram.programId
@@ -142,14 +140,13 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 				toast.success("Order position config created successfully!");
 			} catch (err) {
 				console.error(err);
-				toast.error(err.message);
 			}
 	}
 
 	/* Instruction: Create Order Position */
   const createOrderPosition = async (
     orderBookConfig: PublicKey,
-    orderPositionConfig: PublicKey,
+    clientOrderPositionConfig: PublicKey,
     tokenMintA: PublicKey,
     tokenMintB: PublicKey,
 		tokenProgramA: PublicKey,
@@ -159,43 +156,43 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 		nonce: number | null,
 		vaultA: PublicKey | null,
     vaultB : PublicKey | null,
-		is_reverse: boolean,      // requred to find source and dest
+		isReverse: boolean,      // requred to find source and dest
     orderType: OrderType,   // required to find source and dest
 		
   ) => {
     try {
 			// Get nonce from order position config if it doesn't exist
-      const resolvedNonce = nonce || await program.account.order_position_config.fetch(orderPositionConfig).then(acc => acc.nonce);
+      const resolvedNonce = nonce || await program.account.orderPositionConfig.fetch(clientOrderPositionConfig).then((acc: { nonce: number; }) => acc.nonce);
       
-			const orderPosition = await getOrderPosition(orderPositionConfig, new BN(resolvedNonce), wallet.publicKey);
+			const orderPosition = await getOrderPosition(clientOrderPositionConfig, new BN(resolvedNonce), wallet!.publicKey);
 
 			// Determine source, destination and capital source based on is_reverse and orderType
 			let resolvedSource: PublicKey;
 			let resolvedDest: PublicKey;
 			let capitalSource: PublicKey;
 
-			if ((!is_reverse && orderType === OrderType.Bid) || (is_reverse && orderType === OrderType.Ask)) {
+			if ((!isReverse && orderType === OrderType.Bid) || (isReverse && orderType === OrderType.Ask)) {
 				// Capital Source derived with mint A
-				capitalSource = getAssociatedTokenAddressSync(tokenMintA, wallet.publicKey);
+				capitalSource = getAssociatedTokenAddressSync(tokenMintA, wallet!.publicKey);
 
 				// Source derived with mintA, destination derived with mintB
-				resolvedSource = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet.publicKey);
-				resolvedDest = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet.publicKey);
+				resolvedSource = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet!.publicKey);
+				resolvedDest = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet!.publicKey);
 			} else {
 				// Capital Source derived with mint B
-				capitalSource = getAssociatedTokenAddressSync(tokenMintB, wallet.publicKey);
+				capitalSource = getAssociatedTokenAddressSync(tokenMintB, wallet!.publicKey);
 
 				// Source derived with mintB, destination derived with mintA
-				resolvedSource = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet.publicKey);
-				resolvedDest = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet.publicKey);
+				resolvedSource = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet!.publicKey);
+				resolvedDest = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet!.publicKey);
 			}
 
       const txHash = await program.methods
 				.createOrderPosition(orderType, price, amount)
         .accountsStrict({
-          signer: wallet.publicKey,
+          signer: wallet?.publicKey,
           orderBookConfig,
-          orderPositionConfig,
+          orderPositionConfig: clientOrderPositionConfig,
           orderPosition,
           tokenMintA,
           tokenMintB,
@@ -211,8 +208,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Order position created successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
   }
 
@@ -225,7 +221,8 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 		nextPositionPointer: PublicKey,
 		orderType: OrderType,
 		fill: Fill,
-		targetAmount: BN
+		targetAmount: BN,
+    isReverse: boolean,
 	) => {
 			try {
 				
@@ -233,20 +230,20 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
         let source: PublicKey;
         let dest: PublicKey;
 
-        if ((!is_reverse && orderType === OrderType.Buy) || (is_reverse && orderType === OrderType.Sell)) {
+        if ((!isReverse && orderType === OrderType.Buy) || (isReverse && orderType === OrderType.Sell)) {
           // Source derived with tokenMintSource, destination derived with tokenMintDest
-          source = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
-          dest = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
+          source = await getVaultAccount(orderBookConfig, tokenMintSource, wallet!.publicKey);
+          dest = await getVaultAccount(orderBookConfig, tokenMintDest, wallet!.publicKey);
         } else {
           // Source derived with tokenMintSource, destination derived with tokenMintDest
-          source = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
-          dest = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
+          source = await getVaultAccount(orderBookConfig, tokenMintDest, wallet!.publicKey);
+          dest = await getVaultAccount(orderBookConfig, tokenMintSource, wallet!.publicKey);
         }
 
         const txHash = await program.methods
           .createMarketOrder(orderType, fill, targetAmount)
           .accountsStrict({
-              signer: wallet.publicKey,
+              signer: wallet?.publicKey,
               orderBookConfig,
               marketPointer,
               source,
@@ -261,7 +258,6 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
             toast.success("Market order created successfully!");
         } catch (err) {
             console.error(err);
-            toast.error(err.message);
         }
 	}
 
@@ -278,7 +274,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
     makerSource: PublicKey,
     vaultA: PublicKey | null,
     vaultB : PublicKey | null,
-    is_reverse: boolean,      // requred to find source and dest
+    isReverse: boolean,      // requred to find source and dest
     orderType: OrderType,   // required to find source and dest
   ) => {
     try {
@@ -286,19 +282,19 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			let source: PublicKey;
 			let dest: PublicKey;
 
-			if ((!is_reverse && orderType === OrderType.Sell) || (is_reverse && orderType === OrderType.Buy)) {
+			if ((!isReverse && orderType === OrderType.Sell) || (isReverse && orderType === OrderType.Buy)) {
 				// Source derived with mintA, destination derived with mintB
-				source = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet.publicKey);
-				dest = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet.publicKey);
+				source = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet!.publicKey);
+				dest = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet!.publicKey);
 			} else {
 				// Source derived with mintB, destination derived with mintA
-				source = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet.publicKey);
-				dest = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet.publicKey);
+				source = vaultB || await getVaultAccount(orderBookConfig, tokenMintB, wallet!.publicKey);
+				dest = vaultA || await getVaultAccount(orderBookConfig, tokenMintA, wallet!.publicKey);
 			}
 
       const txHash = await program.methods.fillMarketOrder()
         .accountsStrict({
-          signer: wallet.publicKey,
+          signer: wallet?.publicKey,
           orderBookConfig,
           marketPointer,
           orderPosition,
@@ -316,8 +312,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Market order filled successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
   }
 
@@ -336,7 +331,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       const txHash = await program.methods
 				.openOrderPosition()
         .accountsStrict({
-          signer: wallet.publicKey,
+          signer: wallet?.publicKey,
           orderBookConfig,
           marketPointerRead,
           marketPointerWrite,
@@ -351,8 +346,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Order position opened successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
   }
 
@@ -375,7 +369,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       const txHash = await program.methods
 				.cancelOrderPosition()
         .accountsStrict({
-          signer: wallet.publicKey,
+          signer: wallet?.publicKey,
           orderBookConfig,
           marketPointerRead,
           marketPointerWrite,
@@ -394,8 +388,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Order position cancelled successfully!");
     } catch (err) {
-      console.log(err);
-      toast.error(err.message);
+      console.log(err)
     }
   }
 
@@ -409,8 +402,8 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       const txHash = await program.methods
 				.closeOrderPosition()
         .accountsStrict({
-          signer: wallet.publicKey,
-          owner: wallet.publicKey,
+          signer: wallet?.publicKey,
+          owner: wallet?.publicKey,
           orderBookConfig,
           orderPosition,
           orderPositionConfig,
@@ -421,8 +414,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Order position closed successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
   }
 
@@ -435,7 +427,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       const txHash = await program.methods
 				.returnExecutionMarketOrder()
         .accountsStrict({
-          signer: wallet.publicKey,
+          signer: wallet?.publicKey,
           orderBookConfig,
           marketPointer
         })
@@ -444,8 +436,7 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
       await confirmTx(txHash, connection);
       toast.success("Market order execution returned successfully!");
     } catch (err) {
-      console.error(err);
-      toast.error(err.message);
+      console.error(err)
     }
   }
 
@@ -468,7 +459,89 @@ export const AppProvider = ({ children }: {children: ReactNode}) => {
 			{children}
 		</AppContext.Provider>
 	);
+  
 };
+
+interface Value {
+  connected: boolean;
+  createTradePair: (tokenMintA: PublicKey, tokenMintB: PublicKey, isReverse: boolean) => Promise<void>;
+  createVaultAccounts: (orderBookConfig: PublicKey, tokenMintA: PublicKey, tokenMintB: PublicKey) => Promise<void>;
+  createOrderPositionConfig: (orderBookConfig: PublicKey) => Promise<void>;
+  createOrderPosition: (
+    orderBookConfig: PublicKey,
+    clientOrderPositionConfig: PublicKey,
+    tokenMintA: PublicKey,
+    tokenMintB: PublicKey,
+    tokenProgramA: PublicKey,
+    tokenProgramB: PublicKey,
+    price: BN,
+    amount: BN,
+    nonce: number | null,
+    vaultA: PublicKey | null,
+    vaultB: PublicKey | null,
+    isReverse: boolean,
+    orderType: OrderType
+  ) => Promise<void>;
+  createMarketOrder: (
+    orderBookConfig: PublicKey,
+    marketPointer: PublicKey,
+    tokenMintSource: PublicKey,
+    tokenMintDest: PublicKey,
+    nextPositionPointer: PublicKey,
+    orderType: OrderType,
+    fill: Fill,
+    targetAmount: BN,
+    isReverse: boolean
+  ) => Promise<void>;
+  fillMarketOrder: (
+    orderBookConfig: PublicKey,
+    marketPointer: PublicKey,
+    orderPosition: PublicKey,
+    tokenMintA: PublicKey,
+    tokenMintB: PublicKey,
+    tokenProgramA: PublicKey,
+    tokenProgramB: PublicKey,
+    makerDestination: PublicKey,
+    makerSource: PublicKey,
+    vaultA: PublicKey | null,
+    vaultB: PublicKey | null,
+    isReverse: boolean,
+    orderType: OrderType
+  ) => Promise<void>;
+  openOrderPosition: (
+    orderBookConfig: PublicKey,
+    marketPointerRead: PublicKey,
+    marketPointerWrite: PublicKey,
+    orderPosition: PublicKey,
+    orderPositionConfig: PublicKey,
+    prevOrderPosition: PublicKey,
+    nextOrderPosition: PublicKey,
+    nextPositionPointer: PublicKey
+  ) => Promise<void>;
+  cancelOrderPosition: (
+    orderBookConfig: PublicKey,
+    marketPointerRead: PublicKey,
+    marketPointerWrite: PublicKey,
+    orderPosition: PublicKey,
+    orderPositionConfig: PublicKey,
+    prevOrderPosition: PublicKey,
+    nextOrderPosition: PublicKey,
+    capitalDestination: PublicKey,
+    source: PublicKey,
+    tokenMint: PublicKey
+  ) => Promise<void>;
+  closeOrderPosition: (
+    orderBookConfig: PublicKey,
+    orderPosition: PublicKey,
+    orderPositionConfig: PublicKey
+  ) => Promise<void>;
+  returnExecutionMarketOrder: (
+    orderBookConfig: PublicKey,
+    marketPointer: PublicKey
+  ) => Promise<void>;
+}
+
+
 
 export const useAppContext = () => {
 	return useContext(AppContext);

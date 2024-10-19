@@ -17,7 +17,7 @@ export const getProgram = (connection: Connection, wallet: undefined | AnchorWal
     commitment: "confirmed",
   });
 
-  const program = new Program(CHRONO_IDL, PROGRAM_ID, provider);
+  const program = new Program(CHRONO_IDL, provider);
 
   console.log("Program ID:", PROGRAM_ID.toBase58());
 
