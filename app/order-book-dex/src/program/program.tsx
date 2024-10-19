@@ -1,12 +1,12 @@
-import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { AnchorProvider, BN, Program, Wallet } from "@coral-xyz/anchor";
+import { PublicKey, Connection } from "@solana/web3.js";
 import {
   CHRONO_IDL,
   PROGRAM_ID,
 } from "./utils/constants";
 
 // Fetching Program
-export const getProgram = (connection: any, wallet: any) => {
+export const getProgram = (connection: Connection, wallet: Wallet) => {
     const provider = new AnchorProvider(connection, wallet, {
       commitment: "confirmed",
     });

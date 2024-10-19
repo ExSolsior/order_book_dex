@@ -1,11 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, React } from "react";
 import { 
   PublicKey, 
-  LAMPORTS_PER_SOL, 
   SystemProgram, 
 } from '@solana/web3.js';
-import { useWallet, useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAccount, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
+import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
+import { getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { BN } from "@coral-xyz/anchor";
 import toast from "react-hot-toast";
 
@@ -29,9 +28,14 @@ enum OrderType {
 	
 }
 
+type Fill = {
+  full : {full: {}},
+  partial: {partial: {targetPrice: BN}}
+}
+
 export const AppContext = createContext(null);
 
-export const AppProvider = ({ children }: any) => {
+export const AppProvider = ({ children }: {children: React.ReactNode}) => {
 
   // Get provider
   const { connection } = useConnection();
@@ -155,9 +159,9 @@ export const AppProvider = ({ children }: any) => {
     tokenMintB: PublicKey,
 		tokenProgramA: PublicKey,
 		tokenProgramB: PublicKey,
-    price: number,
-    amount: number,
-		nonce: any | null,
+    price: BN,
+    amount: BN,
+		nonce: number | null,
 		vaultA: PublicKey | null,
     vaultB : PublicKey | null,
 		is_reverse: boolean,      // requred to find source and dest
@@ -166,7 +170,7 @@ export const AppProvider = ({ children }: any) => {
   ) => {
     try {
 			// Get nonce from order position config if it doesn't exist
-      let resolvedNonce = nonce || await program.account.order_position_config.fetch(orderPositionConfig).then(acc => acc.nonce);
+      const resolvedNonce = nonce || await program.account.order_position_config.fetch(orderPositionConfig).then(acc => acc.nonce);
       
 			const orderPosition = await getOrderPosition(orderPositionConfig, new BN(resolvedNonce), wallet.publicKey);
 
@@ -192,7 +196,7 @@ export const AppProvider = ({ children }: any) => {
 			}
 
       const txHash = await program.methods
-				.createOrderPosition(orderType, new BN(price), new BN(amount))
+				.createOrderPosition(orderType, price, amount)
         .accountsStrict({
           signer: wallet.publicKey,
           orderBookConfig,
@@ -225,45 +229,45 @@ export const AppProvider = ({ children }: any) => {
 		tokenMintDest: PublicKey,
 		nextPositionPointer: PublicKey,
 		orderType: OrderType,
-		fill: any,
-		targetAmount: number
+		fill: Fill,
+		targetAmount: BN
 	) => {
 			try {
 				
-			// Determine source and destination based on is_reverse and orderType
-			let source: PublicKey;
-			let dest: PublicKey;
+        // Determine source and destination based on is_reverse and orderType
+        let source: PublicKey;
+        let dest: PublicKey;
 
-			if ((!is_reverse && orderType === OrderType.Buy) || (is_reverse && orderType === OrderType.Sell)) {
-				// Source derived with tokenMintSource, destination derived with tokenMintDest
-				source = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
-				dest = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
-			} else {
-				// Source derived with tokenMintSource, destination derived with tokenMintDest
-				source = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
-				dest = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
-			}
+        if ((!is_reverse && orderType === OrderType.Buy) || (is_reverse && orderType === OrderType.Sell)) {
+          // Source derived with tokenMintSource, destination derived with tokenMintDest
+          source = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
+          dest = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
+        } else {
+          // Source derived with tokenMintSource, destination derived with tokenMintDest
+          source = await getVaultAccount(orderBookConfig, tokenMintDest, wallet.publicKey);
+          dest = await getVaultAccount(orderBookConfig, tokenMintSource, wallet.publicKey);
+        }
 
-			const txHash = await program.methods
-				.createMarketOrder(orderType, fill, new BN(targetAmount))
-				.accountsStrict({
-						signer: wallet.publicKey,
-						orderBookConfig,
-						marketPointer,
-						source,
-						dest,
-						tokenMintSource,
-						tokenMintDest,
-						nextPositionPointer
-				})
-				.rpc();
+        const txHash = await program.methods
+          .createMarketOrder(orderType, fill, targetAmount)
+          .accountsStrict({
+              signer: wallet.publicKey,
+              orderBookConfig,
+              marketPointer,
+              source,
+              dest,
+              tokenMintSource,
+              tokenMintDest,
+              nextPositionPointer
+          })
+          .rpc();
 
-					await confirmTx(txHash, connection);
-					toast.success("Market order created successfully!");
-			} catch (err) {
-					console.error(err);
-					toast.error(err.message);
-			}
+            await confirmTx(txHash, connection);
+            toast.success("Market order created successfully!");
+        } catch (err) {
+            console.error(err);
+            toast.error(err.message);
+        }
 	}
 
 	/* Instruction: Fill Market Order */ // not final
