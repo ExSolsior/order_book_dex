@@ -1,7 +1,7 @@
 export function PortfolioHeader() {
   return (
     <>
-      <h1 className="scroll-m-20 text-3xl font-extrabold tracking-tight lg:text-4xl">
+      <h1 className="scroll-m-20 text-3xl font-bold tracking-tight lg:text-4xl">
         Portfolio Dashboard
       </h1>
       <span className="text-xl text-muted-foreground">

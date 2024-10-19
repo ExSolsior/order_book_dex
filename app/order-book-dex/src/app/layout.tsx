@@ -16,6 +16,11 @@ const geistMono = localFont({
   variable: "--font-geist-mono",
   weight: "100 900"
 });
+const montserrat = localFont({
+  src: './fonts/Montserrat-Medium.ttf',
+  variable: '--font-montserrat',
+  weight: '100 900',
+});
 
 export const metadata: Metadata = {
   title: siteConfig.name,
@@ -35,7 +40,7 @@ export default function RootLayout({
       <head />
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} min-h-screen bg-background antialiased`}
       >
         <WalletAdapter>
           <ThemeProvider

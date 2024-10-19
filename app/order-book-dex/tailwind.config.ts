@@ -16,6 +16,11 @@ const config: Config = {
       }
     },
     extend: {
+      fontFamily: {
+        sans: ['var(--font-geist-sans)'],
+        mono: ['var(--font-geist-mono)'],
+        montserrat: ['var(--font-montserrat)'],
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
