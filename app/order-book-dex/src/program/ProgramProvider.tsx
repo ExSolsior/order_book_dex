@@ -4,8 +4,8 @@ import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey, SystemProgram } from "@solana/web3.js";
 import { createContext, ReactNode, useContext, useMemo } from "react";
 import toast from "react-hot-toast";
-import { CHRONO_IDL } from "./utils/constants";
-import { confirmTx } from "./utils/helper";
+import { confirmTx, getProgram } from "./utils/helper";
+
 import {
   getBuyMarketPointerPDA,
   getOrderBookConfigPDA,
@@ -35,16 +35,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   const userWallet = useAnchorWallet();
 
   const program = useMemo(() => {
-    if (userWallet) {
-      const getProvider = () => {
-        const provider = new AnchorProvider(connection, userWallet, {
-          commitment: "confirmed"
-        });
-        setProvider(provider);
-        return provider;
-      };
-
-      return new Program(CHRONO_IDL, getProvider());
+    if (connection) {
+      return getProgram(connection, userWallet!);
     }
   }, [connection, userWallet]);
 
