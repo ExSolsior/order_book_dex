@@ -1,6 +1,7 @@
 export const siteConfig = {
   name: "Chrono",
   url: "https://chrono-order-book-dex.vercel.app/",
+  backendUrl: "http://chrono-dex-1f9l.shuttle.app/api",
   ogImage: "",
   description: "First Open Book Dex on SOON",
   links: {
