@@ -34,9 +34,7 @@ type Fill = {
   partial: { partial: { targetPrice: BN } };
 };
 
-export const ProgramContext = createContext<Value | { connected: boolean }>({
-  connected: false
-});
+export const ProgramContext = createContext<Value | null>(null);
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // Get provider
@@ -51,13 +49,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 
   if (!program || !userWallet)
     return (
-      <ProgramContext.Provider
-        value={{
-          connected: false
-        }}
-      >
-        {children}
-      </ProgramContext.Provider>
+      <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
     );
 
   // Tx: Open Limit Order
@@ -368,7 +360,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ProgramContext.Provider
       value={{
-        connected: userWallet?.publicKey ? true : false,
         createTradePair,
         createMarketOrder,
         fillMarketOrder,
@@ -384,7 +375,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
-  connected: boolean;
   createTradePair: (
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,
