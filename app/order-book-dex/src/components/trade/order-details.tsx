@@ -1,5 +1,7 @@
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Market } from "@/lib/markets";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { WalletPrompt } from "../wallet-prompt";
 import Balance from "./balance";
 import CustomTabsTrigger from "./custom-tabs-trigger";
 import LimitOrder from "./limit-order";
@@ -12,6 +14,12 @@ export default function OrderDetails({
   market: Market;
   type: "buy" | "sell";
 }) {
+  const userWallet = useAnchorWallet();
+
+  if (!userWallet) {
+    return <WalletPrompt />;
+  }
+
   return (
     <Tabs
       defaultValue="limit"
