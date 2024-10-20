@@ -37,8 +37,8 @@ interface ResponseData {
     isReverse: boolean | undefined,
     isAvailable: boolean | undefined,
     isExecution: boolean | undefined,
-    slot: BigInt | undefined,
-    timestamp: BigInt | undefined,
+    slot: bigint | undefined,
+    timestamp: bigint | undefined,
 
 
 }
