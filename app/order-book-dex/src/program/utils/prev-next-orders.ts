@@ -1,10 +1,10 @@
-import { OrderBookEntry } from "@/lib/types";
+import { OrderBookEntry } from "@/lib/requests/market-order-book";
 import { OrderType } from "../ProgramProvider";
 import { BN } from "@coral-xyz/anchor";
 
 export const findPrevNextEntries = (
   orderType: OrderType,
-  orderPrice: BN,
+  entry: OrderBookEntry,
   orderBookEntries: OrderBookEntry[]
 ) => {
   // Filter based on the provided order type (Bid or Ask)
@@ -24,7 +24,7 @@ export const findPrevNextEntries = (
   });
 
   // Use binary search to find the position where the entry fits
-  const position = findPosition(sortedOrderBook, orderType, orderPrice);
+  const position = findPosition(sortedOrderBook, orderType, entry.price);
 
   // Get the previous and next entries based on the binary search result
   const prev = position > 0 ? sortedOrderBook[position - 1] : null;
