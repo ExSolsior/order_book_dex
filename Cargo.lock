@@ -998,7 +998,6 @@ dependencies = [
  "solana-pubsub-client",
  "solana-rpc-client-api",
  "solana-sdk",
- "spl-associated-token-account 3.0.4",
  "sqlx",
  "thiserror",
  "tokio",
