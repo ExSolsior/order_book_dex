@@ -97,7 +97,6 @@ const CREATE_ORDER_POSITION_EVENT: [u8; 8] = [172, 251, 54, 147, 127, 165, 156, 
 const MARKET_ORDER_COMPLETE_EVENT: [u8; 8] = [117, 159, 39, 123, 213, 191, 30, 5];
 const MARKET_ORDER_FILL_EVENT: [u8; 8] = [154, 188, 223, 75, 178, 109, 84, 46];
 const MARKET_ORDER_TRIGGER_EVENT: [u8; 8] = [72, 184, 141, 82, 42, 180, 101, 73];
-const NEW_OPEN_POSITION_EVENT: [u8; 8] = [56, 198, 150, 126, 23, 75, 90, 3];
 const NEW_ORDER_BOOK_CONFIG_EVENT: [u8; 8] = [212, 127, 42, 69, 195, 133, 17, 145];
 const NEW_ORDER_POSITION_CONFIG_EVENT: [u8; 8] = [135, 248, 180, 220, 179, 224, 202, 103];
 const OPEN_LIMIT_ORDER_EVENT: [u8; 8] = [106, 24, 71, 85, 57, 169, 158, 216];
@@ -111,7 +110,6 @@ pub async fn decode(data: &String, app_state: AppState) {
         NEW_ORDER_POSITION_CONFIG_EVENT => {
             parse_order_position_config_event(&decoded, app_state).await
         }
-        NEW_OPEN_POSITION_EVENT => _parse_open_position_event(&decoded, app_state).await,
         CREATE_ORDER_POSITION_EVENT => {
             _parse_create_order_position_event(&decoded, app_state).await
         }
@@ -192,16 +190,6 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
         app_state,
     )
     .await;
-}
-
-// redundent? if so should remove, going to check
-pub async fn _parse_open_position_event(data: &[u8], _app_state: AppState) {
-    let mut offset = 8;
-    let _book_config = get_pubkey(&data, &mut offset);
-    let _pos_config = get_pubkey(&data, &mut offset);
-    let _pos_pubkey = get_pubkey(&data, &mut offset);
-    let _slot = get_slot(&data, &mut offset);
-    let _timestamp = get_timestamp(&data, &mut offset);
 }
 
 // don't think it's needed
