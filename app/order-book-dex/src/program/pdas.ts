@@ -1,14 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { PROGRAM_ID } from "./utils/constants";
 import { BN } from "@coral-xyz/anchor";
-
-const ORDER_BOOK_CONFIG_SEED = "order-book-config";
-const ORDER_POSITION_CONFIG_SEED = "order-position-config";
-const BUY_SEED = "buy-market-pointer";
-const SELL_SEED = "sell-market-pointer";
-const MARKET_POINTER_SEED = "market-pointer";
-const ORDER_POSITION_SEED = "order-position";
-const VAULT_ACCOUNT_SEED = "vault-account";
+import * as constant from "./utils/constants";
 
 export const getOrderBookConfigPDA = (
   tokenMintA: PublicKey,
@@ -18,7 +11,7 @@ export const getOrderBookConfigPDA = (
     [
       tokenMintA.toBuffer(),
       tokenMintB.toBuffer(),
-      Buffer.from(ORDER_BOOK_CONFIG_SEED)
+      Buffer.from(constant.ORDER_BOOK_CONFIG_SEED)
     ],
     PROGRAM_ID
   )[0];
@@ -29,9 +22,9 @@ export const getBuyMarketPointerPDA = (
 ): PublicKey => {
   return PublicKey.findProgramAddressSync(
     [
-      Buffer.from(BUY_SEED),
+      Buffer.from(constant.BUY_SEED),
       orderBookConfig.toBuffer(),
-      Buffer.from(MARKET_POINTER_SEED)
+      Buffer.from(constant.MARKET_POINTER_SEED)
     ],
     PROGRAM_ID
   )[0];
@@ -42,9 +35,9 @@ export const getSellMarketPointerPDA = (
 ): PublicKey => {
   return PublicKey.findProgramAddressSync(
     [
-      Buffer.from(SELL_SEED),
+      Buffer.from(constant.SELL_SEED),
       orderBookConfig.toBuffer(),
-      Buffer.from(MARKET_POINTER_SEED)
+      Buffer.from(constant.MARKET_POINTER_SEED)
     ],
     PROGRAM_ID
   )[0];
@@ -60,7 +53,7 @@ export const getVaultAccountPDA = (
       orderBookConfig.toBuffer(),
       tokenMint.toBuffer(),
       signer.toBuffer(),
-      Buffer.from(VAULT_ACCOUNT_SEED)
+      Buffer.from(constant.VAULT_ACCOUNT_SEED)
     ],
     PROGRAM_ID
   )[0];
@@ -74,7 +67,7 @@ export const getOrderPositionConfigPDA = (
     [
       signer.toBuffer(),
       orderBookConfig.toBuffer(),
-      Buffer.from(ORDER_POSITION_CONFIG_SEED)
+      Buffer.from(constant.ORDER_POSITION_CONFIG_SEED)
     ],
     PROGRAM_ID
   )[0];
@@ -88,7 +81,7 @@ export const getOrderPositionPDA = (
     [
       nonce.toArrayLike(Buffer, "le", 8),
       signer.toBuffer(),
-      Buffer.from(ORDER_POSITION_SEED)
+      Buffer.from(constant.ORDER_POSITION_SEED)
     ],
     PROGRAM_ID
   )[0];
