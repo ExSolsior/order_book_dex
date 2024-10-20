@@ -1,6 +1,6 @@
 "use client";
 
-import { OpenOrder } from "@/app/portfolio/open-orders";
+import { OpenOrder } from "@/app/demo/portfolio/open-orders";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
