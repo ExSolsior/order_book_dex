@@ -929,12 +929,14 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "base64 0.22.1",
  "futures-util",
  "serde",
  "shuttle-actix-web",
  "shuttle-runtime",
  "solana-pubsub-client",
  "solana-rpc-client-api",
+ "solana-sdk",
  "sqlx",
  "tokio",
 ]
