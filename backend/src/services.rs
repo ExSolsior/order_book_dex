@@ -1,10 +1,12 @@
-use std::{borrow::Borrow, ops::DerefMut};
-
-use crate::db::models::{get_market_order_history, get_trade_pair, get_trade_pair_list};
+use crate::db::models::{
+    delete_order_position, get_market_order_history, get_trade_pair, get_trade_pair_list,
+    insert_order_position, insert_order_position_config, insert_real_time_trade, insert_trade_pair,
+    update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+};
 use actix_web::{get, web, HttpResponse, Responder};
 use base64::engine::{general_purpose, Engine};
 use solana_rpc_client_api::response::{Response, RpcLogsResponse};
-use solana_sdk::{feature_set::leave_nonce_on_success, pubkey::Pubkey};
+use solana_sdk::pubkey::Pubkey;
 
 use crate::AppState;
 use serde::Deserialize;
@@ -74,10 +76,7 @@ pub async fn sanity_check() -> impl Responder {
     HttpResponse::Ok().body("it works")
 }
 
-pub fn logs_handler(logs_info: Response<RpcLogsResponse>) {
-    println!("------------------------------------------------------------");
-    println!("logs pubsub result: {:?}", logs_info);
-
+pub async fn logs_handler(logs_info: Response<RpcLogsResponse>, app_state: AppState) {
     let logs = logs_info.value.logs;
 
     // const PROGRAM_LOG = "Program log: ";
@@ -87,7 +86,7 @@ pub fn logs_handler(logs_info: Response<RpcLogsResponse>) {
 
     // Program data:
     match logs.iter().find(|log| log.starts_with("Program data: ")) {
-        Some(data) => decode(data),
+        Some(data) => decode(data, app_state).await,
         _ => print!("error"),
     }
 }
@@ -103,21 +102,25 @@ const NEW_ORDER_BOOK_CONFIG_EVENT: [u8; 8] = [212, 127, 42, 69, 195, 133, 17, 14
 const NEW_ORDER_POSITION_CONFIG_EVENT: [u8; 8] = [135, 248, 180, 220, 179, 224, 202, 103];
 const OPEN_LIMIT_ORDER_EVENT: [u8; 8] = [106, 24, 71, 85, 57, 169, 158, 216];
 
-pub fn decode(data: &String) {
+pub async fn decode(data: &String, app_state: AppState) {
     let decoded = general_purpose::STANDARD.decode(data).unwrap();
     let discriminator = decoded[..8].try_into().expect("u8 array size 8");
 
     match discriminator {
-        NEW_ORDER_BOOK_CONFIG_EVENT => parse_order_book_event(&decoded),
-        NEW_ORDER_POSITION_CONFIG_EVENT => parse_order_position_config_event(&decoded),
-        NEW_OPEN_POSITION_EVENT => parse_open_position_event(&decoded),
-        CREATE_ORDER_POSITION_EVENT => parse_create_order_position_event(&decoded),
-        OPEN_LIMIT_ORDER_EVENT => parse_open_limit_order_event(&decoded),
-        CANCEL_LIMIT_ORDER_EVENT => parse_cancel_limit_order_event(&decoded),
-        CLOSE_LIMIT_ORDER_EVENT => parse_close_limit_order_event(&decoded),
-        MARKET_ORDER_TRIGGER_EVENT => parse_market_order_trigger_event(&decoded),
-        MARKET_ORDER_FILL_EVENT => parse_market_order_fill_event(&decoded),
-        MARKET_ORDER_COMPLETE_EVENT => parse_market_order_complete_event(&decoded),
+        NEW_ORDER_BOOK_CONFIG_EVENT => parse_order_book_event(&decoded, app_state).await,
+        NEW_ORDER_POSITION_CONFIG_EVENT => {
+            parse_order_position_config_event(&decoded, app_state).await
+        }
+        NEW_OPEN_POSITION_EVENT => _parse_open_position_event(&decoded, app_state).await,
+        CREATE_ORDER_POSITION_EVENT => {
+            _parse_create_order_position_event(&decoded, app_state).await
+        }
+        OPEN_LIMIT_ORDER_EVENT => parse_open_limit_order_event(&decoded, app_state).await,
+        CANCEL_LIMIT_ORDER_EVENT => parse_cancel_limit_order_event(&decoded, app_state).await,
+        CLOSE_LIMIT_ORDER_EVENT => _parse_close_limit_order_event(&decoded, app_state).await,
+        MARKET_ORDER_TRIGGER_EVENT => _parse_market_order_trigger_event(&decoded, app_state).await,
+        MARKET_ORDER_FILL_EVENT => parse_market_order_fill_event(&decoded, app_state).await,
+        MARKET_ORDER_COMPLETE_EVENT => parse_market_order_complete_event(&decoded, app_state).await,
         _ => println!("Invalid Event, log invalid event?"),
     };
 
@@ -125,7 +128,8 @@ pub fn decode(data: &String) {
     println!("{:?}, {}", decoded, decoded.len());
 }
 
-pub fn parse_order_book_event(data: &[u8]) {
+// insert
+pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
 
     let book_config = get_pubkey(&data, &mut offset);
@@ -140,122 +144,199 @@ pub fn parse_order_book_event(data: &[u8]) {
     let token_decimals_a = get_decimals(&data, &mut offset);
     let token_decimals_b = get_decimals(&data, &mut offset);
     let is_reverse = get_reverse(&data, &mut offset);
-    let slot = get_slot(&data, &mut offset);
-    let timestamp = get_timestamp(&data, &mut offset);
+    // let slot = get_slot(&data, &mut offset);
+    // let timestamp = get_timestamp(&data, &mut offset);
 
-    println!("{}", book_config);
-    println!("{}", token_mint_a);
-    println!("{}", token_mint_b);
-    println!("{}", token_program_a);
-    println!("{}", token_program_b);
-    println!("{}", sell_market_pointer);
-    println!("{}", buy_market_pointer);
-    println!("{}", sell_market_pointer);
-    println!("{}", buy_market_pointer);
-    println!("{}", token_symbol_a);
-    println!("{}", token_symbol_b);
-    println!("{}", token_decimals_a);
-    println!("{}", token_decimals_b);
-    println!("{}", is_reverse);
-    println!("{}", slot);
-    println!("{}", timestamp);
+    insert_trade_pair(
+        crate::db::models::TradePair {
+            pubkey_id: book_config.to_string(),
+            token_mint_a: token_mint_a.to_string(),
+            token_mint_b: token_mint_b.to_string(),
+            token_program_a: token_program_a.to_string(),
+            token_program_b: token_program_b.to_string(),
+
+            sell_market_pointer_pubkey: sell_market_pointer.to_string(),
+            buy_market_pointer_pubkey: buy_market_pointer.to_string(),
+
+            token_mint_a_symbol: token_symbol_a.to_string(),
+            token_mint_b_symbol: token_symbol_b.to_string(),
+            ticker: String::from(""),
+            token_mint_a_decimal: token_decimals_a,
+            token_mint_b_decimal: token_decimals_b,
+            is_reverse,
+        },
+        app_state,
+    )
+    .await;
 }
 
-pub fn parse_order_position_config_event(data: &[u8]) {
+// insert
+pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
     let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
-    let slot = get_slot(&data, &mut offset);
-    let timestamp = get_timestamp(&data, &mut offset);
+    let market_maker = get_pubkey(&data, &mut offset);
+    let vault_a = get_pubkey(&data, &mut offset);
+    let vault_b = get_pubkey(&data, &mut offset);
+    // let slot = get_slot(&data, &mut offset);
+    // let timestamp = get_timestamp(&data, &mut offset);
+
+    insert_order_position_config(
+        PositionConfig {
+            pubkey_id: pos_config.to_string(),
+            order_book_config_pubkey: book_config.to_string(),
+            market_maker_pubkey: market_maker.to_string(),
+            vault_a_pubkey: vault_a.to_string(),
+            vault_b_pubkey: vault_b.to_string(),
+        },
+        app_state,
+    )
+    .await;
 }
 
-pub fn parse_open_position_event(data: &[u8]) {
+// redundent? if so should remove, going to check
+pub async fn _parse_open_position_event(data: &[u8], _app_state: AppState) {
     let mut offset = 8;
-    let book_config = get_pubkey(&data, &mut offset);
-    let pos_config = get_pubkey(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
+    let _pos_config = get_pubkey(&data, &mut offset);
+    let _pos_pubkey = get_pubkey(&data, &mut offset);
+    let _slot = get_slot(&data, &mut offset);
+    let _timestamp = get_timestamp(&data, &mut offset);
+}
+
+// don't think it's needed
+pub async fn _parse_create_order_position_event(data: &[u8], _app_state: AppState) {
+    let mut offset = 8;
+    let _book_config = get_pubkey(&data, &mut offset);
+    let _pos_config = get_pubkey(&data, &mut offset);
+    let _pos_pubkey = get_pubkey(&data, &mut offset);
+    let _order_type = get_order_type(&data, &mut offset);
+}
+
+// insert
+pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
+    let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
-    let slot = get_slot(&data, &mut offset);
-    let timestamp = get_timestamp(&data, &mut offset);
-}
-
-pub fn parse_create_order_position_event(data: &[u8]) {
-    let mut offset = 8;
-    let book_config = get_pubkey(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
-    let pos_pubkey = get_pubkey(&data, &mut offset);
-    // need order type
-}
+    let _source = get_pubkey(&data, &mut offset);
+    let _destination = get_pubkey(&data, &mut offset);
 
-pub fn parse_open_limit_order_event(data: &[u8]) {
-    let mut offset = 8;
-    let pos_pubkey = get_pubkey(&data, &mut offset);
-    let book_config = get_pubkey(&data, &mut offset);
-    let pos_config = get_pubkey(&data, &mut offset);
-    let source = get_pubkey(&data, &mut offset);
-    let destination = get_pubkey(&data, &mut offset);
-
-    // handle option -> next_pos_pubkey
-    // order_type -> Order enum
+    let next_pos_pubkey = get_option_pubkey(&data, &mut offset);
+    let order_type = get_order_type(&data, &mut offset);
     let price = get_slot(&data, &mut offset);
     let size = get_slot(&data, &mut offset);
     let slot = get_slot(&data, &mut offset);
     let timestamp = get_timestamp(&data, &mut offset);
     let is_available = get_reverse(&data, &mut offset);
+
+    // should call OrderPosition as LimitOrder
+    insert_order_position(
+        OrderPosition {
+            pubkey_id: pos_pubkey.to_string(),
+            order_type: order_type,
+            price: price,
+            size: size,
+            is_available: is_available,
+            next_order_position_pubkey: next_pos_pubkey,
+            order_position_config_pubkey: pos_config.to_string(),
+            slot: slot,
+            timestamp: timestamp as u64,
+        },
+        app_state,
+    )
+    .await;
 }
 
-pub fn parse_cancel_limit_order_event(data: &[u8]) {
+// delete
+pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
-    let book_config = get_pubkey(&data, &mut offset);
-    let pos_config = get_pubkey(&data, &mut offset);
-    let amount = get_slot(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
+    let _pos_config = get_pubkey(&data, &mut offset);
+    let _amount = get_slot(&data, &mut offset);
     let is_available = get_reverse(&data, &mut offset);
+
+    if is_available {
+        delete_order_position(pos_pubkey.to_string(), app_state).await;
+    }
 }
 
-pub fn parse_close_limit_order_event(data: &[u8]) {
+// delete -> but cancel is handling it so not needed
+pub async fn _parse_close_limit_order_event(data: &[u8], _app_state: AppState) {
     let mut offset = 8;
+    let _pos_pubkey = get_pubkey(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
+    let _pos_config = get_pubkey(&data, &mut offset);
+}
+
+// don't think it's needed
+pub async fn _parse_market_order_trigger_event(data: &[u8], _app_state: AppState) {
+    let mut offset = 8;
+    let _market_pointer = get_pubkey(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
+    let _next_pos_pubkey = get_option_pubkey(&data, &mut offset);
+    let _order_type = get_order_type(&data, &mut offset);
+    let _is_available = get_reverse(&data, &mut offset);
+    let _slot = get_slot(&data, &mut offset);
+    let _timestamp = get_timestamp(&data, &mut offset);
+}
+
+// update
+pub async fn parse_market_order_fill_event(data: &[u8], app_state: AppState) {
+    let mut offset = 8;
+    let _market_pointer = get_pubkey(&data, &mut offset);
+    let _book_config = get_pubkey(&data, &mut offset);
     let pos_pubkey = get_pubkey(&data, &mut offset);
-    let book_config = get_pubkey(&data, &mut offset);
-    let pos_config = get_pubkey(&data, &mut offset);
-}
-
-pub fn parse_market_order_trigger_event(data: &[u8]) {
-    let mut offset = 8;
-    let market_pointer = get_pubkey(&data, &mut offset);
-    let book_config = get_pubkey(&data, &mut offset);
-    // handle option -> next_pos_pubkey
-    // order_type -> Order enum
-    let is_available = get_reverse(&data, &mut offset);
-    let slot = get_slot(&data, &mut offset);
-    let timestamp = get_timestamp(&data, &mut offset);
-}
-
-pub fn parse_market_order_fill_event(data: &[u8]) {
-    let mut offset = 8;
-    let market_pointer = get_pubkey(&data, &mut offset);
-    let book_config = get_pubkey(&data, &mut offset);
-    // order_type -> Order enum
-    let price = get_slot(&data, &mut offset);
-    let total = get_slot(&data, &mut offset);
-    let amount = get_slot(&data, &mut offset);
+    let _order_type = get_order_type(&data, &mut offset);
+    let _price = get_slot(&data, &mut offset);
+    let _total = get_slot(&data, &mut offset);
+    let _amount = get_slot(&data, &mut offset);
     let new_size = get_slot(&data, &mut offset);
-    let is_available = get_reverse(&data, &mut offset);
-    let slot = get_slot(&data, &mut offset);
-    let timestamp = get_timestamp(&data, &mut offset);
+    let _is_available = get_reverse(&data, &mut offset);
+    let _slot = get_slot(&data, &mut offset);
+    let _timestamp = get_timestamp(&data, &mut offset);
+
+    let is_available = if new_size == 0 { false } else { true };
+
+    update_order_position(pos_pubkey.to_string(), new_size, is_available, app_state).await;
 }
 
-pub fn parse_market_order_complete_event(data: &[u8]) {
+// insert -> other?
+pub async fn parse_market_order_complete_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
-    let market_pointer = get_pubkey(&data, &mut offset);
+    let _market_pointer = get_pubkey(&data, &mut offset);
     let book_config = get_pubkey(&data, &mut offset);
-    // option new_pointer
-    // Order order_type
+    let _new_pointer = get_option_pubkey(&data, &mut offset);
+    let order_type = get_order_type(&data, &mut offset);
     let total_cost = get_slot(&data, &mut offset);
     let total_amount = get_slot(&data, &mut offset);
     let last_price = get_slot(&data, &mut offset);
-    let is_available = get_reverse(&data, &mut offset);
+    let _is_available = get_reverse(&data, &mut offset);
     let slot = get_slot(&data, &mut offset);
     let timestamp = get_timestamp(&data, &mut offset);
+
+    insert_real_time_trade(
+        RealTimeTrade {
+            order_book_config_pubkey: book_config.to_string(),
+            order_type: order_type,
+            last_price,
+            avg_price: total_cost / total_amount,
+            amount: total_amount,
+            turnover: total_cost,
+            timestamp: timestamp as u64,
+            slot,
+        },
+        app_state,
+    )
+    .await;
+
+    // need a way to track time to update market order history
+    // at an interval of every min
+    // has to do for all trade pairs... ewww help me
+    // or just encapsulate for a single trade pair?
+    // new idea, implement a schedular to handle all this
+    // insted of doing the logic here
 }
 
 pub fn get_pubkey(data: &[u8], offset: &mut u64) -> Pubkey {
@@ -272,6 +353,44 @@ pub fn get_pubkey(data: &[u8], offset: &mut u64) -> Pubkey {
     );
 
     return pubkey;
+}
+
+pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<String> {
+    let length = 1;
+    let is_option = u8::from_be_bytes([data[*offset as usize]]);
+    *offset += length;
+
+    if is_option != 1 {
+        return None;
+    }
+
+    let start = offset.clone() as usize;
+    let length = 32;
+    let end = start + length as usize;
+
+    *offset += length;
+
+    let pubkey = Pubkey::new_from_array(
+        data[start..end]
+            .try_into()
+            .expect("expect u8 array 32 bytes"),
+    );
+
+    Some(pubkey.to_string())
+}
+
+pub fn get_order_type(data: &[u8], offset: &mut u64) -> String {
+    let length = 1;
+    let index = u8::from_be_bytes([data[*offset as usize]]);
+    *offset += length;
+
+    match index {
+        0 => String::from("buy"),
+        1 => String::from("sell"),
+        2 => String::from("bid"),
+        3 => String::from("ask"),
+        _ => String::from("invalid enum"),
+    }
 }
 
 pub fn get_symbol(data: &[u8], offset: &mut u64) -> String {

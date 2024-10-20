@@ -1,9 +1,7 @@
-use std::fmt::format;
-
 use crate::AppState;
 use actix_web::web;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgRow, prelude::FromRow, Row};
+use sqlx::{prelude::FromRow, Row};
 
 // -> Result<(), Box<dyn Error>>
 
@@ -60,14 +58,14 @@ pub struct OrderPosition {
 }
 
 pub struct RealTimeTrade {
-    order_book_config_pubkey: String,
-    order_type: String,
-    last_price: String,
-    avg_price: String,
-    amount: String,
-    turnover: String,
-    timestamp: String,
-    slot: String,
+    pub order_book_config_pubkey: String,
+    pub order_type: String,
+    pub last_price: u64,
+    pub avg_price: u64,
+    pub amount: u64,
+    pub turnover: u64,
+    pub timestamp: u64,
+    pub slot: u64,
 }
 
 #[derive(FromRow, Serialize, Deserialize)]
@@ -84,7 +82,7 @@ pub struct MarketOrderHistory {
     timestamp: i64,
 }
 
-pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppState>) {
+pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_book_config (
@@ -122,10 +120,7 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: web::Data<AppSt
     .unwrap();
 }
 
-pub async fn insert_order_position_config(
-    position_config: PositionConfig,
-    app_state: web::Data<AppState>,
-) {
+pub async fn insert_order_position_config(position_config: PositionConfig, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_config (
@@ -149,7 +144,7 @@ pub async fn insert_order_position_config(
     .unwrap();
 }
 
-pub async fn insert_order_position(order_position: OrderPosition, app_state: web::Data<AppState>) {
+pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_table (
@@ -180,7 +175,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: web
     .unwrap();
 }
 
-pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: web::Data<AppState>) {
+pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_table (
@@ -197,21 +192,19 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: web::Data<A
     )
     .bind(&trade.order_book_config_pubkey)
     .bind(&trade.order_type)
-    .bind(&trade.last_price)
-    .bind(&trade.avg_price)
-    .bind(&trade.amount)
-    .bind(&trade.turnover)
-    .bind(&trade.timestamp)
-    .bind(&trade.slot)
+    .bind(&trade.last_price.to_string())
+    .bind(&trade.avg_price.to_string())
+    .bind(&trade.amount.to_string())
+    .bind(&trade.turnover.to_string())
+    .bind(&trade.timestamp.to_string())
+    .bind(&trade.slot.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
 }
 
-pub async fn insert_market_order_history(
-    market_history: MarketOrderHistory,
-    app_state: web::Data<AppState>,
-) {
+// handled by a schedualer
+pub async fn _insert_market_order_history(market_history: MarketOrderHistory, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_table (
@@ -457,7 +450,7 @@ pub async fn get_market_order_history(
     Ok(list)
 }
 
-pub async fn delete_order_position(pubkey_id: String, app_state: web::Data<AppState>) {
+pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position
@@ -470,7 +463,8 @@ pub async fn delete_order_position(pubkey_id: String, app_state: web::Data<AppSt
     .unwrap();
 }
 
-pub async fn delete_position_config(pubkey_id: String, app_state: web::Data<AppState>) {
+// functionality not implemented yet
+pub async fn _delete_position_config(pubkey_id: String, app_state: AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position_config
@@ -483,7 +477,8 @@ pub async fn delete_position_config(pubkey_id: String, app_state: web::Data<AppS
     .unwrap();
 }
 
-pub async fn delete_order_book_config(pubkey_id: String, app_state: web::Data<AppState>) {
+// functionality not implemented yet
+pub async fn _delete_order_book_config(pubkey_id: String, app_state: AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_book_config
@@ -496,7 +491,8 @@ pub async fn delete_order_book_config(pubkey_id: String, app_state: web::Data<Ap
     .unwrap();
 }
 
-pub async fn delete_real_trade(id: String, app_state: web::Data<AppState>) {
+// handled by a schedualer
+pub async fn _delete_real_trade(id: String, app_state: AppState) {
     sqlx::query(
         r#"
                 DELETE FROM real_time_trade_data
@@ -509,20 +505,15 @@ pub async fn delete_real_trade(id: String, app_state: web::Data<AppState>) {
     .unwrap();
 }
 
-pub async fn update_order_position(
-    id: String,
-    size: String,
-    is_available: bool,
-    app_state: web::Data<AppState>,
-) {
+pub async fn update_order_position(id: String, size: u64, is_available: bool, app_state: AppState) {
     sqlx::query(
         r#"
-                UPDATE order_position_table SET "is_available" = $1, "size" = $2
+                UPDATE order_position SET "is_available" = $1, "size" = $2
                 WHERE pubkey_id = $3
             "#,
     )
     .bind(&is_available)
-    .bind(&size)
+    .bind(&size.to_string())
     .bind(&id)
     .execute(&app_state.pool)
     .await
