@@ -5,6 +5,7 @@ import { ProgramProvider } from "@/program/ProgramProvider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { ProgramProvider } from "@/program/ProgramProvider";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -52,6 +53,7 @@ export default function RootLayout({
             <ProgramProvider>
               <div vaul-drawer-wrapper="">
                 <div className="relative flex min-h-screen flex-col bg-background">
+                  <SiteHeader />
                   <main className="flex-1">{children}</main>
                 </div>
               </div>
