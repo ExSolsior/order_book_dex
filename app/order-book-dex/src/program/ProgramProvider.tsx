@@ -15,7 +15,7 @@ import {
   getVaultAccountPDA
 } from "./pdas";
 
-enum OrderType {
+export enum OrderType {
   Buy = "Buy",
   Sell = "Sell",
   Bid = "Bid",
