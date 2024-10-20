@@ -69,7 +69,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -96,7 +96,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -125,7 +125,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -147,7 +147,7 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -166,7 +166,7 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -186,7 +186,7 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -204,7 +204,7 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -226,7 +226,7 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -252,7 +252,7 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         return
     }
 
-    let offset = {
+    const offset = {
         value: 8,
     }
 
@@ -274,17 +274,17 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
 }
 
 const getPubkey = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 32);
+    const { start, end } = updateOffset(offset, 32);
     return data.subarray(start, end);
 }
 
 const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
     let optionFlag = (() => {
-        let { start, end } = updateOffset(offset, 1);
+        const { start, end } = updateOffset(offset, 1);
         return data.subarray(start, end);
     })();
 
-    let { start, end } = updateOffset(offset, 32);
+    const { start, end } = updateOffset(offset, 32);
     if (!optionFlag) {
         return null
     }
@@ -293,7 +293,7 @@ const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
 }
 
 const getOrderType = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 1);
+    const { start, end } = updateOffset(offset, 1);
     let num = data.subarray(start, end).readUint8(0);
 
     switch (num) {
@@ -306,49 +306,49 @@ const getOrderType = (data: Buffer, offset: { value: number }) => {
 
 const getSymbol = (data: Buffer, offset: { value: number }) => {
     let size = (() => {
-        let { start, end } = updateOffset(offset, 4);
+        const { start, end } = updateOffset(offset, 4);
         return data.subarray(start, end).readInt32BE(0);
     })();
 
-    let { start, end } = updateOffset(offset, size);
+    const { start, end } = updateOffset(offset, size);
     return data.subarray(start, end).toString();
 }
 
 const getDecimals = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 1);
+    const { start, end } = updateOffset(offset, 1);
     return data.subarray(start, end).readUint8(0);
 }
 
 const getReverse = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 1);
+    const { start, end } = updateOffset(offset, 1);
     return !!data.subarray(start, end).readUint8(0);
 }
 
 const getIsAvailable = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 1);
+    const { start, end } = updateOffset(offset, 1);
     return !!data.subarray(start, end).readUint8(0);
 }
 
 const getSlot = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 8);
+    const { start, end } = updateOffset(offset, 8);
     return data.subarray(start, end).readBigUint64BE(0)
 }
 
 const getTimestamp = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 8);
+    const { start, end } = updateOffset(offset, 8);
     return data.subarray(start, end).readBigInt64BE(0)
 
 }
 
 const getBN = (data: Buffer, offset: { value: number }) => {
-    let { start, end } = updateOffset(offset, 8);
+    const { start, end } = updateOffset(offset, 8);
     return new BN(data.subarray(start, end));
 }
 
 const updateOffset = (offset: { value: number }, inc: number) => {
-    let { value: start } = offset;
+    const { value: start } = offset;
     offset.value += inc;
-    let { value: end } = offset;
+    const { value: end } = offset;
 
     return { start, end }
 }
