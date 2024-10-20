@@ -27,6 +27,7 @@ pub struct NewOrderPositionConfigEvent {
     pub timestamp: i64,
 }
 
+// this should be what???
 #[event]
 pub struct NewOpenPositionEvent {
     pub book_config: Pubkey,
