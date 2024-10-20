@@ -279,7 +279,7 @@ const getPubkey = (data: Buffer, offset: { value: number }) => {
 }
 
 const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
-    let optionFlag = (() => {
+    const optionFlag = (() => {
         const { start, end } = updateOffset(offset, 1);
         return data.subarray(start, end);
     })();
@@ -294,7 +294,7 @@ const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
 
 const getOrderType = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 1);
-    let num = data.subarray(start, end).readUint8(0);
+    const num = data.subarray(start, end).readUint8(0);
 
     switch (num) {
         case 0: return 'buy';
@@ -305,7 +305,7 @@ const getOrderType = (data: Buffer, offset: { value: number }) => {
 }
 
 const getSymbol = (data: Buffer, offset: { value: number }) => {
-    let size = (() => {
+    const size = (() => {
         const { start, end } = updateOffset(offset, 4);
         return data.subarray(start, end).readInt32BE(0);
     })();
