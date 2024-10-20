@@ -1,3 +1,5 @@
+"use client";
+
 import { MarketOrderBook } from "@/lib/types";
 import {
   AnchorProvider,
@@ -32,7 +34,9 @@ type Fill = {
   partial: { partial: { targetPrice: BN } };
 };
 
-export const ProgramContext = createContext<Value | null>(null);
+export const ProgramContext = createContext<Value | { connected: boolean }>({
+  connected: false
+});
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // Get provider
@@ -45,7 +49,16 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [connection, userWallet]);
 
-  if (!program || !userWallet) return;
+  if (!program || !userWallet)
+    return (
+      <ProgramContext.Provider
+        value={{
+          connected: false
+        }}
+      >
+        {children}
+      </ProgramContext.Provider>
+    );
 
   // Tx: Open Limit Order
   const openLimitOrder = async ({
