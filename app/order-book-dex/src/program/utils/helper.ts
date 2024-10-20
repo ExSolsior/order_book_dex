@@ -1,6 +1,6 @@
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { AnchorProvider, Program, web3 } from "@coral-xyz/anchor";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, Connection, TransactionSignature, } from "@solana/web3.js";
+import { PublicKey, Connection, TransactionSignature, Signer, } from "@solana/web3.js";
 import { CHRONO_IDL } from "./constants";
 
 export const shortenPk = (pk: PublicKey, chars = 5) => {
@@ -27,4 +27,28 @@ export const getProgram = (connection: Connection, wallet: AnchorWallet) => {
   const program = new Program(CHRONO_IDL, provider);
 
   return program;
+};
+
+// Generate Versioned Transaction
+export const generateVersionedTransaction = async (
+    connection: Connection,
+    instructions: web3.TransactionInstruction[],
+    payer: Signer
+): Promise<web3.VersionedTransaction> => {
+    // Get the latest blockhash
+    const latestBlockhash = await connection.getLatestBlockhash();
+
+    // Generate Transaction Message
+    const messageV0 = new web3.TransactionMessage({
+        payerKey: payer.publicKey,
+        recentBlockhash: latestBlockhash.blockhash,
+        instructions: instructions,
+    }).compileToV0Message();
+
+    // Create a Versioned Transaction
+    const transaction = new web3.VersionedTransaction(messageV0);
+
+    transaction.sign([payer]);
+
+    return transaction; // Return the generated transaction
 };
