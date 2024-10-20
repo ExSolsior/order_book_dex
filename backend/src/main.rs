@@ -1,7 +1,5 @@
 use actix_web::web::Data;
-use services::{
-    decode, logs_handler, market_history, market_list, market_order_book, sanity_check,
-};
+use services::{logs_handler, market_history, market_list, market_order_book, sanity_check};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 mod db;
 mod services;
@@ -34,7 +32,7 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
         .await
         .expect("Error building a connection pool.");
 
-    decode(&String::from("1H8qRcOFEZF1GyZmZZT5UTKTtCJqYoqs+B2iPKBYAKFTSshbtNd1CCQ9G1vmInEUaTyH1y+Pg3SUohJBEAxuuCv3Eaif2pVbrKqwJhp0MCRQZxMNnHW6Bj0QZHlxC1kJBw1Ahbqx8w4G3fbh12Whk9nL4UbO63msHLSF7V9bN5E6jPWFfv8AqQbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpYSv1tIYMfoOESCedrbpWv7OXqUZLBF0cTBlj1Vmb3H1uZvTqYP9ZwKTxP+eonOtDjp5mBUeed2ljo20DXvH7cgQAAABURVNUBAAAAEpVTksJCQEEdIsAAAAAAKnOE2cAAAAA"));
+    let app_state = AppState { pool: pool.clone() };
 
     tokio::spawn(async move {
         // Subscription tasks will send a ready signal when they have subscribed.
@@ -90,7 +88,7 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
                     // Do something with the subscribed messages.
                     // This loop will end once the main task unsubscribes.
                     while let Some(logs_info) = logs_notifications.next().await {
-                        logs_handler(logs_info);
+                        logs_handler(logs_info, app_state.clone()).await;
                     }
 
                     // This type hint is necessary to allow the `async move` block to use `?`.
