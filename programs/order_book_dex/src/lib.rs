@@ -33,7 +33,7 @@ pub mod order_book_dex {
     }
 
     pub fn create_order_position_config(ctx: Context<CreateOrderPositionConfig>) -> Result<()> {
-        ctx.accounts.init()
+        ctx.accounts.init(ctx.program_id)
     }
 
     pub fn create_order_position(
