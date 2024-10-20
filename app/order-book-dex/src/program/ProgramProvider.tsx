@@ -1,5 +1,3 @@
-"use client";
-
 import { MarketOrderBook } from "@/lib/types";
 import {
   AnchorProvider,
@@ -47,10 +45,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [connection, userWallet]);
 
-  if (!program || !userWallet)
-    return (
-      <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
-    );
+  if (!program || !userWallet) return;
 
   // Tx: Open Limit Order
   const openLimitOrder = async ({
@@ -131,7 +126,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       console.error(err);
       throw new Error("Failed to create trade pair");
     }
-  }
+  };
 
   /* Instruction: Create Market Order */
   const createMarketOrder = async (
@@ -247,7 +242,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       console.error(err);
       throw new Error("Failed to fill market order");
     }
-  }
+  };
 
   /* Instruction: Cancel Order Position */
   const cancelOrderPosition = async (

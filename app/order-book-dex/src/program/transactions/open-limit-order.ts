@@ -10,7 +10,7 @@ import {
   getCreateVaultAccountsIx,
   getOpenOrderPositionIx
 } from "../instructions";
-import { getOrderPositionConfigPDA, getOrderPositionPDA } from "../pdas";
+import { getOrderPositionConfigPDA } from "../pdas";
 import { createVersionedTransaction } from "../utils/helper";
 import { findPrevNextEntries } from "../utils/prev-next-orders";
 
@@ -92,7 +92,7 @@ export const createOpenLimitOrderTx = async ({
       program,
       userWallet,
       orderBookConfigPDA: marketOrderBook.pubkey_id,
-      orderPositionPDA: getOrderPositionPDA(nonce, userWallet.publicKey),
+      orderPositionPDA: orderPositionConfigPDA,
       marketPointerRead: marketOrderBook.buy_market_pointer_pubkey,
       marketPointerWrite: marketOrderBook.sell_market_pointer_pubkey,
       prevOrderPosition: prev?.pubkeyId || null,
