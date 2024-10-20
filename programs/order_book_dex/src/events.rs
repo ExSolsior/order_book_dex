@@ -23,16 +23,9 @@ pub struct NewOrderBookConfigEvent {
 pub struct NewOrderPositionConfigEvent {
     pub book_config: Pubkey,
     pub pos_config: Pubkey,
-    pub slot: u64,
-    pub timestamp: i64,
-}
-
-// this should be what???
-#[event]
-pub struct NewOpenPositionEvent {
-    pub book_config: Pubkey,
-    pub pos_config: Pubkey,
-    pub pos_pubkey: Pubkey,
+    pub market_maker: Pubkey,
+    pub vault_a: Pubkey,
+    pub vault_b: Pubkey,
     pub slot: u64,
     pub timestamp: i64,
 }
