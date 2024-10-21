@@ -3,26 +3,33 @@ use std::str::FromStr;
 use order_book_dex::state::Order;
 use solana_client::nonblocking::rpc_client::RpcClient;
 use solana_sdk::{
+    commitment_config::CommitmentConfig,
     instruction::Instruction,
     message::{v0::Message, VersionedMessage},
     pubkey::Pubkey,
+    signature::NullSigner,
     transaction::VersionedTransaction,
 };
 
 use crate::db::models::OrderPosition;
 
-use super::error::TransactionBuildError;
+use super::{constants::RPC_ENDPOINT, error::TransactionBuildError};
 
 pub async fn create_versioned_tx(
     rpc_client: &RpcClient,
     payer: &Pubkey,
-    ixs: Vec<Instruction>,
+    ixs: &[Instruction],
 ) -> Result<VersionedTransaction, TransactionBuildError> {
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
-    Ok(VersionedTransaction {
-        signatures: vec![],
-        message: VersionedMessage::V0(Message::try_compile(payer, &ixs, &[], recent_blockhash)?),
-    })
+    Ok(VersionedTransaction::try_new(
+        VersionedMessage::V0(Message::try_compile(payer, &ixs, &[], recent_blockhash)?),
+        &[&NullSigner::new(payer)],
+    )
+    .unwrap())
+}
+
+pub fn create_rpc_client() -> RpcClient {
+    RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed())
 }
 
 pub fn find_prev_next_entries(

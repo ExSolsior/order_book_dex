@@ -185,6 +185,6 @@ pub async fn open_limit_order(
         data: InstructionData::data(&instruction::OpenOrderPosition {}),
     });
 
-    let tx = create_versioned_tx(&rpc_client, &signer, ixs).await?;
+    let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
     Ok(tx)
 }

@@ -65,6 +65,6 @@ pub async fn cancel_limit_order(
 
     // TODO: Complete instructions after solana program is fixed
 
-    let tx = create_versioned_tx(&rpc_client, &signer, ixs).await?;
+    let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
     Ok(tx)
 }
