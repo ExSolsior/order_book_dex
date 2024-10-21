@@ -4,22 +4,17 @@ use actix_web::web;
 use anchor_lang::{system_program::ID as system_program, InstructionData, ToAccountMetas};
 use order_book_dex::state::Order;
 use order_book_dex::{accounts, instruction, ID as program_id};
-use solana_client::{
-    client_error::ClientErrorKind, nonblocking::rpc_client::RpcClient, rpc_request::RpcError,
-};
-use solana_sdk::{
-    commitment_config::CommitmentConfig, instruction::Instruction, pubkey::Pubkey,
-    transaction::VersionedTransaction,
-};
+use solana_client::{client_error::ClientErrorKind, rpc_request::RpcError};
+use solana_sdk::{instruction::Instruction, pubkey::Pubkey, transaction::VersionedTransaction};
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 
 use crate::db::models::get_trade_pair;
 use crate::AppState;
 
 use super::error::TransactionBuildError;
+use super::pdas::get_order_position_config_pda;
 use super::pdas::{get_order_position_pda, get_vault_account_pda};
-use super::util::{create_versioned_tx, find_prev_next_entries};
-use super::{constants::RPC_ENDPOINT, pdas::get_order_position_config_pda};
+use super::util::{create_rpc_client, create_versioned_tx, find_prev_next_entries};
 
 #[derive(Debug, Clone)]
 pub struct OpenLimitOrderParams {
@@ -36,21 +31,11 @@ pub async fn open_limit_order(
     app_state: web::Data<AppState>,
     params: OpenLimitOrderParams,
 ) -> Result<VersionedTransaction, TransactionBuildError> {
-    let OpenLimitOrderParams {
-        order_book_config,
-        signer,
-        next_position_pointer,
-        order_type,
-        price,
-        amount,
-        nonce,
-    } = params;
-    let mut ixs = vec![];
-    let rpc_client =
-        RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed());
-    let order_book_data = get_trade_pair(order_book_config.to_string(), app_state).await?;
+    let rpc_client = create_rpc_client();
+    let order_book_data = get_trade_pair(params.order_book_config.to_string(), app_state).await?;
 
-    let order_position_config_pda = get_order_position_config_pda(signer, order_book_config);
+    let order_position_config_pda =
+        get_order_position_config_pda(params.signer, params.order_book_config);
     let order_position_config = rpc_client.get_account(&order_position_config_pda).await;
     let is_first_interaction = match order_position_config {
         Err(err) => match err.kind() {
@@ -64,11 +49,87 @@ pub async fn open_limit_order(
         Ok(_) => false,
     };
 
-    let token_mint_a = Pubkey::from_str(&order_book_data.token_mint_a).unwrap();
-    let token_mint_b = Pubkey::from_str(&order_book_data.token_mint_b).unwrap();
-    let token_program_a = Pubkey::from_str(&order_book_data.token_program_a).unwrap();
-    let token_program_b = Pubkey::from_str(&order_book_data.token_program_b).unwrap();
+    let market_pointer = if params.order_type == Order::Bid {
+        Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap()
+    } else {
+        Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap()
+    };
+
+    let (prev_order_position, next_order_position) = find_prev_next_entries(
+        params.order_type.clone(),
+        params.price,
+        order_book_data.order_book,
+    );
+
+    let signer = params.signer;
+
+    let ixs = build_ixs(BuildIxsParams {
+        signer,
+        order_book_config: params.order_book_config,
+        token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
+        token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
+        token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
+        token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
+        market_pointer,
+        prev_order_position,
+        next_order_position,
+        next_position_pointer: params.next_position_pointer,
+        is_first_interaction,
+        is_reverse: order_book_data.is_reverse,
+        order_type: params.order_type,
+        price: params.price,
+        amount: params.amount,
+        nonce: params.nonce,
+    });
+
+    let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
+    Ok(tx)
+}
+
+#[derive(Debug, Clone)]
+struct BuildIxsParams {
+    signer: Pubkey,
+    order_book_config: Pubkey,
+    token_mint_a: Pubkey,
+    token_mint_b: Pubkey,
+    token_program_a: Pubkey,
+    token_program_b: Pubkey,
+    market_pointer: Pubkey,
+    prev_order_position: Option<Pubkey>,
+    next_order_position: Option<Pubkey>,
+    next_position_pointer: Option<Pubkey>,
+    is_first_interaction: bool,
+    is_reverse: bool,
+    order_type: Order,
+    price: u64,
+    amount: u64,
+    nonce: u64,
+}
+
+// Separate function for testing
+fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
+    let BuildIxsParams {
+        signer,
+        order_book_config,
+        token_mint_a,
+        token_mint_b,
+        token_program_a,
+        token_program_b,
+        market_pointer,
+        prev_order_position,
+        next_order_position,
+        next_position_pointer,
+        is_first_interaction,
+        is_reverse,
+        order_type,
+        price,
+        amount,
+        nonce,
+    } = build_ix_params;
+
     let order_position_config = get_order_position_config_pda(signer, order_book_config);
+
+    let mut ixs = vec![];
 
     if is_first_interaction {
         ixs.push(Instruction {
@@ -109,9 +170,7 @@ pub async fn open_limit_order(
     let resolved_dest: Pubkey;
     let capital_source: Pubkey;
 
-    if (!order_book_data.is_reverse && order_type == Order::Bid)
-        || (order_book_data.is_reverse && order_type == Order::Ask)
-    {
+    if (!is_reverse && order_type == Order::Bid) || (is_reverse && order_type == Order::Ask) {
         // Capital source derived with mint A
         capital_source =
             get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
@@ -157,15 +216,6 @@ pub async fn open_limit_order(
         }),
     });
 
-    let market_pointer = if order_type == Order::Bid {
-        Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap()
-    } else {
-        Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap()
-    };
-
-    let (prev_order_position, next_order_position) =
-        find_prev_next_entries(order_type, price, order_book_data.order_book);
-
     ixs.push(Instruction {
         program_id,
         accounts: ToAccountMetas::to_account_metas(
@@ -185,6 +235,13 @@ pub async fn open_limit_order(
         data: InstructionData::data(&instruction::OpenOrderPosition {}),
     });
 
-    let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
-    Ok(tx)
+    ixs
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_open_limit_order_tx() {}
 }
