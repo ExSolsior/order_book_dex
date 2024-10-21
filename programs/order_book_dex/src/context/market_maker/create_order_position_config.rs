@@ -27,7 +27,7 @@ pub struct CreateOrderPositionConfig<'info> {
 
     #[account(
         mut,
-        owner = signer.key(),
+        constraint = capital_a.owner == signer.key(),
         constraint = capital_a.mint == token_mint_a.key(),
 
     )]
@@ -35,7 +35,7 @@ pub struct CreateOrderPositionConfig<'info> {
 
     #[account(
         mut,
-        owner = signer.key(),
+        constraint = capital_b.owner == signer.key(),
         constraint = capital_b.mint == token_mint_b.key(),
     )]
     pub capital_b: InterfaceAccount<'info, TokenAccount>,
