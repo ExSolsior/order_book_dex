@@ -150,7 +150,6 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
 
         let capital_a =
             get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
-        println!("capital_a: {}", capital_a);
         let capital_b =
             get_associated_token_address_with_program_id(&signer, &token_mint_b, &token_program_b);
 
@@ -257,11 +256,11 @@ mod tests {
 
     use crate::transactions::{
         create_trade_pair,
+        create_trade_pair::CreateTradePairParams,
         pdas::{
             get_buy_market_pointer_pda, get_order_book_config_pda, get_sell_market_pointer_pda,
         },
         test_util::*,
-        CreateTradePairParams,
     };
 
     use super::*;

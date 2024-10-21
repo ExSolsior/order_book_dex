@@ -22,7 +22,7 @@ pub async fn create_versioned_tx(
 ) -> Result<VersionedTransaction, TransactionBuildError> {
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
     Ok(VersionedTransaction::try_new(
-        VersionedMessage::V0(Message::try_compile(payer, &ixs, &[], recent_blockhash)?),
+        VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
         &[&NullSigner::new(payer)],
     )
     .unwrap())
