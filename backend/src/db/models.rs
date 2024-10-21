@@ -45,6 +45,7 @@ pub struct PositionConfig {
     pub vault_b_pubkey: String,
 }
 
+#[derive(Deserialize)]
 pub struct OrderPosition {
     pub pubkey_id: String,
     pub order_type: String,

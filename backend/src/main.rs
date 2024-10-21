@@ -3,6 +3,7 @@ use services::{logs_handler, market_history, market_list, market_order_book, san
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 mod db;
 mod services;
+mod transactions;
 
 use actix_web::web::{self, ServiceConfig};
 use shuttle_actix_web::ShuttleActixWeb;

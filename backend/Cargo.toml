@@ -21,3 +21,10 @@ sqlx = { version = "0.8.2", features = [
 tokio = { version = "1.40.0", features = ["full"] }
 base64 = "0.22.1"
 solana-sdk = "1.18.25"
+
+order_book_dex = { path = "../programs/order_book_dex" }
+anchor-lang = "0.30.1"
+serde_json = "1.0.132"
+solana-client = "1.18.25"
+spl-associated-token-account = "3.0.4"
+thiserror = "1.0.64"
