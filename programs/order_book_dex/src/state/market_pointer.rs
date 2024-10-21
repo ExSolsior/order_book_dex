@@ -55,6 +55,8 @@ impl MarketPointer {
         owner: Pubkey,
         source: Pubkey,
         dest: Pubkey,
+        capital_source: Pubkey,
+        capital_dest: Pubkey,
         next_position_pointer: Pubkey,
     ) -> Result<()> {
         let Clock {
@@ -77,6 +79,8 @@ impl MarketPointer {
             total_cost: 0,
             last_price: 0,
             owner,
+            capital_source,
+            capital_dest,
             source,
             dest,
             next_position_pointer,
@@ -306,6 +310,8 @@ impl MarketOrder {
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct ExecutionStats {
     pub owner: Pubkey,
+    pub capital_source: Pubkey,
+    pub capital_dest: Pubkey,
     pub source: Pubkey,
     pub dest: Pubkey,
     pub next_position_pointer: Pubkey,
@@ -315,7 +321,7 @@ pub struct ExecutionStats {
 }
 
 impl ExecutionStats {
-    pub const LEN: usize = (PUBKEY_BYTES * 4) + (U64_BYTES * 2);
+    pub const LEN: usize = (PUBKEY_BYTES * 6) + (U64_BYTES * 2);
 
     pub fn update(&mut self, amount: u64, pay_amount: u64, price: u64) {
         self.total_amount += amount;

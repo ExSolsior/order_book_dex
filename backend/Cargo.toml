@@ -21,6 +21,8 @@ sqlx = { version = "0.8.2", features = [
 tokio = { version = "1.40.0", features = ["full"] }
 base64 = "0.22.1"
 solana-sdk = "1.18.25"
+chrono = "0.4.38"
+clokwerk = "0.4.0"
 
 order_book_dex = { path = "../programs/order_book_dex" }
 anchor-lang = "0.30.1"

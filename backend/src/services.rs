@@ -1,7 +1,11 @@
-use crate::db::models::{
-    delete_order_position, get_market_order_history, get_trade_pair, get_trade_pair_list,
-    insert_order_position, insert_order_position_config, insert_real_time_trade, insert_trade_pair,
-    update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+use crate::{
+    db::models::{
+        delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
+        get_trade_pair_list, insert_market_order_history, insert_order_position,
+        insert_order_position_config, insert_real_time_trade, insert_trade_pair,
+        update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+    },
+    POOL,
 };
 use actix_web::{get, web, HttpResponse, Responder};
 use base64::engine::{general_purpose, Engine};
@@ -74,6 +78,13 @@ pub async fn market_list(
 #[get("/sanity_check")]
 pub async fn sanity_check() -> impl Responder {
     HttpResponse::Ok().body("it works")
+}
+
+pub async fn scheduled_process() {
+    let pool = POOL.get().unwrap();
+
+    insert_market_order_history(&pool).await;
+    delete_real_trade(&pool).await;
 }
 
 pub async fn logs_handler(logs_info: Response<RpcLogsResponse>, app_state: AppState) {

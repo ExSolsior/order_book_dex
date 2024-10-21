@@ -947,3 +947,161 @@ INSERT INTO order_position (
     "slot",
     "timestamp"
 );
+
+
+-- should work but can think about improvements
+WITH chart AS (
+    SELECT * 
+    FROM real_time_trade_data AS td
+    WHERE current <= td.timestamp
+    OR NOT td.include;
+
+), open_price AS (
+    SELECT 
+        MIN("timestamp") AS "timestamp",
+        order_book_config_pubkey
+        price
+    FROM chart
+    GROUP BY order_book_config_pubkey
+
+), close_price AS (
+    SELECT 
+        MAX("timestamp") AS "timestamp",
+        order_book_config_pubkey
+        price
+    FROM chart
+    GROUP BY order_book_config_pubkey
+
+)
+
+SELECT 
+    chart.order_book_config_pubkey AS "pubkey_id",
+    "1m" AS "interval",
+    o.price  AS "open",
+    MAX(chart.price) as "high",
+    MIN(chart.price) as "low",
+    c.price  AS "close",
+    sum(chart.amount) AS "volume",
+    sum(chart.price) AS "turnover",
+    current AS "timestamp",
+FROM chart;
+JOIN open_price AS o ON o.order_book_config_pubkey = chart.order_book_config_pubkey
+JOIN close_price AS c ON o.order_book_config_pubkey = chart.order_book_config_pubkey
+GROUP BY chart.order_book_config_pubkey;
+
+
+
+
+DELETE FROM real_time_trade_data  AS td
+WHERE td.timestamp - current >= 86400;
+
+
+
+
+
+INSERT INTO real_time_trade_data (
+    "order_book_config_pubkey",
+    "order_type",
+    "last_price",
+    "avg_price",
+    "amount",
+    "turnover",
+    "timestamp",
+    "slot"
+) values
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'buy', 1000, 1000, 100, 1000 * 100,
+    1431648055, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'buy', 1010, 0, 50, 1010 * 50,
+    1431648060, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'buy', 1020, 0, 20, 1020 * 20,
+    1431648050, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'buy', 1030, 0, 40, 1030 * 40,
+    1431647985, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'sell', 900, 0, 100, 900 * 100,
+    1431647999, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'sell', 850, 0, 500, 850 * 500,
+    1431648020, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'sell', 1000, 0, 200, 1000 * 200,
+    1431648040, 0
+),
+
+(
+    '2zHHxRFegDP5aYyhFGYT6CxRHYfJHErbGEGcnP6BSuu6',
+    'sell', 920, 0, 10, 920 * 10,
+    1431648045, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'buy', 1000, 1000, 100, 1000 * 100,
+    1431648055, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'buy', 1010, 0, 50, 1010 * 50,
+    1431648060, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'buy', 1020, 0, 20, 1020 * 20,
+    1431648050, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'buy', 1030, 0, 40, 1030 * 40,
+    1431647985, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'sell', 900, 0, 100, 900 * 100,
+    1431647999, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'sell', 850, 0, 500, 850 * 500,
+    1431648020, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'sell', 1000, 0, 200, 1000 * 200,
+    1431648040, 0
+),
+
+(
+    '4eXZxg6fpzvgFRLXPBE6WvcQ7WQxADzZRvWAuip3aso6',
+    'sell', 920, 0, 10, 920 * 10,
+    1431648045, 0
+)

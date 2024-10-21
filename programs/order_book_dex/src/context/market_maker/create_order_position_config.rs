@@ -1,7 +1,9 @@
 use crate::constants::{ORDER_POSITION_CONFIG_SEED, VAULT_ACCOUNT_SEED};
+use crate::errors::ErrorCode;
 use crate::events::NewOrderPositionConfigEvent;
 use crate::state::{OrderBookConfig, OrderPositionConfig};
 use anchor_lang::prelude::*;
+use anchor_spl::token_interface::{Mint, TokenAccount};
 
 #[derive(Accounts)]
 pub struct CreateOrderPositionConfig<'info> {
@@ -23,13 +25,44 @@ pub struct CreateOrderPositionConfig<'info> {
     )]
     pub order_position_config: Account<'info, OrderPositionConfig>,
 
+    #[account(
+        mut,
+        owner = signer.key(),
+        constraint = capital_a.mint == token_mint_a.key(),
+
+    )]
+    pub capital_a: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        owner = signer.key(),
+        constraint = capital_b.mint == token_mint_b.key(),
+    )]
+    pub capital_b: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(
+        constraint = order_book_config.token_mint_a == token_mint_a.key()
+            @ ErrorCode::InvalidMint,
+    )]
+    pub token_mint_a: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        constraint = order_book_config.token_mint_b == token_mint_b.key()
+            @ ErrorCode::InvalidMint,
+    )]
+    pub token_mint_b: InterfaceAccount<'info, Mint>,
+
     pub system_program: Program<'info, System>,
 }
 
 impl<'info> CreateOrderPositionConfig<'info> {
     pub fn init(&mut self, program_id: &Pubkey) -> Result<()> {
-        self.order_position_config
-            .init(self.order_book_config.key(), self.signer.key());
+        self.order_position_config.init(
+            self.order_book_config.key(),
+            self.signer.key(),
+            self.capital_a.key(),
+            self.capital_b.key(),
+        );
 
         let vault_a = Pubkey::find_program_address(
             &[
@@ -63,6 +96,8 @@ impl<'info> CreateOrderPositionConfig<'info> {
             book_config: self.order_book_config.key(),
             pos_config: self.order_position_config.key(),
             market_maker: self.signer.key(),
+            capital_a: self.capital_a.key(),
+            capital_b: self.capital_b.key(),
             vault_a,
             vault_b,
             slot: slot,
