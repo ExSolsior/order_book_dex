@@ -6,7 +6,7 @@ use solana_sdk::{
     message::{v0::Message, VersionedMessage},
     native_token::LAMPORTS_PER_SOL,
     pubkey::Pubkey,
-    signature::{Keypair, NullSigner},
+    signature::Keypair,
     signer::Signer,
     system_program,
     transaction::VersionedTransaction,
@@ -99,14 +99,16 @@ pub fn setup() -> (ProgramTest, Keypair) {
 
 pub async fn create_banks_client_verioned_tx(
     banks_client: &mut BanksClient,
-    payer: &Pubkey,
+    payer: &Keypair,
     ixs: &[Instruction],
 ) -> VersionedTransaction {
     let recent_blockhash = banks_client.get_latest_blockhash().await.unwrap();
 
     VersionedTransaction::try_new(
-        VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash).unwrap()),
-        &[&NullSigner::new(payer)],
+        VersionedMessage::V0(
+            Message::try_compile(&payer.pubkey(), ixs, &[], recent_blockhash).unwrap(),
+        ),
+        &[payer],
     )
     .unwrap()
 }

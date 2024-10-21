@@ -36,7 +36,7 @@ pub async fn create_trade_pair(
 }
 
 // Separate function for testing
-fn build_ixs(
+pub fn build_ixs(
     params: CreateTradePairParams,
     mint_a: &Account,
     mint_b: &Account,
@@ -118,7 +118,7 @@ mod tests {
             .unwrap();
 
         let ixs = build_ixs(params, &mint_a, &mint_b);
-        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer.pubkey(), &ixs).await;
+        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
         banks_client.process_transaction(tx).await.unwrap();
     }
 }
