@@ -215,7 +215,7 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                 WITH chart AS (
                     SELECT * 
                     FROM real_time_trade_data AS td
-                    WHERE {}::bigint <= td.timestamp AND {}::bigint >= td.timestamp
+                    WHERE {}::bigint <= td.timestamp AND {}::bigint > td.timestamp
 
                 ), open_time AS (
                     SELECT 

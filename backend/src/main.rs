@@ -136,7 +136,8 @@ async fn main(
         });
 
         tokio::spawn(async move {
-            let sync = (dt.timestamp() - (dt.timestamp() / 60 * 60) + 4) as u64;
+            let sync = 60 - (dt.timestamp() - (dt.timestamp() / 60 * 60)) as u64;
+            println!("sync: {}", sync);
             tokio::time::sleep(Duration::from_secs(sync)).await;
             loop {
                 schduler.run_pending().await;

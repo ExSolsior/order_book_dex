@@ -80,7 +80,6 @@ pub async fn sanity_check() -> impl Responder {
     HttpResponse::Ok().body("it works")
 }
 
-// WORKS ON LOCAL BUT NOT ON DEPLOYED ENVIRONMENT
 pub async fn scheduled_process() {
     let pool = POOL.get().unwrap();
 

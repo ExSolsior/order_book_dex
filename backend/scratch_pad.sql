@@ -953,7 +953,7 @@ INSERT INTO order_position (
 WITH chart AS (
     SELECT * 
     FROM real_time_trade_data AS td
-    WHERE current >= td.timestamp
+    WHERE current <= td.timestamp
     OR NOT td.include;
 
 ), open_price AS (
