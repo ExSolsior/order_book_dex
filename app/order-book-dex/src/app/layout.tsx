@@ -1,7 +1,7 @@
-import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WalletAdapter } from "@/components/wallet-adapter";
 import { siteConfig } from "@/config/site";
+import { ProgramProvider } from "@/program/ProgramProvider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -17,9 +17,9 @@ const geistMono = localFont({
   weight: "100 900"
 });
 const montserrat = localFont({
-  src: './fonts/Montserrat-Medium.ttf',
-  variable: '--font-montserrat',
-  weight: '100 900',
+  src: "./fonts/Montserrat-Medium.ttf",
+  variable: "--font-montserrat",
+  weight: "100 900"
 });
 
 export const metadata: Metadata = {
@@ -49,12 +49,13 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <div vaul-drawer-wrapper="">
-              <div className="relative flex min-h-screen flex-col bg-background">
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
+            <ProgramProvider>
+              <div vaul-drawer-wrapper="">
+                <div className="relative flex min-h-screen flex-col bg-background">
+                  <main className="flex-1">{children}</main>
+                </div>
               </div>
-            </div>
+            </ProgramProvider>
           </ThemeProvider>
         </WalletAdapter>
       </body>

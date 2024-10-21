@@ -1,3 +1,5 @@
+"use client";
+
 import { MarketOrderBook } from "@/lib/types";
 import {
   AnchorProvider,
@@ -53,7 +55,10 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [connection, userWallet]);
 
-  if (!program || !userWallet) return;
+  if (!program || !userWallet)
+    return (
+      <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
+    );
 
   // Tx: Open Limit Order
   const openLimitOrder = async ({
@@ -373,7 +378,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ProgramContext.Provider
       value={{
-        connected: userWallet?.publicKey ? true : false,
         createTradePair,
         createMarketOrder,
         fillMarketOrder,
@@ -389,7 +393,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
-  connected: boolean;
   createTradePair: (
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,

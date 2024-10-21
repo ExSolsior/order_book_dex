@@ -1,6 +1,6 @@
 "use client";
 
-import { PastOrder } from "@/app/portfolio/past-orders";
+import { PastOrder } from "@/app/demo/portfolio/past-orders";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

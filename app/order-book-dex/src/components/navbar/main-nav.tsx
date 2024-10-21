@@ -11,14 +11,14 @@ import {
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
 
-export function MainNav() {
+export function MainNav({ isDemo }: { isDemo: boolean }) {
   const pathname = usePathname();
 
   return (
     <div className="mr-4 flex flex-1 items-center justify-between">
       <div className="flex items-center">
         <Link
-          href="/"
+          href={isDemo ? "/demo" : "/devnet"}
           className="flex items-center space-x-2 lg:mr-6"
         >
           <span className="font-bold lg:inline-block tracking-widest">
@@ -28,20 +28,22 @@ export function MainNav() {
 
         <nav className="flex items-center gap-4 text-sm lg:gap-6">
           <Link
-            href="/"
+            href={isDemo ? "/demo" : "/devnet"}
             className={cn(
               "transition-colors hover:text-foreground font-semibold",
-              pathname === "/" ? "text-foreground" : "text-foreground/60"
+              pathname === (isDemo ? "/demo" : "/devnet")
+                ? "text-foreground"
+                : "text-foreground/60"
             )}
           >
             Markets
           </Link>
 
           <Link
-            href="/trade"
+            href={`${isDemo ? "/demo" : "/devnet"}/trade`}
             className={cn(
               "transition-colors hover:text-foreground font-semibold",
-              pathname.includes("/trade")
+              pathname.includes((isDemo ? "/demo" : "/devnet") + "/trade")
                 ? "text-foreground"
                 : "text-foreground/60"
             )}
@@ -50,10 +52,10 @@ export function MainNav() {
           </Link>
 
           <Link
-            href="/portfolio"
+            href={`${isDemo ? "/demo" : "/devnet"}/portfolio`}
             className={cn(
               "transition-colors hover:text-foreground/80 font-semibold text-sm",
-              pathname === "/portfolio"
+              pathname === (isDemo ? "/demo" : "/devnet") + "/portfolio"
                 ? "text-foreground"
                 : "text-foreground/60"
             )}
@@ -71,21 +73,24 @@ export function MainNav() {
               <CaretDownIcon className="h-[1.2rem] w-[1.2rem] scale-100" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <Link
-                href="/api"
-                className={cn(
-                  "transition-colors hover:text-foreground font-semibold",
-                  pathname === "/api" ? "text-foreground" : "text-foreground/60"
-                )}
-              >
-                <DropdownMenuItem>API</DropdownMenuItem>
-              </Link>
-
-              <Link href="/docs">
+              <Link href={`${isDemo ? "/demo" : "/devnet"}/api`}>
                 <DropdownMenuItem
                   className={cn(
                     "transition-colors hover:text-foreground font-semibold",
-                    pathname === "/docs"
+                    pathname === (isDemo ? "/demo" : "/devnet") + "/api"
+                      ? "text-foreground"
+                      : "text-foreground/60"
+                  )}
+                >
+                  API
+                </DropdownMenuItem>
+              </Link>
+
+              <Link href={`${isDemo ? "/demo" : "/devnet"}/docs`}>
+                <DropdownMenuItem
+                  className={cn(
+                    "transition-colors hover:text-foreground font-semibold",
+                    pathname === (isDemo ? "/demo" : "/devnet") + "/docs"
                       ? "text-foreground"
                       : "text-foreground/60"
                   )}
