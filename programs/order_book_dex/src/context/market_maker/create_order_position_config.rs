@@ -27,16 +27,15 @@ pub struct CreateOrderPositionConfig<'info> {
 
     #[account(
         mut,
-        constraint = capital_a.owner == signer.key(),
-        constraint = capital_a.mint == token_mint_a.key(),
-
+        associated_token::authority = signer.key(),
+        associated_token::mint = token_mint_a.key(),
     )]
     pub capital_a: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
-        constraint = capital_b.owner == signer.key(),
-        constraint = capital_b.mint == token_mint_b.key(),
+        associated_token::authority = signer.key(),
+        associated_token::mint = token_mint_a.key(),
     )]
     pub capital_b: InterfaceAccount<'info, TokenAccount>,
 
