@@ -151,6 +151,11 @@ fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
             data: InstructionData::data(&instruction::CreateVaultAccounts {}),
         });
 
+        let capital_a =
+            get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
+        let capital_b =
+            get_associated_token_address_with_program_id(&signer, &token_mint_b, &token_program_b);
+
         ixs.push(Instruction {
             program_id,
             accounts: ToAccountMetas::to_account_metas(
@@ -158,6 +163,10 @@ fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
                     signer,
                     order_book_config,
                     order_position_config,
+                    capital_a,
+                    capital_b,
+                    token_mint_a,
+                    token_mint_b,
                     system_program,
                 },
                 None,
