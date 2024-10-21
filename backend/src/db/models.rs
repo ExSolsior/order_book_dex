@@ -1,7 +1,8 @@
 use crate::AppState;
 use actix_web::web;
+use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, Row};
+use sqlx::{prelude::FromRow, Pool, Postgres, Row};
 
 // -> Result<(), Box<dyn Error>>
 
@@ -203,11 +204,92 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
     .unwrap();
 }
 
-// handled by a schedualer
-pub async fn _insert_market_order_history(market_history: MarketOrderHistory, app_state: AppState) {
+// handled by a scheduler, currently only implemented for 1 interval -> '1m'
+pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
+    let dt: DateTime<Utc> = Utc::now();
+    let start = dt.timestamp() / 60 * 60 - 60;
+    let end = start + 60;
+
     sqlx::query(
         r#"
-                INSERT INTO order_position_table (
+                WITH chart AS (
+                    SELECT * 
+                    FROM real_time_trade_data AS td
+                    WHERE $1::bigint <= td.timestamp AND $2::bigint >= td.timestamp
+
+                ), open_time AS (
+                    SELECT 
+                        MIN("timestamp") AS "timestamp",
+                        order_book_config_pubkey
+                    FROM chart
+                    GROUP BY order_book_config_pubkey
+
+                ), close_time AS (
+                    SELECT 
+                        MAX("timestamp") AS "timestamp",
+                        order_book_config_pubkey
+                    FROM chart
+                    GROUP BY order_book_config_pubkey
+
+                ), open_price AS (
+                    SELECT 
+                        t.order_book_config_pubkey,
+                        last_price
+                    FROM chart 
+                    JOIN open_time AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+                    AND t.timestamp = chart.timestamp
+
+                ), close_price AS (
+                    SELECT 
+                        t.order_book_config_pubkey,
+                        last_price
+                    FROM chart 
+                    JOIN close_time AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+                    AND t.timestamp = chart.timestamp
+
+                ), low_price AS (
+                    SELECT 
+                        order_book_config_pubkey,
+                        MIN(chart.last_price) AS last_price
+                    FROM chart 
+                    GROUP BY order_book_config_pubkey
+
+                ), high_price AS (
+                    SELECT 
+                        order_book_config_pubkey,
+                        MAX(chart.last_price) AS last_price
+                    FROM chart 
+                    GROUP BY order_book_config_pubkey
+
+                ), total AS (
+                    SELECT 
+                        order_book_config_pubkey,
+                        sum(chart.amount) AS "volume",
+                        sum(chart.last_price) AS "turnover"
+                    FROM chart
+                    GROUP BY order_book_config_pubkey
+
+                ), market_data AS (
+                    SELECT 
+                        DISTINCT chart.order_book_config_pubkey AS "pubkey_id",
+                        '1m'::interval AS "interval",
+                        o.last_price  AS "open",
+                        h.last_price as "high",
+                        l.last_price as "low",
+                        c.last_price  AS "close",
+                        t.volume,
+                        t.turnover,
+                        $1::bigint AS "timestamp"
+                    FROM chart
+                    INNER JOIN open_price AS o ON o.order_book_config_pubkey = chart.order_book_config_pubkey
+                    INNER JOIN close_price AS c ON c.order_book_config_pubkey = chart.order_book_config_pubkey
+                    INNER JOIN high_price AS h ON h.order_book_config_pubkey = chart.order_book_config_pubkey
+                    INNER JOIN low_price AS l ON l.order_book_config_pubkey = chart.order_book_config_pubkey
+                    INNER JOIN total AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+
+                )
+
+                INSERT INTO market_order_history (
                     "order_book_config_pubkey",
                     "interval",
                     "open",
@@ -217,20 +299,13 @@ pub async fn _insert_market_order_history(market_history: MarketOrderHistory, ap
                     "volume",
                     "turnover",
                     "timestamp"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+                )
+                SELECT * FROM market_data;
             "#,
     )
-    .bind(&market_history.order_book_config_pubkey)
-    // this sucker might have issues... ugh! I'll just comment out and insert directly
-    // .bind(&market_history.interval)
-    .bind(&market_history.open.to_string())
-    .bind(&market_history.high.to_string())
-    .bind(&market_history.low.to_string())
-    .bind(&market_history.close.to_string())
-    .bind(&market_history.volume.to_string())
-    .bind(&market_history.turnover.to_string())
-    .bind(&market_history.timestamp.to_string())
-    .execute(&app_state.pool)
+    .bind(start.to_string())
+    .bind(end.to_string())
+    .execute(pool)
     .await
     .unwrap();
 }
@@ -491,16 +566,19 @@ pub async fn _delete_order_book_config(pubkey_id: String, app_state: AppState) {
     .unwrap();
 }
 
-// handled by a schedualer
-pub async fn _delete_real_trade(id: String, app_state: AppState) {
+// handled by a scheduler
+pub async fn delete_real_trade(pool: &Pool<Postgres>) {
+    let dt: DateTime<Utc> = Utc::now();
+    let timestamp = dt.timestamp() / 60 * 60;
+
     sqlx::query(
         r#"
-                DELETE FROM real_time_trade_data
-                WHERE id == $1;
+                DELETE FROM real_time_trade_data  AS td
+                WHERE $1 - td.timestamp >= 86400;
             "#,
     )
-    .bind(&id)
-    .execute(&app_state.pool)
+    .bind(timestamp)
+    .execute(pool)
     .await
     .unwrap();
 }
