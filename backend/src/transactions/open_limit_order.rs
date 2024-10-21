@@ -21,30 +21,16 @@ use super::pdas::{get_order_position_pda, get_vault_account_pda};
 use super::util::{create_versioned_tx, find_prev_next_entries};
 use super::{constants::RPC_ENDPOINT, pdas::get_order_position_config_pda};
 
-#[derive(Debug, Clone)]
-pub struct OpenLimitOrderParams {
-    pub order_book_config: Pubkey,
-    pub signer: Pubkey,
-    pub next_position_pointer: Option<Pubkey>,
-    pub order_type: Order,
-    pub price: u64,
-    pub amount: u64,
-    pub nonce: u64,
-}
-
 pub async fn open_limit_order(
     app_state: web::Data<AppState>,
-    params: OpenLimitOrderParams,
+    order_book_config: Pubkey,
+    signer: Pubkey,
+    next_position_pointer: Option<Pubkey>,
+    order_type: Order,
+    price: u64,
+    amount: u64,
+    nonce: u64,
 ) -> Result<VersionedTransaction, TransactionBuildError> {
-    let OpenLimitOrderParams {
-        order_book_config,
-        signer,
-        next_position_pointer,
-        order_type,
-        price,
-        amount,
-        nonce,
-    } = params;
     let mut ixs = vec![];
     let rpc_client =
         RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed());
