@@ -1,6 +1,5 @@
 use crate::{ errors::ErrorCode, events::CancelLimitOrderEvent, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{ Mint, TokenAccount, };
 
 #[derive(Accounts)]
 pub struct CancelOrderPosition<'info> {
@@ -77,29 +76,6 @@ pub struct CancelOrderPosition<'info> {
             @ ErrorCode::InvalidOrderPosition,
     )]
     pub next_order_position: Option<Account<'info, OrderPosition>>,
-
-    #[account(mut)]
-    pub capital_destination: InterfaceAccount<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub source: InterfaceAccount<'info, TokenAccount>,
-
-    #[account(
-        constraint = order_book_config.token_mint_a == token_mint.key() 
-            || order_book_config.token_mint_b == token_mint.key()
-            @ ErrorCode::InvalidMint,
-    )]
-    pub token_mint: InterfaceAccount<'info, Mint>,
-
-    #[account(
-        constraint = order_book_config.token_program_a == token_program.key() 
-            || order_book_config.token_program_b == token_program.key()
-            @ ErrorCode::InvalidTokenProgram,
-    )]
-    /// CHECK: apparently this works -> if necessary will set as Program<>
-    pub token_program: UncheckedAccount<'info>,
-
-    pub system_program: Program<'info, System>,
 }
 
 impl<'info> CancelOrderPosition<'info> {
