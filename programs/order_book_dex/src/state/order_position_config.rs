@@ -8,15 +8,19 @@ use anchor_lang::{
 pub struct OrderPositionConfig {
     pub order_book_config: Pubkey,
     pub owner: Pubkey,
+    pub capital_a: Pubkey,
+    pub capital_b: Pubkey,
     pub nonce: u64,
 }
 
 impl OrderPositionConfig {
-    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES + PUBKEY_BYTES + U64_BYTES;
+    pub const LEN: usize = DISCRIMINATOR + (PUBKEY_BYTES * 4) + U64_BYTES;
 
-    pub fn init(&mut self, config: Pubkey, owner: Pubkey) {
+    pub fn init(&mut self, config: Pubkey, owner: Pubkey, capital_a: Pubkey, capital_b: Pubkey) {
         self.order_book_config = config;
         self.owner = owner;
+        self.capital_a = capital_a;
+        self.capital_b = capital_b;
         self.nonce = 0;
     }
 

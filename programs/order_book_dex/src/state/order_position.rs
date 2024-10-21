@@ -17,6 +17,7 @@ pub struct OrderPosition {
     pub order_type: Order,
     pub price: u64,
     pub amount: u64,
+    pub received_amount: u64,
     pub slot: u64,
     pub timestamp: i64,
     pub is_available: bool,
@@ -24,10 +25,10 @@ pub struct OrderPosition {
 
 impl OrderPosition {
     pub const LEN: usize = DISCRIMINATOR
-        + PUBKEY_BYTES * 4
+        + (PUBKEY_BYTES * 4)
         + (BYTE + PUBKEY_BYTES)
         + Order::LEN
-        + U64_BYTES * 3
+        + (U64_BYTES * 4)
         + I64_BYTES
         + BYTE;
 
@@ -57,6 +58,7 @@ impl OrderPosition {
         self.next_order_position = None;
         self.price = price;
         self.amount = amount;
+        self.received_amount = 0;
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.is_available = true;
@@ -97,6 +99,7 @@ impl OrderPosition {
         let total = if total == 0 { 1 } else { total };
 
         self.amount -= amount;
+        self.received_amount += total;
 
         if self.amount == 0 {
             self.is_available = false;
