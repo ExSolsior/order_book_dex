@@ -56,13 +56,13 @@ pub struct CreateMarketOrder<'info> {
 
     #[account(
         mut,
-        owner = signer.key(),
+        constraint = capital_source.owner == signer.key(),
         constraint = capital_source.mint == source.mint,
     )]
     pub capital_source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        owner = signer.key(),
+        constraint = capital_source.owner == signer.key(),
         constraint = capital_dest.mint == dest.mint,
     )]
     pub capital_dest: InterfaceAccount<'info, TokenAccount>,
