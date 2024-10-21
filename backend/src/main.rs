@@ -1,5 +1,8 @@
 use actix_web::web::Data;
-use services::{logs_handler, market_history, market_list, market_order_book, sanity_check};
+use chrono::{DateTime, Utc};
+use services::{
+    logs_handler, market_history, market_list, market_order_book, sanity_check, scheduled_process,
+};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 mod db;
 mod services;
@@ -14,12 +17,16 @@ use std::sync::Arc;
 use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::unbounded_channel;
 
+use clokwerk::{AsyncScheduler, TimeUnits};
+use std::time::Duration;
+
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool<Postgres>,
 }
 
-const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
+// const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
+const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
 // const WS_URL: &str = "wss://api.devnet.solana.com/";
 const WS_URL: &str = "wss://rpc.devnet.soo.network/rpc";
 
@@ -33,6 +40,7 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
 
     let app_state = AppState { pool: pool.clone() };
 
+    // solana events
     tokio::spawn(async move {
         // Subscription tasks will send a ready signal when they have subscribed.
         let (ready_sender, mut ready_receiver) = unbounded_channel::<()>();
@@ -105,6 +113,25 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
         while let Some(_) = ready_receiver.recv().await {}
 
         // Do application logic here.
+        let dt: DateTime<Utc> = Utc::now();
+        let mut schduler = AsyncScheduler::new();
+
+        schduler.every(1.minutes()).run(|| async {
+            let dt: DateTime<Utc> = Utc::now();
+
+            scheduled_process().await;
+            println!("SCHEDULED TASK PROCESSED -- {}", dt.timestamp());
+        });
+
+        let sync = (dt.timestamp() - (dt.timestamp() / 60 * 60) + 4) as u64;
+        tokio::time::sleep(Duration::from_secs(sync)).await;
+
+        tokio::spawn(async move {
+            loop {
+                schduler.run_pending().await;
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        });
 
         // Wait for input or some application-specific shutdown condition.
         tokio::io::stdin().read_u8().await.unwrap();
@@ -123,6 +150,9 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
             }
         }
     });
+
+    // spawn schedular here
+    // tokio::spawn(async move { scheduled_process(&app_state) });
 
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
