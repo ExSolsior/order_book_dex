@@ -148,7 +148,7 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
 pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
     sqlx::query(
         r#"
-                INSERT INTO order_position_table (
+                INSERT INTO order_position (
                     "pubkey_id",
                     "order_type",
                     "price",
@@ -179,7 +179,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: App
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
     sqlx::query(
         r#"
-                INSERT INTO order_position_table (
+                INSERT INTO order_position (
                     "order_book_config_pubkey",
                     "order_type",
                     "last_price",
@@ -210,12 +210,12 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
     let start = dt.timestamp() / 60 * 60 - 60;
     let end = start + 60;
 
-    sqlx::query(
-        r#"
+    sqlx::raw_sql(
+        &format!(r#"
                 WITH chart AS (
                     SELECT * 
                     FROM real_time_trade_data AS td
-                    WHERE $1::bigint <= td.timestamp AND $2::bigint >= td.timestamp
+                    WHERE {}::bigint <= td.timestamp AND {}::bigint >= td.timestamp
 
                 ), open_time AS (
                     SELECT 
@@ -279,7 +279,7 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                         c.last_price  AS "close",
                         t.volume,
                         t.turnover,
-                        $1::bigint AS "timestamp"
+                        {}::bigint AS "timestamp"
                     FROM chart
                     INNER JOIN open_price AS o ON o.order_book_config_pubkey = chart.order_book_config_pubkey
                     INNER JOIN close_price AS c ON c.order_book_config_pubkey = chart.order_book_config_pubkey
@@ -287,6 +287,8 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                     INNER JOIN low_price AS l ON l.order_book_config_pubkey = chart.order_book_config_pubkey
                     INNER JOIN total AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
 
+                    -- just thought of this now, can do this instead of using DISTINCT, but need to test it
+                    -- WHERE chart.order_book_config_pubkey
                 )
 
                 INSERT INTO market_order_history (
@@ -301,10 +303,11 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                     "timestamp"
                 )
                 SELECT * FROM market_data;
-            "#,
+            "#, start, end, start)
     )
-    .bind(start.to_string())
-    .bind(end.to_string())
+    // .bind(start.to_string())
+    // .bind(end.to_string())
+    // .persistent(false)
     .execute(pool)
     .await
     .unwrap();
@@ -571,13 +574,15 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     let dt: DateTime<Utc> = Utc::now();
     let timestamp = dt.timestamp() / 60 * 60;
 
-    sqlx::query(
+    sqlx::raw_sql(&format!(
         r#"
-                DELETE FROM real_time_trade_data  AS td
-                WHERE $1 - td.timestamp >= 86400;
-            "#,
-    )
-    .bind(timestamp)
+            DELETE FROM real_time_trade_data  AS td
+            WHERE {} - td.timestamp >= 86400;
+        "#,
+        timestamp
+    ))
+    // .bind(timestamp)
+    // .persistent(false)
     .execute(pool)
     .await
     .unwrap();

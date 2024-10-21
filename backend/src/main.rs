@@ -1,8 +1,10 @@
 use actix_web::web::Data;
+use anyhow::Context;
 use chrono::{DateTime, Utc};
 use services::{
     logs_handler, market_history, market_list, market_order_book, sanity_check, scheduled_process,
 };
+use shuttle_runtime::SecretStore;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 mod db;
 mod services;
@@ -14,8 +16,8 @@ use futures_util::StreamExt;
 use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;
 use solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter};
 use std::sync::Arc;
-use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::unbounded_channel;
+use tokio::{io::AsyncReadExt, sync::OnceCell};
 
 use clokwerk::{AsyncScheduler, TimeUnits};
 use std::time::Duration;
@@ -25,16 +27,26 @@ pub struct AppState {
     pub pool: Pool<Postgres>,
 }
 
-// const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
-const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
 // const WS_URL: &str = "wss://api.devnet.solana.com/";
 const WS_URL: &str = "wss://rpc.devnet.soo.network/rpc";
 
+pub static POOL: OnceCell<Pool<Postgres>> = OnceCell::const_new();
+
 #[shuttle_runtime::main]
-async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(DB_URL)
+async fn main(
+    #[shuttle_runtime::Secrets] secrets: SecretStore,
+) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
+    let db_url = secrets.get("DB_URL").context("secret was not found")?;
+
+    println!("{db_url}");
+
+    let pool = POOL
+        .get_or_try_init(|| async {
+            PgPoolOptions::new()
+                .max_connections(5)
+                .connect(&db_url)
+                .await
+        })
         .await
         .expect("Error building a connection pool.");
 
@@ -113,20 +125,19 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
         while let Some(_) = ready_receiver.recv().await {}
 
         // Do application logic here.
+
         let dt: DateTime<Utc> = Utc::now();
         let mut schduler = AsyncScheduler::new();
 
-        schduler.every(1.minutes()).run(|| async {
+        schduler.every(1.minutes()).run(move || {
             let dt: DateTime<Utc> = Utc::now();
-
-            scheduled_process().await;
-            println!("SCHEDULED TASK PROCESSED -- {}", dt.timestamp());
+            println!("{}", dt.timestamp());
+            scheduled_process()
         });
 
-        let sync = (dt.timestamp() - (dt.timestamp() / 60 * 60) + 4) as u64;
-        tokio::time::sleep(Duration::from_secs(sync)).await;
-
         tokio::spawn(async move {
+            let sync = (dt.timestamp() - (dt.timestamp() / 60 * 60) + 4) as u64;
+            tokio::time::sleep(Duration::from_secs(sync)).await;
             loop {
                 schduler.run_pending().await;
                 tokio::time::sleep(Duration::from_millis(100)).await;
@@ -151,9 +162,6 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
         }
     });
 
-    // spawn schedular here
-    // tokio::spawn(async move { scheduled_process(&app_state) });
-
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
             web::scope("/api")
@@ -164,8 +172,6 @@ async fn main() -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clon
                 .app_data(Data::new(AppState { pool: pool.clone() })),
         );
     };
-
-    println!("THIS");
 
     Ok(config.into())
 }
