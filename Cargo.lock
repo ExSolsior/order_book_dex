@@ -1017,7 +1017,6 @@ dependencies = [
  "shuttle-actix-web",
  "shuttle-runtime",
  "solana-client",
- "solana-program-test",
  "solana-pubsub-client",
  "solana-rpc-client-api",
  "solana-sdk",

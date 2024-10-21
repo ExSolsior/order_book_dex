@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use solana_program_test::BanksClient;
 use solana_sdk::{
     instruction::Instruction,
     message::{v0::Message, VersionedMessage},
@@ -11,7 +10,7 @@ use solana_sdk::{
     system_program,
     transaction::VersionedTransaction,
 };
-use solana_test_framework::{ProgramTest, ProgramTestExtension};
+use solana_test_framework::{BanksClient, ProgramTest, ProgramTestExtension};
 
 pub const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 pub const JUP_MINT: &str = "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN";
