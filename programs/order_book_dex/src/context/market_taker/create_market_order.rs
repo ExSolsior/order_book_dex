@@ -56,14 +56,14 @@ pub struct CreateMarketOrder<'info> {
 
     #[account(
         mut,
-        associated_token::authority = signer.key(),
-        associated_token::mint = token_mint_source.key(),
+        associated_token::authority = signer,
+        associated_token::mint = token_mint_source,
     )]
     pub capital_source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        associated_token::authority = signer.key(),
-        associated_token::mint = token_mint_dest.key(),
+        associated_token::authority = signer,
+        associated_token::mint = token_mint_dest,
     )]
     pub capital_dest: InterfaceAccount<'info, TokenAccount>,
 
