@@ -1,6 +1,6 @@
-use crate::{constants::ORDER_BOOK_CONFIG_SEED, errors::ErrorCode, events::CancelLimitOrderEvent, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
+use crate::{ errors::ErrorCode, events::CancelLimitOrderEvent, state::{MarketPointer, OrderBookConfig, OrderPosition, OrderPositionConfig}};
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
+use anchor_spl::token_interface::{ Mint, TokenAccount, };
 
 #[derive(Accounts)]
 pub struct CancelOrderPosition<'info> {
@@ -62,7 +62,7 @@ pub struct CancelOrderPosition<'info> {
         constraint = order_position_config.is_valid_owner(signer.key())
             @ ErrorCode::InvalidOrderPositionOwner,
     )]
-    pub order_position_config: Account<'info, OrderPositionConfig>,
+    pub order_position_config: Box<Account<'info, OrderPositionConfig>>,
 
     #[account(
         mut,
@@ -124,45 +124,11 @@ impl<'info> CancelOrderPosition<'info> {
         self.order_position.is_available = false;
         self.order_position.next_order_position = None;
 
-        Ok(())
-    }
-
-    pub fn refund(&mut self) -> Result<()> {
-        // Transfer funds back to the user
-
-        let token_mint_a_key = self.order_book_config.token_mint_a;
-        let token_mint_b_key = self.order_book_config.token_mint_b;
-        let bump = &[self.order_book_config.bump];
-
-        let signer_seeds = &[&[
-            token_mint_a_key.as_ref(),
-            token_mint_b_key.as_ref(),
-            ORDER_BOOK_CONFIG_SEED.as_bytes(),
-            bump,
-        ][..]];
-
-        let amount = self.order_position.amount;
-        self.order_position.amount = 0;
-        transfer_checked(
-            CpiContext::new_with_signer(
-                self.token_program.to_account_info(),
-                TransferChecked {
-                    from: self.source.to_account_info(),
-                    to: self.capital_destination.to_account_info(),
-                    authority: self.order_book_config.to_account_info(),
-                    mint: self.token_mint.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            amount,
-            self.token_mint.decimals,
-        )?;
-
         emit!(CancelLimitOrderEvent {
             pos_pubkey: self.order_position.key(),
             book_config: self.order_book_config.key(),
             pos_config: self.order_position_config.key(),
-            amount: amount,
+            amount: self.order_position.amount,
             is_available: self.order_position.is_available,
         });
 

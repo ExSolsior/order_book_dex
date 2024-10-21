@@ -50,8 +50,7 @@ pub mod order_book_dex {
     }
 
     pub fn cancel_order_position(ctx: Context<CancelOrderPosition>) -> Result<()> {
-        ctx.accounts.exec()?;
-        ctx.accounts.refund()
+        ctx.accounts.exec()
     }
 
     pub fn close_order_position(ctx: Context<CloseOrderPosition>) -> Result<()> {

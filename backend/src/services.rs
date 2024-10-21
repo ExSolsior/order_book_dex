@@ -1,14 +1,16 @@
-use crate::db::models::{
-    delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
-    get_trade_pair_list, insert_market_order_history, insert_order_position,
-    insert_order_position_config, insert_real_time_trade, insert_trade_pair, update_order_position,
-    OrderPosition, PositionConfig, RealTimeTrade,
+use crate::{
+    db::models::{
+        delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
+        get_trade_pair_list, insert_market_order_history, insert_order_position,
+        insert_order_position_config, insert_real_time_trade, insert_trade_pair,
+        update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+    },
+    POOL,
 };
 use actix_web::{get, web, HttpResponse, Responder};
 use base64::engine::{general_purpose, Engine};
 use solana_rpc_client_api::response::{Response, RpcLogsResponse};
 use solana_sdk::pubkey::Pubkey;
-use sqlx::postgres::PgPoolOptions;
 
 use crate::AppState;
 use serde::Deserialize;
@@ -79,13 +81,7 @@ pub async fn sanity_check() -> impl Responder {
 }
 
 pub async fn scheduled_process() {
-    const DB_URL: &str = "postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/";
-    // const DB_URL: &str = "postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(DB_URL)
-        .await
-        .expect("Error building a connection pool.");
+    let pool = POOL.get().unwrap();
 
     insert_market_order_history(&pool).await;
     delete_real_trade(&pool).await;

@@ -24,6 +24,8 @@ pub struct NewOrderPositionConfigEvent {
     pub book_config: Pubkey,
     pub pos_config: Pubkey,
     pub market_maker: Pubkey,
+    pub capital_a: Pubkey,
+    pub capital_b: Pubkey,
     pub vault_a: Pubkey,
     pub vault_b: Pubkey,
     pub slot: u64,
@@ -74,6 +76,10 @@ pub struct CloseLimitOrderEvent {
 pub struct MarketOrderTriggerEvent {
     pub market_pointer: Pubkey,
     pub book_config: Pubkey,
+    pub capital_source: Pubkey,
+    pub capital_dest: Pubkey,
+    pub source: Pubkey,
+    pub dest: Pubkey,
     pub pointer: Option<Pubkey>,
     pub order_type: Order,
     // market_pointer
