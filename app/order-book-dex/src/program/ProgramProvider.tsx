@@ -42,8 +42,16 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   const userWallet = useAnchorWallet();
 
   const program = useMemo(() => {
-    if (connection) {
-      return getProgram(connection, userWallet!);
+    if (userWallet) {
+      const getProvider = () => {
+        const provider = new AnchorProvider(connection, userWallet, {
+          commitment: "confirmed"
+        });
+        setProvider(provider);
+        return provider;
+      };
+
+      return new Program(CHRONO_IDL, getProvider());
     }
   }, [connection, userWallet]);
 
@@ -97,9 +105,9 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     isReverse: boolean
   ) => {
     try {
-      const orderBookConfig = await getOrderBookConfigPDA(tokenMintA, tokenMintB);
-      const buyMarketPointer = await getBuyMarketPointerPDA(orderBookConfig);
-      const sellMarketPointer = await getSellMarketPointerPDA(orderBookConfig);
+      const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
+      const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
+      const sellMarketPointer = getSellMarketPointerPDA(orderBookConfig);
 
       // Derive token programs from mints
       const mintA = await getAccount(connection, tokenMintA);
@@ -108,7 +116,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       const txHash = await program.methods
         .createTradePair(isReverse)
         .accountsStrict({
-          authority: userWallet?.publicKey, 
+          authority: userWallet?.publicKey,
           orderBookConfig,
           buyMarketPointer,
           sellMarketPointer,
@@ -118,18 +126,12 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           tokenProgramB: mintB.owner,
           SystemProgram: web3.SystemProgram.programId
         })
-        .prepare();
+        .rpc();
 
-      toast.success("Trade pair instruction created successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
+      await confirmTx(txHash, connection);
+      toast.success("Trade pair created successfully!");
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to create trade pair");
     }
   };
 
@@ -143,21 +145,40 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     orderType: OrderType,
     fill: Fill,
     targetAmount: BN,
-    isReverse: boolean,
+    isReverse: boolean
   ) => {
     try {
       // Determine source and destination based on is_reverse and orderType
       let source: web3.PublicKey;
       let dest: web3.PublicKey;
 
-      if ((!isReverse && orderType === OrderType.Buy) || (isReverse && orderType === OrderType.Sell)) {
+      if (
+        (!isReverse && orderType === OrderType.Buy) ||
+        (isReverse && orderType === OrderType.Sell)
+      ) {
         // Source derived with tokenMintSource, destination derived with tokenMintDest
-        source = await getVaultAccountPDA(orderBookConfig, tokenMintSource, userWallet!.publicKey);
-        dest = await getVaultAccountPDA(orderBookConfig, tokenMintDest, userWallet!.publicKey);
+        source = getVaultAccountPDA(
+          orderBookConfig,
+          tokenMintSource,
+          userWallet!.publicKey
+        );
+        dest = getVaultAccountPDA(
+          orderBookConfig,
+          tokenMintDest,
+          userWallet!.publicKey
+        );
       } else {
         // Source derived with tokenMintSource, destination derived with tokenMintDest
-        source = await getVaultAccountPDA(orderBookConfig, tokenMintDest, userWallet!.publicKey);
-        dest = await getVaultAccountPDA(orderBookConfig, tokenMintSource, userWallet!.publicKey);
+        source = getVaultAccountPDA(
+          orderBookConfig,
+          tokenMintDest,
+          userWallet!.publicKey
+        );
+        dest = getVaultAccountPDA(
+          orderBookConfig,
+          tokenMintSource,
+          userWallet!.publicKey
+        );
       }
 
       const txHash = await program.methods
@@ -172,23 +193,16 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           tokenMintDest,
           nextPositionPointer
         })
-        .prepare();
+        .rpc();
 
-      toast.success("Market order instruction created successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
-
+      await confirmTx(txHash, connection);
+      toast.success("Market order created successfully!");
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to create market order");
     }
-  }
+  };
 
-  /* Instruction: Fill Market Order */
+  /* Instruction: Fill Market Order */ // not final
   const fillMarketOrder = async (
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey,
@@ -209,17 +223,45 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       let source: web3.PublicKey;
       let dest: web3.PublicKey;
 
-      if ((!isReverse && orderType === OrderType.Sell) || (isReverse && orderType === OrderType.Buy)) {
+      if (
+        (!isReverse && orderType === OrderType.Sell) ||
+        (isReverse && orderType === OrderType.Buy)
+      ) {
         // Source derived with mintA, destination derived with mintB
-        source = vaultA || await getVaultAccountPDA(orderBookConfig, tokenMintA, userWallet!.publicKey);
-        dest = vaultB || await getVaultAccountPDA(orderBookConfig, tokenMintB, userWallet!.publicKey);
+        source =
+          vaultA ||
+          getVaultAccountPDA(
+            orderBookConfig,
+            tokenMintA,
+            userWallet!.publicKey
+          );
+        dest =
+          vaultB ||
+          getVaultAccountPDA(
+            orderBookConfig,
+            tokenMintB,
+            userWallet!.publicKey
+          );
       } else {
         // Source derived with mintB, destination derived with mintA
-        source = vaultB || await getVaultAccountPDA(orderBookConfig, tokenMintB, userWallet!.publicKey);
-        dest = vaultA || await getVaultAccountPDA(orderBookConfig, tokenMintA, userWallet!.publicKey);
+        source =
+          vaultB ||
+          getVaultAccountPDA(
+            orderBookConfig,
+            tokenMintB,
+            userWallet!.publicKey
+          );
+        dest =
+          vaultA ||
+          getVaultAccountPDA(
+            orderBookConfig,
+            tokenMintA,
+            userWallet!.publicKey
+          );
       }
 
-      const txHash = await program.methods.fillMarketOrder()
+      const txHash = await program.methods
+        .fillMarketOrder()
         .accountsStrict({
           signer: userWallet?.publicKey,
           orderBookConfig,
@@ -234,18 +276,12 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           tokenProgramA,
           tokenProgramB
         })
-        .prepare();
+        .rpc();
 
+      await confirmTx(txHash, connection);
       toast.success("Market order filled successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to fill market order");
     }
   };
 
@@ -282,20 +318,14 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           tokenProgram: mint.owner,
           SystemProgram: web3.SystemProgram.programId
         })
-        .prepare();
+        .rpc();
 
+      await confirmTx(txHash, connection);
       toast.success("Order position cancelled successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
     } catch (err) {
       console.log(err);
-      throw new Error("Failed to cancel order position");
     }
-  }
+  };
 
   /* Instruction: Close Order Position */
   const closeOrderPosition = async (
@@ -314,20 +344,14 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           orderPositionConfig,
           SystemProgram: web3.SystemProgram.programId
         })
-        .prepare();
+        .rpc();
 
+      await confirmTx(txHash, connection);
       toast.success("Order position closed successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to close order position");
     }
-  }
+  };
 
   /* Instruction: Return Execution Market Order */
   const returnExecutionMarketOrder = async (
@@ -342,20 +366,14 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           orderBookConfig,
           marketPointer
         })
-        .prepare();
+        .rpc();
 
+      await confirmTx(txHash, connection);
       toast.success("Market order execution returned successfully!");
-
-      // Return both instruction and signers
-      return {
-        instruction: txHash.instruction,
-        signers: txHash.signers
-      };
     } catch (err) {
       console.error(err);
-      throw new Error("Failed to return execution market order");
     }
-  }
+  };
 
   return (
     <ProgramContext.Provider
@@ -390,7 +408,7 @@ interface Value {
     fill: Fill,
     targetAmount: BN,
     isReverse: boolean
-  ) => Promise<{ instruction: web3.TransactionInstruction; signers: web3.Signer[] }>; 
+  ) => Promise<void>;
   fillMarketOrder: (
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey,
@@ -444,6 +462,6 @@ interface Value {
   }) => Promise<void>;
 }
 
-export const useAppContext = () => {
+export const useProgramContext = () => {
   return useContext(ProgramContext);
 };
