@@ -32,6 +32,38 @@ pub fn create_rpc_client() -> RpcClient {
     RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed())
 }
 
+pub fn get_market_pointer(
+    buy_market_pointer_pubkey: Pubkey,
+    sell_market_pointer_pubkey: Pubkey,
+    order_type: Order,
+    price: u64,
+    min_price: Option<u64>,
+    max_price: Option<u64>,
+) -> (Pubkey, bool) {
+    match order_type {
+        Order::Bid => {
+            if max_price.map_or(true, |max| price > max) {
+                // Write to sell pointer if no max price or price is greater than max
+                (sell_market_pointer_pubkey, true)
+            } else {
+                // Read from sell pointer if price is less than or equal to max
+                (sell_market_pointer_pubkey, false)
+            }
+        }
+        Order::Ask => {
+            if min_price.map_or(true, |min| price < min) {
+                // Write to buy pointer if no min price or price is less than min
+                (buy_market_pointer_pubkey, true)
+            } else {
+                // Read from buy pointer if price is greater than or equal to min
+                (buy_market_pointer_pubkey, false)
+            }
+        }
+        // Wont handle buy and sell
+        _ => unreachable!(),
+    }
+}
+
 pub fn find_prev_next_entries(
     order_type: Order,
     order_price: u64,

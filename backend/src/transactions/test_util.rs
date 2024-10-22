@@ -18,11 +18,6 @@ pub const JUP_MINT: &str = "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN";
 pub fn setup() -> (ProgramTest, Keypair) {
     let keypair = Keypair::new();
 
-    println!(
-        "Current working directory: {:?}",
-        std::env::current_dir().unwrap()
-    );
-
     let mut program_test = ProgramTest::default();
 
     program_test.prefer_bpf(true);
