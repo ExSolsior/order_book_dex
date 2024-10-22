@@ -25,31 +25,12 @@ pub fn setup() -> (ProgramTest, Keypair) {
     // Add order book dex program
     program_test.add_program("order_book_dex", order_book_dex::ID, None);
 
-    let token_program_id = Pubkey::from_str("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").unwrap();
-    let token_2022_program_id =
-        Pubkey::from_str("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb").unwrap();
-    let associated_token_program_id =
-        Pubkey::from_str("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL").unwrap();
-
     // Add signer account
     program_test.add_account_with_lamports(
         keypair.pubkey(),
         system_program::ID,
         100 * LAMPORTS_PER_SOL,
     );
-
-    // // Add token program
-    // program_test.add_program("token_program.so", token_program_id, None);
-
-    // // Add token 2022 program
-    // program_test.add_program("token_2022_program.so", token_2022_program_id, None);
-
-    // // Add associated token program
-    // program_test.add_program(
-    //     "associated_token_program.so",
-    //     associated_token_program_id,
-    //     None,
-    // );
 
     let usdc_mint = Pubkey::from_str(USDC_MINT).unwrap();
     let jup_mint = Pubkey::from_str(JUP_MINT).unwrap();
