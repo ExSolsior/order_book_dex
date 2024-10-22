@@ -79,8 +79,8 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
                 CpiContext::new_with_signer(
                     self.source_program.to_account_info(),
                     TransferChecked {
-                        to: self.source.to_account_info(),
-                        from: self.capital_source.to_account_info(),
+                        from: self.source.to_account_info(),
+                        to: self.capital_source.to_account_info(),
                         authority: self.order_book_config.to_account_info(),
                         mint: self.token_mint_source.to_account_info(),
                     },
@@ -96,8 +96,8 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
                 CpiContext::new_with_signer(
                     self.dest_program.to_account_info(),
                     TransferChecked {
-                        to: self.dest.to_account_info(),
-                        from: self.capital_dest.to_account_info(),
+                        from: self.dest.to_account_info(),
+                        to: self.capital_dest.to_account_info(),
                         authority: self.order_book_config.to_account_info(),
                         mint: self.token_mint_dest.to_account_info(),
                     },

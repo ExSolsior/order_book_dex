@@ -27,7 +27,7 @@ pub struct CreateMarketOrder<'info> {
     pub market_pointer: Account<'info, MarketPointer>,
 
     #[account(
-        constraint = market_pointer.execution_stats.as_ref().unwrap().next_position_pointer == order_position.key(),
+        constraint = market_pointer.order_position_pointer.unwrap() == order_position.key(),
     )]
     pub order_position: Account<'info, OrderPosition>,
 
