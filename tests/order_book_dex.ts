@@ -183,6 +183,9 @@ describe("order_book_dex", () => {
                   {
                     side: "bid",
                     capitalSource: !is_reverse ? capitalSourceA : capitalSourceB,
+                    capitalA: !is_reverse ? capitalSourceA : capitalSourceB,
+                    capitalB: !is_reverse ? capitalSourceB : capitalSourceA,
+
                     source: !is_reverse ? vaultA : vaultB,
                     dest: !is_reverse ? vaultB : vaultA,
                     tokenMintA: !is_reverse ? config.tokenMintA : config.tokenMintB,
@@ -193,6 +196,9 @@ describe("order_book_dex", () => {
                   {
                     side: "ask",
                     capitalSource: !is_reverse ? capitalSourceB : capitalSourceA,
+                    capitalA: !is_reverse ? capitalSourceB : capitalSourceA,
+                    capitalB: !is_reverse ? capitalSourceA : capitalSourceB,
+
                     source: !is_reverse ? vaultB : vaultA,
                     dest: !is_reverse ? vaultA : vaultB,
                     tokenMintA: !is_reverse ? config.tokenMintB : config.tokenMintA,
@@ -203,6 +209,10 @@ describe("order_book_dex", () => {
                   {
                     side: "buy",
                     capitalSource: !is_reverse ? capitalSourceA : capitalSourceB,
+                    capitalA: !is_reverse ? capitalSourceA : capitalSourceB,
+                    capitalB: !is_reverse ? capitalSourceB : capitalSourceA,
+
+
                     source: !is_reverse ? vaultA : vaultB,
                     dest: !is_reverse ? vaultB : vaultA,
                     tokenMintA: !is_reverse ? config.tokenMintA : config.tokenMintB,
@@ -213,6 +223,10 @@ describe("order_book_dex", () => {
                   {
                     side: "sell",
                     capitalSource: !is_reverse ? capitalSourceB : capitalSourceA,
+                    capitalA: !is_reverse ? capitalSourceB : capitalSourceA,
+                    capitalB: !is_reverse ? capitalSourceA : capitalSourceB,
+
+
                     source: !is_reverse ? vaultB : vaultA,
                     dest: !is_reverse ? vaultA : vaultB,
                     tokenMintA: !is_reverse ? config.tokenMintB : config.tokenMintA,
@@ -241,17 +255,6 @@ describe("order_book_dex", () => {
       }));
 
     console.log('SETUP FINISHED\n');
-
-    // program.addEventListener("newOpenPositionEvent", (event, slot, sig) => {
-    //   console.log("this", slot, sig)
-    //   console.log(event)
-    // })
-
-    // provider.connection.onLogs(new PublicKey("Ho5fe2xYQX84C5kXTSB34hZCudUB4Z1KDhFViPFtGoP"), (logs, ctx) => {
-    //   console.log(logs, ctx)
-    // })
-
-    // console.log("event set")
   })
 
   it("Create Trade Pair", async () => {
@@ -358,11 +361,18 @@ describe("order_book_dex", () => {
 
       const tx = await program.methods
         .createOrderPositionConfig()
-        .accounts({
+        .accountsPartial({
           signer: users[0].keypair.publicKey,
           orderBookConfig,
-          // orderPositionConfig,
-          // systemProgram: SYSTEM_PROGRAM_ID,
+          orderPositionConfig,
+          // capitalA: users[0].vaultAccountList[0].capitalSourceB,
+          // capitalB: users[0].vaultAccountList[0].capitalSourceA,
+
+          // capitalA: users[0].vaultAccountList[0].capitalSourceA,
+          // capitalB: users[0].vaultAccountList[0].capitalSourceB,
+          tokenMintA,
+          tokenMintB,
+          systemProgram: SYSTEM_PROGRAM_ID,
         })
         .signers([users[0].keypair])
         .rpc();
@@ -620,16 +630,22 @@ describe("order_book_dex", () => {
         Buffer.from('market-pointer'),
       ], program.programId);
 
+      // console.log(takerTokenAccounts)
+
       const tx = await program.methods
-        .createMarketOrder({ buy: {} }, { full: {} }, new anchor.BN(10))
-        .accountsPartial({
+        .createMarketOrder({ sell: {} }, { full: {} }, new anchor.BN(10))
+        .accountsStrict({
           signer: signer.publicKey,
           orderBookConfig,
+          orderPosition,
           marketPointer: sellMarketPointer,
           source: takerTokenAccounts.source,
           dest: takerTokenAccounts.dest,
+          capitalSource: takerTokenAccounts.capitalA.address,
+          capitalDest: takerTokenAccounts.capitalB.address,
           tokenMintSource: takerTokenAccounts.tokenMintA,
           tokenMintDest: takerTokenAccounts.tokenMintB,
+          sourceProgram: TOKEN_PROGRAM_ID,
           nextPositionPointer: orderPosition,
         })
         .signers([signer])
@@ -726,6 +742,8 @@ describe("order_book_dex", () => {
         tokenMintA,
         tokenMintB,
       } = orderBookConfigAddressList[0];
+      const takerTokenAccounts = users[1].vaultAccountList[0].tokenAccounts
+        .find(list => list.side === 'sell');
 
       const [orderBookConfig] = PublicKey.findProgramAddressSync([
         tokenMintA.toBuffer(),
@@ -747,9 +765,17 @@ describe("order_book_dex", () => {
 
       const tx = await program.methods
         .returnExecutionMarketOrder()
-        .accountsPartial({
+        .accountsStrict({
           signer: signer.publicKey,
           orderBookConfig,
+          source: takerTokenAccounts.source,
+          dest: takerTokenAccounts.dest,
+          capitalSource: takerTokenAccounts.capitalA.address,
+          capitalDest: takerTokenAccounts.capitalB.address,
+          tokenMintSource: takerTokenAccounts.tokenMintA,
+          tokenMintDest: takerTokenAccounts.tokenMintB,
+          sourceProgram: TOKEN_PROGRAM_ID,
+          destProgram: TOKEN_PROGRAM_ID,
           marketPointer: sellMarketPointer,
         })
         .signers([signer])
@@ -802,8 +828,7 @@ describe("order_book_dex", () => {
         Buffer.from('market-pointer'),
       ], program.programId);
 
-      const tokenAccounts = users[0].vaultAccountList[0].tokenAccounts
-        .find(list => list.side === 'bid');
+
 
       const tx = await program.methods
         .cancelOrderPosition()
@@ -816,11 +841,6 @@ describe("order_book_dex", () => {
           orderPositionConfig,
           prevOrderPosition: null,
           nextOrderPosition: null,
-          capitalDestination: tokenAccounts.capitalSource.address,
-          source: tokenAccounts.source,
-          tokenMint: tokenMintA,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
         })
         .signers([signer])
         .rpc();
@@ -866,6 +886,9 @@ describe("order_book_dex", () => {
         Buffer.from('order-position'),
       ], program.programId);
 
+      const tokenAccounts = users[0].vaultAccountList[0].tokenAccounts
+        .find(list => list.side === 'bid');
+
       const tx = await program.methods
         .closeOrderPosition()
         .accountsStrict({
@@ -874,6 +897,14 @@ describe("order_book_dex", () => {
           orderBookConfig,
           orderPosition,
           orderPositionConfig,
+          capitalSource: users[0].vaultAccountList[0].capitalSourceA.address,
+          capitalDest: users[0].vaultAccountList[0].capitalSourceB.address,
+          source: tokenAccounts.source,
+          dest: tokenAccounts.dest,
+          tokenMintSource: tokenMintA,
+          tokenMintDest: tokenMintB,
+          sourceProgram: TOKEN_PROGRAM_ID,
+          destProgram: TOKEN_PROGRAM_ID,
           systemProgram: SYSTEM_PROGRAM_ID,
         })
         .signers([wallet.payer])
@@ -893,5 +924,6 @@ describe("order_book_dex", () => {
     })
 
   })
+
 
 });
