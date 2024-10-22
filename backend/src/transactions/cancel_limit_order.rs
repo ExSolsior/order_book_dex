@@ -3,7 +3,11 @@ use std::str::FromStr;
 use actix_web::web;
 use anchor_lang::{InstructionData, ToAccountMetas};
 use order_book_dex::{accounts, instruction, state::Order, ID as program_id};
-use solana_sdk::{instruction::Instruction, pubkey::Pubkey, transaction::VersionedTransaction};
+use solana_sdk::{
+    instruction::Instruction, pubkey::Pubkey, system_program::ID as system_program,
+    transaction::VersionedTransaction,
+};
+use spl_associated_token_account::get_associated_token_address_with_program_id;
 
 use crate::{
     db::models::{get_trade_pair, OrderPosition},
@@ -12,6 +16,7 @@ use crate::{
 
 use super::{
     error::TransactionBuildError,
+    pdas::get_vault_account_pda,
     util::{create_rpc_client, create_versioned_tx},
 };
 
@@ -116,6 +121,12 @@ pub async fn cancel_limit_order(
         order_position_config,
         prev_order_position,
         next_order_position,
+        is_reverse: order_book_data.is_reverse,
+        order_type,
+        token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
+        token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
+        token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
+        token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
     });
 
     let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
@@ -132,6 +143,12 @@ pub struct BuildIxParams {
     pub order_position_config: Pubkey,
     pub prev_order_position: Option<Pubkey>,
     pub next_order_position: Option<Pubkey>,
+    pub is_reverse: bool,
+    pub order_type: Order,
+    pub token_mint_a: Pubkey,
+    pub token_mint_b: Pubkey,
+    pub token_program_a: Pubkey,
+    pub token_program_b: Pubkey,
 }
 
 pub fn build_ixs(build_ix_params: BuildIxParams) -> Vec<Instruction> {
@@ -144,25 +161,97 @@ pub fn build_ixs(build_ix_params: BuildIxParams) -> Vec<Instruction> {
         order_position_config,
         prev_order_position,
         next_order_position,
+        is_reverse,
+        order_type,
+        token_mint_a,
+        token_mint_b,
+        token_program_a,
+        token_program_b,
     } = build_ix_params;
 
-    let ixs = vec![Instruction {
-        program_id,
-        accounts: ToAccountMetas::to_account_metas(
-            &accounts::CancelOrderPosition {
-                signer,
-                order_book_config,
-                market_pointer_read,
-                market_pointer_write,
-                order_position,
-                order_position_config,
-                prev_order_position,
-                next_order_position,
-            },
-            None,
-        ),
-        data: InstructionData::data(&instruction::CancelOrderPosition {}),
-    }];
+    let resolved_source: Pubkey;
+    let resolved_dest: Pubkey;
+    let capital_source: Pubkey;
+    let capital_dest: Pubkey;
+    let token_mint_source: Pubkey;
+    let token_mint_dest: Pubkey;
+    let source_program: Pubkey;
+    let dest_program: Pubkey;
+
+    if (!is_reverse && order_type == Order::Bid) || (is_reverse && order_type == Order::Ask) {
+        // Capital source derived with mint A
+        capital_source =
+            get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
+        capital_dest =
+            get_associated_token_address_with_program_id(&signer, &token_mint_b, &token_program_b);
+
+        // Source derived with mint A, destination derived with mint B
+        resolved_source = get_vault_account_pda(order_book_config, token_mint_a, signer);
+        resolved_dest = get_vault_account_pda(order_book_config, token_mint_b, signer);
+
+        token_mint_source = token_mint_a;
+        token_mint_dest = token_mint_b;
+        source_program = token_program_a;
+        dest_program = token_program_b;
+    } else {
+        // Capital source derived with mint B
+        capital_source =
+            get_associated_token_address_with_program_id(&signer, &token_mint_b, &token_program_b);
+        capital_dest =
+            get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
+
+        // Source derived with mint B, destination derived with mint A
+        resolved_source = get_vault_account_pda(order_book_config, token_mint_b, signer);
+        resolved_dest = get_vault_account_pda(order_book_config, token_mint_a, signer);
+
+        token_mint_source = token_mint_b;
+        token_mint_dest = token_mint_a;
+        source_program = token_program_b;
+        dest_program = token_program_a;
+    }
+
+    let ixs = vec![
+        Instruction {
+            program_id,
+            accounts: ToAccountMetas::to_account_metas(
+                &accounts::CancelOrderPosition {
+                    signer,
+                    order_book_config,
+                    market_pointer_read,
+                    market_pointer_write,
+                    order_position,
+                    order_position_config,
+                    prev_order_position,
+                    next_order_position,
+                },
+                None,
+            ),
+            data: InstructionData::data(&instruction::CancelOrderPosition {}),
+        },
+        Instruction {
+            program_id,
+            accounts: ToAccountMetas::to_account_metas(
+                &accounts::CloseOrderPosition {
+                    signer,
+                    owner: signer,
+                    order_book_config,
+                    order_position,
+                    order_position_config,
+                    source: resolved_source,
+                    dest: resolved_dest,
+                    capital_source,
+                    capital_dest,
+                    token_mint_source,
+                    token_mint_dest,
+                    source_program,
+                    dest_program,
+                    system_program,
+                },
+                None,
+            ),
+            data: InstructionData::data(&instruction::CloseOrderPosition {}),
+        },
+    ];
 
     ixs
 }
@@ -261,7 +350,7 @@ mod tests {
         // Test ask limit order
 
         let ask_price = 2;
-        let market_pointer = get_market_pointer(
+        let ask_market_pointer = get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Ask,
@@ -276,12 +365,12 @@ mod tests {
             token_mint_b,
             token_program_a: mint_a.owner,
             token_program_b: mint_b.owner,
-            market_pointer_read: if market_pointer.1 {
+            market_pointer_read: if ask_market_pointer.1 {
                 None
             } else {
-                Some(market_pointer.0)
+                Some(ask_market_pointer.0)
             },
-            market_pointer_write: market_pointer.1.then_some(market_pointer.0),
+            market_pointer_write: ask_market_pointer.1.then_some(ask_market_pointer.0),
             prev_order_position: None,
             next_order_position: None,
             next_position_pointer: None,
@@ -297,8 +386,9 @@ mod tests {
         banks_client.process_transaction(tx).await.unwrap();
 
         // Test cancel bid limit order
+
         let bid_order_position = get_order_position_pda(0, signer.pubkey());
-        let bid_order_position_config =
+        let order_position_config =
             get_order_position_config_pda(signer.pubkey(), order_book_config);
         let cancel_limit_order_params = BuildIxParams {
             signer: signer.pubkey(),
@@ -306,9 +396,38 @@ mod tests {
             market_pointer_read: None,
             market_pointer_write: Some(bid_market_pointer.0),
             order_position: bid_order_position,
-            order_position_config: bid_order_position_config,
+            order_position_config,
             prev_order_position: None,
             next_order_position: None,
+            is_reverse: false,
+            order_type: Order::Bid,
+            token_mint_a,
+            token_mint_b,
+            token_program_a: mint_a.owner,
+            token_program_b: mint_b.owner,
+        };
+        let ixs = build_ixs(cancel_limit_order_params);
+        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
+        banks_client.process_transaction(tx).await.unwrap();
+
+        // Test cancel ask limit order
+
+        let ask_order_position = get_order_position_pda(1, signer.pubkey());
+        let cancel_limit_order_params = BuildIxParams {
+            signer: signer.pubkey(),
+            order_book_config,
+            market_pointer_read: None,
+            market_pointer_write: Some(ask_market_pointer.0),
+            order_position: ask_order_position,
+            order_position_config,
+            prev_order_position: None,
+            next_order_position: None,
+            is_reverse: false,
+            order_type: Order::Ask,
+            token_mint_a,
+            token_mint_b,
+            token_program_a: mint_a.owner,
+            token_program_b: mint_b.owner,
         };
         let ixs = build_ixs(cancel_limit_order_params);
         let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
