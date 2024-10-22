@@ -67,7 +67,7 @@ pub struct CloseOrderPosition<'info> {
 
     #[account(
         mut,
-        // constraint = order_position_config.capital_a == capital_dest.key() || order_position_config.capital_b == capital_dest.key(),
+        constraint = order_position_config.capital_a == capital_dest.key() || order_position_config.capital_b == capital_dest.key(),
     )]
     /// CHECKED: Don't need the data, only pubkey
     pub capital_dest: UncheckedAccount<'info>,
