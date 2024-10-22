@@ -35,7 +35,7 @@ pub struct CreateOrderPositionConfig<'info> {
     #[account(
         mut,
         associated_token::authority = signer,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = token_mint_b,
     )]
     pub capital_b: InterfaceAccount<'info, TokenAccount>,
 

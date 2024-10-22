@@ -14,7 +14,7 @@ pub mod order_position;
 
 use crate::constants::{BYTE, U64_BYTES};
 
-#[derive(PartialEq, Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(PartialEq, Clone, AnchorSerialize, AnchorDeserialize, Debug)]
 pub enum Order {
     Buy,
     Sell,

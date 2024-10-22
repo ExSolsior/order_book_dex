@@ -104,9 +104,9 @@ impl<'info> CreateOrderPosition<'info> {
             amount,
         )?;
 
-        let source_program = *self.source.to_account_info().owner;
+        let source_mint = self.source.mint;
 
-        let (token_program, token_mint) = if source_program == self.token_program_a.key() {
+        let (token_program, token_mint) = if source_mint == self.token_mint_a.key() {
             (self.token_program_a.clone(), self.token_mint_a.clone())
         } else {
             (self.token_program_b.clone(), self.token_mint_b.clone())
