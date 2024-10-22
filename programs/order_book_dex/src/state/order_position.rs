@@ -124,7 +124,7 @@ impl OrderPosition {
     }
 
     pub fn is_valid_order_type_match(&self, market_pointer: &Account<'_, MarketPointer>) -> bool {
-        self.order_type == Order::Ask && market_pointer.order_type == Order::Bid
+        self.order_type == Order::Ask && market_pointer.order_type == Order::Buy
             || self.order_type == Order::Bid && market_pointer.order_type == Order::Sell
     }
 }
