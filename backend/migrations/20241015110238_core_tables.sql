@@ -21,7 +21,21 @@ CREATE TABLE IF NOT EXISTS order_book_config (
     "token_program_a"               varchar(44) NOT NULL, 
     "token_program_b"               varchar(44) NOT NULL, 
     "sell_market_pointer_pubkey"    varchar(44) NOT NULL, 
-    "buy_market_pointer_pubkey"     varchar(44) NOT NULL, 
+    "buy_market_pointer_pubkey"     varchar(44) NOT NULL,
+    
+    "sell_pointer_final"            varchar(44),        -- add comes from market order trigger events
+    "buy_pointer_final"             varchar(44),        -- add comes from market order trigger events
+   
+    "b_captial_source"              varchar(44),        -- add comes from market order trigger events
+    "b_captial_dest"                varchar(44),        -- add comes from market order trigger events
+    "b_source"                      varchar(44),        -- add comes from market order trigger events
+    "b_dest"                        varchar(44),        -- add comes from market order trigger events
+   
+    "s_captial_source"              varchar(44),        -- add comes from market order trigger events
+    "s_captial_dest"                varchar(44),        -- add comes from market order trigger events
+    "s_source"                      varchar(44),        -- add comes from market order trigger events
+    "s_dest"                        varchar(44),        -- add comes from market order trigger events
+
     "token_mint_a_decimal"          smallint NOT NULL,
     "token_mint_b_decimal"          smallint NOT NULL,
     "token_mint_a_symbol"           varchar(12) NOT NULL,
@@ -34,6 +48,8 @@ CREATE TABLE IF NOT EXISTS order_position_config (
     "pubkey_id"                 varchar(44) PRIMARY KEY,
     "order_book_config_pubkey"  varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "market_maker_pubkey"       varchar(44) NOT NULL,
+    "capital_a_pubkey"          varchar(44) NOT NULL,   -- add
+    "capital_b_pubkey"          varchar(44) NOT NULL,   -- add
     "vault_a_pubkey"            varchar(44) NOT NULL,
     "vault_b_pubkey"            varchar(44) NOT NULL,
     "nonce"                     bigserial,
@@ -42,12 +58,15 @@ CREATE TABLE IF NOT EXISTS order_position_config (
 
 CREATE TABLE IF NOT EXISTS order_position (
     "pubkey_id"                         varchar(44) PRIMARY KEY,
+    "order_book_config_pubkey"          varchar(44) NOT NULL,   -- REFERENCES order_book_config (pubkey_id),
+    "order_position_config_pubkey"      varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
+    "next_order_position_pubkey"        varchar(44),
+    "source_vault"                      varchar(44) NOT NULL,       -- add
+    "destination_vault"                 varchar(44) NOT NULL,       -- add
     "order_type"                        order_type NOT NULL,
     "price"                             bigserial NOT NULL,
     "size"                              bigserial NOT NULL,
     "is_available"                      boolean NOT NULL,
-    "next_order_position_pubkey"        varchar(44),
-    "order_position_config_pubkey"      varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
     "slot"                              bigserial NOT NULL,
     "timestamp"                         bigserial NOT NULL
 );
