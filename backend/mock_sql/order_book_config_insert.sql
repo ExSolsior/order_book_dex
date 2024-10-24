@@ -26,7 +26,7 @@ INSERT INTO order_book_config (
     'BTC',
     'USDC',
     'BTC/USDC',
-    'false',
+    'false'
 ),
 
 (
@@ -41,7 +41,7 @@ INSERT INTO order_book_config (
     'USDC',
     'CHRONO',
     'CHRONO/USDC',
-    'false',
+    'false'
 ),
 
 (
@@ -56,7 +56,7 @@ INSERT INTO order_book_config (
     'USDC',
     'SAM',
     'SAM/USDC',
-    'false',
+    'false'
 ),
 
 (
@@ -71,7 +71,7 @@ INSERT INTO order_book_config (
     'RINSE',
     'USDC',
     'RINSE/USDC',
-    'true',
+    'true'
 ),
 
 (
@@ -86,7 +86,7 @@ INSERT INTO order_book_config (
     'MISTY',
     'USDC',
     'MISTY/USDC',
-    'true',
+    'true'
 ),
 
 (
@@ -101,7 +101,7 @@ INSERT INTO order_book_config (
     'USDC',
     'MUTINY',
     'MUTINY/USDC',
-    'false',
+    'false'
 ),
 
 (
@@ -116,7 +116,7 @@ INSERT INTO order_book_config (
     'USDC',
     'SOON',
     'SOON/USDC',
-    'false',
+    'false'
 ),
 
 (
@@ -131,7 +131,7 @@ INSERT INTO order_book_config (
     'CHRONO',
     'BTC',
     'CHRONO/BTC',
-    'true',
+    'true'
 ),
 
 (
@@ -146,7 +146,7 @@ INSERT INTO order_book_config (
     'SAM',
     'BTC',
     'SAM/BTC',
-    'true',
+    'true'
 ),
 
 (
@@ -161,7 +161,7 @@ INSERT INTO order_book_config (
     'RINSE',
     'BTC',
     'RINSE/BTC',
-    'true',
+    'true'
 ),
 
 (
@@ -176,7 +176,7 @@ INSERT INTO order_book_config (
     'MISTY',
     'BTC',
     'MISTY/BTC',
-    'true',
+    'true'
 ),
 
 (
@@ -188,10 +188,10 @@ INSERT INTO order_book_config (
     'GCATJrvH2DmAntmRcJJ2Y8RPBAjAc9m3a2Qp9WS3p1qS',
     '7PisLjYuxqDzhMJzPEzQCgCshWRKnKAMKbbP2jdq3bPQ',
     9, 8,
-    'MUTINY,'
+    'MUTINY',
     'BTC',
-    'MUTINY/BTC,'
-    'true',
+    'MUTINY/BTC',
+    'true'
 ),
 
 (
@@ -206,7 +206,7 @@ INSERT INTO order_book_config (
     'SOON',
     'BTC',
     'SOON/BTC',
-    'true',
+    'true'
 ),
 
 (
@@ -221,7 +221,7 @@ INSERT INTO order_book_config (
     'SAM',
     'CHRONO',
     'SAM/CHRONO',
-    'true',
+    'true'
 ),
 
 (
@@ -236,7 +236,7 @@ INSERT INTO order_book_config (
     'RINSE',
     'CHRONO',
     'RINSE/CHRONO',
-    'true',
+    'true'
 ),
 
 (
@@ -251,7 +251,7 @@ INSERT INTO order_book_config (
     'MISTY',
     'CHRONO',
     'MISTY/CHRONO',
-    'true',
+    'true'
 ),
 
 (
@@ -266,7 +266,7 @@ INSERT INTO order_book_config (
     'MUTINY',
     'CHRONO',
     'MUTINY/CHRONO',
-    'true',
+    'true'
 ),
 
 (
@@ -281,53 +281,5 @@ INSERT INTO order_book_config (
     'SOON',
     'CHRONO',
     'SOON/CHRONO',
-    'true',
+    'true'
 );
-
-
-INSERT INTO order_book_config (
-    "pubkey_id",
-    "token_mint_a", 
-    "token_mint_b", 
-    "token_program_a", 
-    "token_program_b", 
-    "sell_market_pointer_pubkey", 
-    "buy_market_pointer_pubkey", 
-    "token_mint_a_decimal",
-    "token_mint_b_decimal",
-    "token_mint_a_symbol",
-    "token_mint_b_symbol",
-    "ticker",
-    "is_reverse"
-) VALUES 
-
-(
-    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
-    'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz',
-    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-    'HioB7cBHwyFMjeXee13ajygWHNiyk1JWm1og7sfmqbiA',
-    'F7UbiLGGqrihPXiJmQoSjerC2uFD7Pj4qVHpSWH7FB7o',
-    6, 8,
-    'BTC',
-    'USDC',
-    'BTC/USDC',
-    'false'
-),
-
-(
-    'AX1bxytJSXyjDpzc2YpYDyNxkS3FmT2HibAfSF4MsRnA',
-    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
-    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
-    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-    '93rZYhxGW46hKSepL4BK5QuCDeW5hWjV6bAnBBgZaHMB',
-    'EG7uGBo7ob4PLJzwutUB9kUL6wMdKVwbjs6DTG8h2sYg',
-    6, 9,
-    'USDC',
-    'CHRONO',
-    'CHRONO/USDC',
-    'false'
-);
-

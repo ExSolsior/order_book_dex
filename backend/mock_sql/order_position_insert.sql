@@ -13,6 +13,56 @@ INSERT INTO order_position (
     "timestamp"
 ) VALUES 
 
+---  ASKS
+(
+    '6zPygCQ6WbJKjxFS1hiNiRyqdzsnhKUiCH8u5wzHQ2R3',
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
+    NULL,
+    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
+    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
+    'ask',
+    23,
+    2,
+    'true',
+    0,
+    0
+),
+
+(
+    '2jyMQLboCoaanNPE9iopujVyQPPGQngsaELdyTYeUi3G',
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
+    '6zPygCQ6WbJKjxFS1hiNiRyqdzsnhKUiCH8u5wzHQ2R3',
+    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
+    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
+    'ask',
+    22,
+    2,
+    'true',
+    0,
+    0
+),
+
+(
+    'A9SS2WD9VXUrrqoWfLzKnmP3MZJWHCgxFDEQB2UaC58Q',
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
+    '2jyMQLboCoaanNPE9iopujVyQPPGQngsaELdyTYeUi3G',
+    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
+    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
+    'ask',
+    20,
+    2,
+    'true',
+    0,
+    0
+),
+
+
+
+
+--- BIDS
 (
     'Eu9u82SSVWHHC9jX95dSUjEXEJq9M1iMp1q2SzEBHZLG',
     'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
@@ -58,47 +108,4 @@ INSERT INTO order_position (
     0
 ),
 
-(
-    'A9SS2WD9VXUrrqoWfLzKnmP3MZJWHCgxFDEQB2UaC58Q',
-    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
-    '2jyMQLboCoaanNPE9iopujVyQPPGQngsaELdyTYeUi3G',
-    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
-    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
-    'ask',
-    20,
-    2,
-    'true',
-    0,
-    0
-),
 
-(
-    '2jyMQLboCoaanNPE9iopujVyQPPGQngsaELdyTYeUi3G',
-    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
-    '6zPygCQ6WbJKjxFS1hiNiRyqdzsnhKUiCH8u5wzHQ2R3',
-    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
-    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
-    'ask',
-    22,
-    2,
-    'true',
-    0,
-    0
-),
-
-(
-    '6zPygCQ6WbJKjxFS1hiNiRyqdzsnhKUiCH8u5wzHQ2R3',
-    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs',
-    NULL,
-    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB',
-    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe',
-    'ask',
-    23,
-    2,
-    'true',
-    0,
-    0
-);
