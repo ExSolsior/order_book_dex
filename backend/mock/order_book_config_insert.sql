@@ -283,3 +283,51 @@ INSERT INTO order_book_config (
     'SOON/CHRONO',
     'true',
 );
+
+
+INSERT INTO order_book_config (
+    "pubkey_id",
+    "token_mint_a", 
+    "token_mint_b", 
+    "token_program_a", 
+    "token_program_b", 
+    "sell_market_pointer_pubkey", 
+    "buy_market_pointer_pubkey", 
+    "token_mint_a_decimal",
+    "token_mint_b_decimal",
+    "token_mint_a_symbol",
+    "token_mint_b_symbol",
+    "ticker",
+    "is_reverse"
+) VALUES 
+
+(
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz',
+    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    'HioB7cBHwyFMjeXee13ajygWHNiyk1JWm1og7sfmqbiA',
+    'F7UbiLGGqrihPXiJmQoSjerC2uFD7Pj4qVHpSWH7FB7o',
+    6, 8,
+    'BTC',
+    'USDC',
+    'BTC/USDC',
+    'false'
+),
+
+(
+    'AX1bxytJSXyjDpzc2YpYDyNxkS3FmT2HibAfSF4MsRnA',
+    '84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun',
+    'FJnoYmBuTkgsbXpNKCLm4WwnPCZv7BfdKw5QrdtsNq9c',
+    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+    '93rZYhxGW46hKSepL4BK5QuCDeW5hWjV6bAnBBgZaHMB',
+    'EG7uGBo7ob4PLJzwutUB9kUL6wMdKVwbjs6DTG8h2sYg',
+    6, 9,
+    'USDC',
+    'CHRONO',
+    'CHRONO/USDC',
+    'false'
+);
+

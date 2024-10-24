@@ -65,3 +65,52 @@ INSERT INTO order_position_config (
     0, 
     0
 );
+
+
+INSERT INTO order_position_config (
+    "pubkey_id",
+    "order_book_config_pubkey",
+    "market_maker_pubkey",
+    "capital_a_pubkey",
+    "capital_b_pubkey",
+    "vault_a_pubkey",
+    "vault_b_pubkey",
+    "nonce",
+    "reference"
+) VALUES 
+
+(
+    '49wBdBzzw9eMre1wT27TD1b8hgW9x9tCWFtvAUmLohtp', 
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK', 
+    '3r94vqjXgw8NTuWAf2xXVJZFNF3NMpogHGzukR3UDKGe',
+    '36b5FG2RLE6ywzrTMcF3Zynue9vX19Ph7bGUiBVj4gJo',
+    '6BKn8X1i1EjRy4h3vXior1iMXJFVqjbyYUJ4Uis4j5XJ',
+    'DMWSPLsKwJrU3a1pNJxWZ3Gb6JykPFSKWtxVR8svhqrB', 
+    'H2NyxBpLBXxjuGMurB9kLJbePaghhEqDenXyptWJaUFe', 
+    0, 
+    0
+),
+
+(
+    '3yJALi5ZMjXnNQvFyPE2sMKjPNYZtZ8jNBxajcGxWp2w', 
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK', 
+    'Fg6bTVyTc53uGvUyctgRMaRXuKukM28KvSDXRjfQ3Uru', 
+    'j8hgneriXF61CBJM56BepFzCMFa9yNW5HJBGx7esUu1',
+    '7NFLWsttm8yHeMrctsVncXzVbYqoECc8eLU5h3fpsBMh',
+    'DfBXUGPumZCLMRqAdZbTLND7jB9t2k1cxQbVAh1RMDFz', 
+    '3DYaNhZ11fcZrBXCorqoY51XXHzT7MjWPMmge9ibYsQd', 
+    0, 
+    0
+),
+
+(
+    'C9zVweJ1kCnzVeGpqBVpBSxZYY5Khsec7TqCXNmxcQMs', 
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK', 
+    'CPbvhfoLgnUG1uSVBjSYXVeLVqyNyReQoQwnbA6SxotY', 
+    'FrPrDc8Q3SkzBuqKitx2eaVTedJT3efb8CCPZzox5PVQ',
+    '8vt9cmJjpWdtbcUkjqo5TUFZ27QceCNur99XYkwEAvCT',
+    'GFXSVUE696WL6LkiRin5BR6jgpSSh7t85dcHnmVUHqJe', 
+    '9tJJwpjpgZsghxKYUCsxJXySNkBkLQDahrSHA8RTropC', 
+    0, 
+    0
+);
