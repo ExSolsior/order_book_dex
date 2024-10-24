@@ -1,43 +1,62 @@
-use actix_web::web::Data;
-use anyhow::Context;
-use chrono::{DateTime, Utc};
-use services::{
-    logs_handler, market_history, market_list, market_order_book, sanity_check, scheduled_process,
+use {
+    actix_web::web::{self, Data, ServiceConfig},
+    anyhow::Context,
+    chrono::{DateTime, Utc},
+    clokwerk::{AsyncScheduler, TimeUnits},
+    futures_util::StreamExt,
+    services::{
+        logs_handler, market_history, market_list, market_order_book, sanity_check,
+        scheduled_process,
+    },
+    shuttle_actix_web::ShuttleActixWeb,
+    shuttle_runtime::SecretStore,
+    solana_pubsub_client::nonblocking::pubsub_client::PubsubClient,
+    solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter},
+    solana_sdk::pubkey::Pubkey,
+    sqlx::{postgres::PgPoolOptions, Pool, Postgres},
+    std::{sync::Arc, time::Duration},
+    tokio::{
+        io::AsyncReadExt,
+        sync::{mpsc::unbounded_channel, OnceCell},
+    },
 };
-use shuttle_runtime::SecretStore;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+
 mod db;
 mod services;
-pub mod transactions;
+// pub mod transactions;
 
-use actix_web::web::{self, ServiceConfig};
-use shuttle_actix_web::ShuttleActixWeb;
-
-use futures_util::StreamExt;
-use solana_pubsub_client::nonblocking::pubsub_client::PubsubClient;
-use solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter};
-use std::sync::Arc;
-use tokio::sync::mpsc::unbounded_channel;
-use tokio::{io::AsyncReadExt, sync::OnceCell};
-
-use clokwerk::{AsyncScheduler, TimeUnits};
-use std::time::Duration;
+pub static POOL: OnceCell<Pool<Postgres>> = OnceCell::const_new();
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Pool<Postgres>,
 }
 
-// const WS_URL: &str = "wss://api.devnet.solana.com/";
-const WS_URL: &str = "wss://rpc.devnet.soo.network/rpc";
+// pub struct OrderBook {
+//     pub pubkey_id: Pubkey,
+//     pub ask: Vec<LimitOrder>,
+//     pub bid: Vec<LimitOrder>,
+// }
 
-pub static POOL: OnceCell<Pool<Postgres>> = OnceCell::const_new();
+// pub struct LimitOrder {
+//     pub price: u64,
+//     pub amount: u64,
+//     pub position: Pubkey,
+//     pub position_config: Pubkey,
+//     pub source: Pubkey,
+//     pub destination: Pubkey,
+//     pub capital_source: Pubkey,
+//     pub capital_destination: Pubkey,
+//     pub next_limit_order: Option<Pubkey>,
+//     pub is_available: bool,
+// }
 
 #[shuttle_runtime::main]
 async fn main(
     #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
     let db_url = secrets.get("DB_URL").context("secret was not found")?;
+    let ws_url = secrets.get("WS_URL").context("secret was not found")?;
 
     println!("{db_url}");
 
@@ -65,7 +84,7 @@ async fn main(
             unbounded_channel::<(_, &'static str)>();
 
         // The `PubsubClient` must be `Arc`ed to share it across tasks.
-        let pubsub_client = Arc::new(PubsubClient::new(WS_URL).await.unwrap());
+        let pubsub_client = Arc::new(PubsubClient::new(&ws_url).await.unwrap());
 
         let mut join_handles = vec![];
 

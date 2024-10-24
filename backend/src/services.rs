@@ -1,19 +1,20 @@
-use crate::{
-    db::models::{
-        delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
-        get_trade_pair_list, insert_market_order_history, insert_order_position,
-        insert_order_position_config, insert_real_time_trade, insert_trade_pair,
-        update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+use {
+    crate::{
+        db::models::{
+            delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
+            get_trade_pair_list, insert_market_order_history, insert_order_position,
+            insert_order_position_config, insert_real_time_trade, insert_trade_pair,
+            update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+        },
+        AppState, POOL,
     },
-    POOL,
+    actix_web::{get, post, web, HttpResponse, Responder},
+    base64::engine::{general_purpose, Engine},
+    serde::Deserialize,
+    solana_rpc_client_api::response::{Response, RpcLogsResponse},
+    solana_sdk::pubkey::Pubkey,
+    std::str::FromStr,
 };
-use actix_web::{get, web, HttpResponse, Responder};
-use base64::engine::{general_purpose, Engine};
-use solana_rpc_client_api::response::{Response, RpcLogsResponse};
-use solana_sdk::pubkey::Pubkey;
-
-use crate::AppState;
-use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
@@ -39,9 +40,18 @@ pub async fn market_order_book(
     query: web::Query<TradePair>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
-    match get_trade_pair(query.pubkey_id.clone(), app_state).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+    match get_trade_pair(&Pubkey::from_str(&query.pubkey_id).unwrap(), app_state).await {
+        Ok(data) =>
+        // should should as structured message
+        {
+            HttpResponse::Ok().json(data)
+        }
+
+        Err(_) =>
+        // should send as structured error message
+        {
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 
@@ -450,3 +460,41 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
 
     return num;
 }
+
+#[post("/open_limit_order")]
+pub async fn open_limit_order(
+    _info: web::Json<Info>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    // app_state.order_book;
+    HttpResponse::Ok().body("it works")
+}
+
+#[derive(Deserialize)]
+struct Info {
+    pub _pubkey_id: Pubkey,
+    pub _order_type: OrderType,
+    pub _price: u64,
+    pub _amount: u64,
+}
+
+#[derive(Deserialize)]
+enum OrderType {
+    Ask,
+    Bid,
+    Sell,
+    Buy,
+}
+
+// post request -> trade reponse
+// market order
+//  amount
+//  order type
+//  fill -> partial ->
+
+// limit order
+//  open
+//      order type
+//      price
+//      amount
+//  cancel
