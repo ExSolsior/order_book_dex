@@ -4,33 +4,48 @@ WITH trade_pair AS (
 
 ), position AS (
     SELECT
-        -- should also include capital source and captial dest?
-        -- what other data do I need?
         op.pubkey_id AS "pubkey_id", 
         opc.pubkey_id AS "position_config", 
         op.next_position AS "next_position", 
         opc.market_maker AS "market_maker", 
         op.order_type AS "order_type", 
-        op.price AS "price", 
-        op.size AS "size", 
-        op.is_available AS  "is_available", 
+        op.price AS "price",                    -- I wonder how these will serialize into json?
+        op.size AS "size",                      -- I wonder how these will serialize into json?
+        op.is_available AS  "is_available",
+
+        CASE
+            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                OR (t.is_reverse AND op.order_type = 'ask')
+                THEN opc.capital_a
+            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                OR (t.is_reverse AND op.order_type = 'bid')
+                THEN opc.capital_b
+        END AS "capital_source",
         
         CASE
-            WHEN (NOT s.is_reverse AND op.order_type = 'bid')
-                OR (s.is_reverse AND op.order_type = 'ask')
+            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                OR (t.is_reverse AND op.order_type = 'ask')
+                THEN opc.capital_b
+            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                OR (t.is_reverse AND op.order_type = 'bid')
+                THEN opc.capital_a
+        END AS "capital_destination",
+        
+        CASE
+            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                OR (t.is_reverse AND op.order_type = 'ask')
                 THEN opc.vault_a
-            WHEN (NOT s.is_reverse AND op.order_type = 'ask')
-                OR (s.is_reverse AND op.order_type = 'bid')
+            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                OR (t.is_reverse AND op.order_type = 'bid')
                 THEN opc.vault_b
         END AS "source",
-
         
         CASE
-            WHEN (NOT s.is_reverse AND op.order_type = 'bid')
-                OR (s.is_reverse AND op.order_type = 'ask')
+            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                OR (t.is_reverse AND op.order_type = 'ask')
                 THEN opc.vault_b
-            WHEN (NOT s.is_reverse AND op.order_type = 'ask')
-                OR (s.is_reverse AND op.order_type = 'bid')
+            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                OR (t.is_reverse AND op.order_type = 'bid')
                 THEN opc.vault_a
         END AS "destination",
 
@@ -39,9 +54,7 @@ WITH trade_pair AS (
 
     FROM order_position_config AS opc
     JOIN order_position AS op ON op.position_config = opc.pubkey_id
-    JOIN trade_pair AS s ON s.pubkey_id = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
-    WHERE opc.book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
-    -- ORDER BY op.price ASC
+    JOIN trade_pair AS t ON t.pubkey_id = opc.book_config
 
 ), bids AS (
     SELECT
@@ -53,12 +66,15 @@ WITH trade_pair AS (
         p.price,
         p.size,
         p.is_available,
+        p.capital_source,
+        p.capital_destination,
         p.source,
         p.destination,
         p.slot,
         p.timestamp
 
     FROM position AS p
+    WHERE p.order_type = 'bid'
     ORDER BY p.price DESC, p.slot ASC
 
 ), asks AS (
@@ -71,55 +87,62 @@ WITH trade_pair AS (
         p.price,
         p.size,
         p.is_available,
+        p.capital_source,
+        p.capital_destination,
         p.source,
         p.destination,
         p.slot,
         p.timestamp
 
     FROM position AS p
+    WHERE p.order_type = 'ask'
     ORDER BY p.price ASC, p.slot ASC
 
-), book AS (
+), agg_bids AS (
     SELECT 
         'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS "pubkey_id",
-        -- it's an array so that book::<side> is indexable to get last price, but is wrong impl
-        array_agg(
-            json_build_object(
-                'pubkeyId', a.pubkey_id,
-                'orderPosConfig', a.position_config,
-                'nextOrderPos', a.next_position,
-                'marketMakerPubkey', a.market_maker,
-                'orderType', a.order_type,
-                'price', a.price,
-                'size', a.size,
-                'isAvailable', a.is_available,
-                'source', a.source,
-                'destination', a.destination,
-                'slot', a.slot,
-                'timestamp', a.timestamp
-            )
-        ) AS asks,
-
-        -- it's an array so that book::<side> is indexable to get last price, but is wrong impl
         array_agg(
             json_build_object(
                 'pubkeyId', b.pubkey_id,
-                'orderPosConfig', b.position_config,
-                'nextOrderPos', b.next_position,
-                'marketMakerPubkey', b.market_maker,
+                'positionConfig', b.position_config,
+                'nextPosition', b.next_position,
+                'marketMaker', b.market_maker,
                 'orderType', b.order_type,
                 'price', b.price,
                 'size', b.size,
                 'isAvailable', b.is_available,
-                'source', b.source,
-                'destination', b.destination,
+                'sourceCapital', b.capital_source,
+                'destinationCapital', b.capital_destination,
+                'sourceVault', b.source,
+                'destinationVault', b.destination,
                 'slot', b.slot,
                 'timestamp', b.timestamp
             )
         ) AS bids
+    FROM bids AS b
 
-    FROM bids AS b, asks AS a
-    WHERE NOT b.pubkey_id = NULL AND NOT a.pubkey_id = NULL
+), agg_asks AS (
+    SELECT 
+        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS "pubkey_id",
+        array_agg(
+            json_build_object(
+                'pubkeyId', a.pubkey_id,
+                'positionConfig', a.position_config,
+                'nextPosition', a.next_position,
+                'marketMaker', a.market_maker,
+                'orderType', a.order_type,
+                'price', a.price,
+                'size', a.size,
+                'isAvailable', a.is_available,
+                'sourceCapital', a.capital_source,
+                'destinationCapital', a.capital_destination,
+                'sourceVault', a.source,
+                'destinationVault', a.destination,
+                'slot', a.slot,
+                'timestamp', a.timestamp
+            )
+        ) AS asks
+    FROM asks AS a
 
 )
 
@@ -138,16 +161,11 @@ SELECT
         'tokenSymbolB', t.token_symbol_b,
         'isReverse', t.is_reverse,
         'book', json_build_object(
-            -- not correct representation of price, it's possible that market pointer did match with position, but is pointer
-            'lastBuyPrice', book.asks[0],
-            -- not correct representation of price, it's possible that market pointer did match with position, but is pointer
-            'lastSellPrice', book.bids[0],
-            'asks', book.asks,
-            'bids', book.bids
+            'asks', book_asks.asks,
+            'bids', book_bids.bids
         )
     )
 
 FROM trade_pair AS t
-LEFT JOIN book ON t.pubkey_id = book.pubkey_id;
-
--- not working, needs DEBUG
+FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
+FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
