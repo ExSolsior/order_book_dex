@@ -3,7 +3,7 @@ use {
     actix_web::web,
     chrono::prelude::*,
     serde::{Deserialize, Serialize},
-    serde_json::{value::Value, Number},
+    serde_json::value::Value,
     solana_sdk::pubkey::Pubkey,
     sqlx::{prelude::FromRow, Pool, Postgres, Row},
 };
