@@ -15,8 +15,8 @@ SELECT
             'tokenProgramB', "token_program_b", 
             'sellMarketPointer', "sell_market", 
             'buyMarketPointer', "buy_market",
-            'tokenDecimalsA', "token_decimal_a",
-            'tokenDecimalsB', "token_decimal_b",
+            'tokenDecimalsA', "token_decimals_a",
+            'tokenDecimalsB', "token_decimals_b",
             'tokenSymbolA', "token_symbol_a",
             'tokenSymbolB', "token_symbol_b",
             'ticker', "ticker",
@@ -24,4 +24,4 @@ SELECT
         )
     )
 
-From config
+From config;

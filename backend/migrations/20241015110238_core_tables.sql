@@ -5,11 +5,11 @@ CREATE TYPE order_type as ENUM (
     'ask'
 );
 
-CREATE TYPE tab AS ENUM (
-    'popular',
-    'new_listings',
-    'top_gainers',
-)
+-- CREATE TYPE tab AS ENUM (
+--     'popular',
+--     'new_listings',
+--     'top_gainers'
+-- );
 
 -- CREATE TYPE interval_type as ENUM (
 --     '1m', '2m', '5m', '10m', '15m', 
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS order_book_config (
     "token_program_b"       varchar(44) NOT NULL, 
     "sell_market"           varchar(44) NOT NULL, 
     "buy_market"            varchar(44) NOT NULL,
-    "token_decimal_a"       smallint NOT NULL,
-    "token_decimal_b"       smallint NOT NULL,
+    "token_decimals_a"       smallint NOT NULL,
+    "token_decimals_b"       smallint NOT NULL,
     "token_symbol_a"        varchar(12) NOT NULL,
     "token_symbol_b"        varchar(12) NOT NULL,
     "ticker"                varchar(25) NOT NULL,
@@ -37,10 +37,10 @@ CREATE TABLE IF NOT EXISTS order_book_config (
 );
 
 -- WIP
-CREATE TABLE IF EXISTS book_activity (
-    "pubkey_id"             varchar(44) PRIMARY KEY REFERENCES order_book_config (pubkey_id),
-    "tab"                   tab
-)
+-- CREATE TABLE IF EXISTS book_activity (
+--     "pubkey_id"             varchar(44) PRIMARY KEY REFERENCES order_book_config (pubkey_id),
+--     "tab"                   tab
+-- );
 
 CREATE TABLE IF NOT EXISTS order_position_config (
     "pubkey_id"             varchar(44) PRIMARY KEY,
@@ -56,8 +56,8 @@ CREATE TABLE IF NOT EXISTS order_position_config (
 
 CREATE TABLE IF NOT EXISTS order_position (
     "pubkey_id"             varchar(44) PRIMARY KEY,
-    "book_config"           varchar(44) NOT NULL REFERENCES book_config (pubkey_id),
-    "position_config"       varchar(44) NOT NULL REFERENCES position_config (pubkey_id),
+    "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
+    "position_config"       varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
     "next_position"         varchar(44),
     "source_vault"          varchar(44) NOT NULL,
     "destination_vault"     varchar(44) NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS order_position (
 -- real time data
 CREATE TABLE IF NOT EXISTS real_time_trade_data (
     "id"                    bigserial PRIMARY KEY,
-    "book_config"           varchar(44) NOT NULL REFERENCES book_config (pubkey_id),
+    "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "order_type"            order_type NOT NULL,
     "last_price"            bigserial NOT NULL,
     "avg_price"             bigserial NOT NULL,
@@ -83,16 +83,16 @@ CREATE TABLE IF NOT EXISTS real_time_trade_data (
 );
 
 -- WIP
-CREATE TABLE IF NOT EXIST trade_data_24_hour (
-    "book_config_id"
-    "last_price"
-    "24_hour_volume"
-    "24_hour_turnover"
-)
+-- CREATE TABLE IF NOT EXIST trade_data_24_hour (
+--     "book_config_id"
+--     "last_price"
+--     "24_hour_volume"
+--     "24_hour_turnover"
+-- );
 
 CREATE TABLE IF NOT EXISTS market_order_history (
     "id"                    bigserial PRIMARY KEY,
-    "book_config"           varchar(44) NOT NULL REFERENCES book_config (pubkey_id),
+    "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "interval"              interval NOT NULL,
     "open"                  bigserial NOT NULL,
     "high"                  bigserial NOT NULL,

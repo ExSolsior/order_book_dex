@@ -106,6 +106,6 @@ INSERT INTO order_position (
     'true',
     0,
     0
-),
+);
 
 

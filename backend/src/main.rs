@@ -12,7 +12,6 @@ use {
     shuttle_runtime::SecretStore,
     solana_pubsub_client::nonblocking::pubsub_client::PubsubClient,
     solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter},
-    solana_sdk::pubkey::Pubkey,
     sqlx::{postgres::PgPoolOptions, Pool, Postgres},
     std::{sync::Arc, time::Duration},
     tokio::{
@@ -31,25 +30,6 @@ pub static POOL: OnceCell<Pool<Postgres>> = OnceCell::const_new();
 pub struct AppState {
     pub pool: Pool<Postgres>,
 }
-
-// pub struct OrderBook {
-//     pub pubkey_id: Pubkey,
-//     pub ask: Vec<LimitOrder>,
-//     pub bid: Vec<LimitOrder>,
-// }
-
-// pub struct LimitOrder {
-//     pub price: u64,
-//     pub amount: u64,
-//     pub position: Pubkey,
-//     pub position_config: Pubkey,
-//     pub source: Pubkey,
-//     pub destination: Pubkey,
-//     pub capital_source: Pubkey,
-//     pub capital_destination: Pubkey,
-//     pub next_limit_order: Option<Pubkey>,
-//     pub is_available: bool,
-// }
 
 #[shuttle_runtime::main]
 async fn main(

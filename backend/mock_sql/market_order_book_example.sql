@@ -18,20 +18,20 @@ WITH trade_pair AS (
         CASE
             WHEN (NOT s.is_reverse AND op.order_type = 'bid')
                 OR (s.is_reverse AND op.order_type = 'ask')
-                THEN opc.vault_a_pubkey
+                THEN opc.vault_a
             WHEN (NOT s.is_reverse AND op.order_type = 'ask')
                 OR (s.is_reverse AND op.order_type = 'bid')
-                THEN opc.vault_b_pubkey
+                THEN opc.vault_b
         END AS "source",
 
         
         CASE
             WHEN (NOT s.is_reverse AND op.order_type = 'bid')
                 OR (s.is_reverse AND op.order_type = 'ask')
-                THEN opc.vault_b_pubkey
+                THEN opc.vault_b
             WHEN (NOT s.is_reverse AND op.order_type = 'ask')
                 OR (s.is_reverse AND op.order_type = 'bid')
-                THEN opc.vault_a_pubkey
+                THEN opc.vault_a
         END AS "destination",
 
         op.slot AS "slot", 
@@ -64,8 +64,8 @@ WITH trade_pair AS (
 ), asks AS (
     SELECT
         p.pubkey_id,
-        p.order_pos_config,
-        p.next_order_pos,
+        p.position_config,
+        p.next_position,
         p.market_maker,
         p.order_type,
         p.price,
@@ -86,8 +86,8 @@ WITH trade_pair AS (
         array_agg(
             json_build_object(
                 'pubkeyId', a.pubkey_id,
-                'orderPosConfig', a.order_pos_config,
-                'nextOrderPos', a.next_order_pos,
+                'orderPosConfig', a.position_config,
+                'nextOrderPos', a.next_position,
                 'marketMakerPubkey', a.market_maker,
                 'orderType', a.order_type,
                 'price', a.price,
@@ -104,8 +104,8 @@ WITH trade_pair AS (
         array_agg(
             json_build_object(
                 'pubkeyId', b.pubkey_id,
-                'orderPosConfig', b.order_pos_config,
-                'nextOrderPos', b.next_order_pos,
+                'orderPosConfig', b.position_config,
+                'nextOrderPos', b.next_position,
                 'marketMakerPubkey', b.market_maker,
                 'orderType', b.order_type,
                 'price', b.price,
@@ -132,8 +132,8 @@ SELECT
         'tokenProgramB', t.token_program_b,
         'sellMarketPointer', t.sell_market,
         'buyMarketPointer', t.buy_market,
-        'tokenDecimalsA', t.token_decimal_a,
-        'tokenDecimalsB', t.token_decimal_b,
+        'tokenDecimalsA', t.token_decimals_a,
+        'tokenDecimalsB', t.token_decimals_b,
         'tokenSymbolA', t.token_symbol_a,
         'tokenSymbolB', t.token_symbol_b,
         'isReverse', t.is_reverse,
@@ -149,3 +149,5 @@ SELECT
 
 FROM trade_pair AS t
 LEFT JOIN book ON t.pubkey_id = book.pubkey_id;
+
+-- not working, needs DEBUG

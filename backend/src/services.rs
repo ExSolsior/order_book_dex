@@ -16,6 +16,25 @@ use {
     std::str::FromStr,
 };
 
+// pub struct OrderBook {
+//     pub pubkey_id: Pubkey,
+//     pub ask: Vec<LimitOrder>,
+//     pub bid: Vec<LimitOrder>,
+// }
+
+// pub struct LimitOrder {
+//     pub price: u64,
+//     pub amount: u64,
+//     pub position: Pubkey,
+//     pub position_config: Pubkey,
+//     pub source: Pubkey,
+//     pub destination: Pubkey,
+//     pub capital_source: Pubkey,
+//     pub capital_destination: Pubkey,
+//     pub next_limit_order: Option<Pubkey>,
+//     pub is_available: bool,
+// }
+
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
     pub pubkey_id: String,
@@ -186,14 +205,14 @@ pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
             token_program_a: token_program_a,
             token_program_b: token_program_b,
 
-            sell_market_pointer_pubkey: sell_market_pointer,
-            buy_market_pointer_pubkey: buy_market_pointer,
+            sell_market: sell_market_pointer,
+            buy_market: buy_market_pointer,
 
-            token_mint_a_symbol: token_symbol_a.to_string(),
-            token_mint_b_symbol: token_symbol_b.to_string(),
+            token_symbol_a: token_symbol_a.to_string(),
+            token_symbol_b: token_symbol_b.to_string(),
             ticker: ticker,
-            token_mint_a_decimal: token_decimals_a,
-            token_mint_b_decimal: token_decimals_b,
+            token_decimals_a: token_decimals_a,
+            token_decimals_b: token_decimals_b,
             is_reverse,
         },
         app_state,
@@ -217,12 +236,12 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
     insert_order_position_config(
         PositionConfig {
             pubkey_id: pos_config,
-            order_book_config_pubkey: book_config,
-            market_maker_pubkey: market_maker,
-            capital_a_pubkey: capital_a,
-            capital_b_pubkey: capital_b,
-            vault_a_pubkey: vault_a,
-            vault_b_pubkey: vault_b,
+            book_config: book_config,
+            market_maker: market_maker,
+            capital_a: capital_a,
+            capital_b: capital_b,
+            vault_a: vault_a,
+            vault_b: vault_b,
         },
         app_state,
     )
@@ -258,13 +277,13 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
     insert_order_position(
         OrderPosition {
             pubkey_id: pos_pubkey,
-            order_book_config_pubkey: book_config,
+            book_config: book_config,
             order_type: order_type,
             price: price,
             size: size,
             is_available: is_available,
-            next_order_position_pubkey: next_pos_pubkey,
-            order_position_config_pubkey: pos_config,
+            next_position: next_pos_pubkey,
+            position_config: pos_config,
             source_vault: source,
             destination_vault: destination,
             slot: slot,
@@ -345,7 +364,7 @@ pub async fn parse_market_order_complete_event(data: &[u8], app_state: AppState)
 
     insert_real_time_trade(
         RealTimeTrade {
-            order_book_config_pubkey: book_config.to_string(),
+            book_config: book_config.to_string(),
             order_type: order_type,
             last_price,
             avg_price: total_cost / total_amount,

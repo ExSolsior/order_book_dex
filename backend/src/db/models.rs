@@ -8,22 +8,6 @@ use {
     sqlx::{prelude::FromRow, Pool, Postgres, Row},
 };
 
-// what's this?
-#[derive(FromRow, Serialize, Deserialize, Clone)]
-pub struct OrderBook {
-    pub pubkey_id: Pubkey,
-    pub token_mint_a: Pubkey,
-    pub token_mint_b: Pubkey,
-    pub token_program_a: Pubkey,
-    pub token_program_b: Pubkey,
-    pub sell_market_pointer_pubkey: Pubkey,
-    pub buy_market_pointer_pubkey: Pubkey,
-    pub token_mint_a_symbol: String,
-    pub token_mint_b_symbol: String,
-    pub is_reverse: bool,
-    pub order_book: String,
-}
-
 #[derive(FromRow, Serialize, Deserialize, Clone)]
 pub struct TradePair {
     pub pubkey_id: Pubkey,
@@ -31,24 +15,24 @@ pub struct TradePair {
     pub token_mint_b: Pubkey,
     pub token_program_a: Pubkey,
     pub token_program_b: Pubkey,
-    pub sell_market_pointer_pubkey: Pubkey,
-    pub buy_market_pointer_pubkey: Pubkey,
-    pub token_mint_a_decimal: u8,
-    pub token_mint_b_decimal: u8,
-    pub token_mint_a_symbol: String,
-    pub token_mint_b_symbol: String,
+    pub sell_market: Pubkey,
+    pub buy_market: Pubkey,
+    pub token_decimals_a: u8,
+    pub token_decimals_b: u8,
+    pub token_symbol_a: String,
+    pub token_symbol_b: String,
     pub ticker: String,
     pub is_reverse: bool,
 }
 
 pub struct PositionConfig {
     pub pubkey_id: Pubkey,
-    pub order_book_config_pubkey: Pubkey,
-    pub market_maker_pubkey: Pubkey,
-    pub capital_a_pubkey: Pubkey,
-    pub capital_b_pubkey: Pubkey,
-    pub vault_a_pubkey: Pubkey,
-    pub vault_b_pubkey: Pubkey,
+    pub book_config: Pubkey,
+    pub market_maker: Pubkey,
+    pub capital_a: Pubkey,
+    pub capital_b: Pubkey,
+    pub vault_a: Pubkey,
+    pub vault_b: Pubkey,
 }
 
 #[derive(Deserialize)]
@@ -58,9 +42,9 @@ pub struct OrderPosition {
     pub price: u64,
     pub size: u64,
     pub is_available: bool,
-    pub next_order_position_pubkey: Option<Pubkey>,
-    pub order_position_config_pubkey: Pubkey,
-    pub order_book_config_pubkey: Pubkey,
+    pub next_position: Option<Pubkey>,
+    pub position_config: Pubkey,
+    pub book_config: Pubkey,
     pub source_vault: Pubkey,
     pub destination_vault: Pubkey,
     pub slot: u64,
@@ -68,7 +52,7 @@ pub struct OrderPosition {
 }
 
 pub struct RealTimeTrade {
-    pub order_book_config_pubkey: String,
+    pub book_config: String,
     pub order_type: String,
     pub last_price: u64,
     pub avg_price: u64,
@@ -102,8 +86,8 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
                     "token_program_b", 
                     "sell_market", 
                     "buy_market", 
-                    "token_decimal_a",
-                    "token_decimal_b",
+                    "token_decimals_a",
+                    "token_decimals_b",
                     "token_symbol_a",
                     "token_symbol_b",
                     "ticker",
@@ -116,12 +100,12 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
     .bind(&trade_pair.token_mint_b.to_string())
     .bind(&trade_pair.token_program_a.to_string())
     .bind(&trade_pair.token_program_b.to_string())
-    .bind(&trade_pair.sell_market_pointer_pubkey.to_string())
-    .bind(&trade_pair.buy_market_pointer_pubkey.to_string())
-    .bind(trade_pair.token_mint_a_decimal as i16)
-    .bind(trade_pair.token_mint_b_decimal as i16)
-    .bind(&trade_pair.token_mint_a_symbol)
-    .bind(&trade_pair.token_mint_b_symbol)
+    .bind(&trade_pair.sell_market.to_string())
+    .bind(&trade_pair.buy_market.to_string())
+    .bind(trade_pair.token_decimals_a as i16)
+    .bind(trade_pair.token_decimals_b as i16)
+    .bind(&trade_pair.token_symbol_a)
+    .bind(&trade_pair.token_symbol_b)
     .bind(&trade_pair.ticker)
     .bind(&trade_pair.is_reverse)
     .execute(&app_state.pool)
@@ -146,18 +130,17 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
             "#,
     )
     .bind(&position_config.pubkey_id.to_string())
-    .bind(&position_config.order_book_config_pubkey.to_string())
-    .bind(&position_config.market_maker_pubkey.to_string())
-    .bind(&position_config.capital_a_pubkey.to_string())
-    .bind(&position_config.capital_b_pubkey.to_string())
-    .bind(&position_config.vault_a_pubkey.to_string())
-    .bind(&position_config.vault_b_pubkey.to_string())
+    .bind(&position_config.book_config.to_string())
+    .bind(&position_config.market_maker.to_string())
+    .bind(&position_config.capital_a.to_string())
+    .bind(&position_config.capital_b.to_string())
+    .bind(&position_config.vault_a.to_string())
+    .bind(&position_config.vault_b.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
 }
 
-// need to test, need to update, source and dest
 pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
     let query = sqlx::query(
         r#"
@@ -178,16 +161,11 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: App
             "#,
     )
     .bind(order_position.pubkey_id.to_string())
-    .bind(order_position.order_book_config_pubkey.to_string())
-    .bind(order_position.order_position_config_pubkey.to_string());
+    .bind(order_position.book_config.to_string())
+    .bind(order_position.position_config.to_string());
 
-    let query = if order_position.next_order_position_pubkey.is_some() {
-        query.bind(
-            order_position
-                .next_order_position_pubkey
-                .unwrap()
-                .to_string(),
-        )
+    let query = if order_position.next_position.is_some() {
+        query.bind(order_position.next_position.unwrap().to_string())
     } else {
         query.bind(Option::<String>::None)
     };
@@ -221,7 +199,7 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
             "#,
     )
-    .bind(&trade.order_book_config_pubkey)
+    .bind(&trade.book_config)
     .bind(&trade.order_type)
     .bind(&trade.last_price.to_string())
     .bind(&trade.avg_price.to_string())
@@ -243,7 +221,8 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
     sqlx::raw_sql(
         &format!(r#"
                 WITH chart AS (
-                    SELECT * 
+                    SELECT 
+                        * 
                     FROM real_time_trade_data AS td
                     WHERE {}::bigint <= td.timestamp AND {}::bigint > td.timestamp
 
@@ -263,7 +242,7 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
 
                 ), open_price AS (
                     SELECT 
-                        t.order_book_config_pubkey,
+                        t.book_config,
                         last_price
                     FROM chart 
                     JOIN open_time AS t ON t.book_config = chart.book_config
@@ -358,7 +337,7 @@ pub async fn get_trade_pair(
                         -- should also include capital source and captial dest?
                         -- what other data do I need?
                         op.pubkey_id AS "pubkey_id", 
-                        opc.pubkey_id AS "order_pos_config", 
+                        opc.pubkey_id AS "position_config", 
                         op.next_position AS "next_position", 
                         opc.market_maker AS "market_maker", 
                         op.order_type AS "order_type", 
@@ -369,20 +348,20 @@ pub async fn get_trade_pair(
                         CASE
                             WHEN (NOT s.is_reverse AND op.order_type = 'bid')
                                 OR (s.is_reverse AND op.order_type = 'ask')
-                                THEN opc.vault_a_pubkey
+                                THEN opc.vault_a
                             WHEN (NOT s.is_reverse AND op.order_type = 'ask')
                                 OR (s.is_reverse AND op.order_type = 'bid')
-                                THEN opc.vault_b_pubkey
+                                THEN opc.vault_b
                         END AS "source",
 
                         
                         CASE
                             WHEN (NOT s.is_reverse AND op.order_type = 'bid')
                                 OR (s.is_reverse AND op.order_type = 'ask')
-                                THEN opc.vault_b_pubkey
+                                THEN opc.vault_b
                             WHEN (NOT s.is_reverse AND op.order_type = 'ask')
                                 OR (s.is_reverse AND op.order_type = 'bid')
-                                THEN opc.vault_a_pubkey
+                                THEN opc.vault_a
                         END AS "destination",
 
                         op.slot AS "slot", 
@@ -397,7 +376,7 @@ pub async fn get_trade_pair(
                 ), bids AS (
                     SELECT
                         p.pubkey_id,
-                        p.order_pos_config,
+                        p.position_config,
                         p.next_position,
                         p.market_maker,
                         p.order_type,
@@ -415,7 +394,7 @@ pub async fn get_trade_pair(
                 ), asks AS (
                     SELECT
                         p.pubkey_id,
-                        p.order_pos_config,
+                        p.position_config,
                         p.next_position,
                         p.market_maker,
                         p.order_type,
@@ -437,9 +416,9 @@ pub async fn get_trade_pair(
                         array_agg(
                             json_build_object(
                                 'pubkeyId', a.pubkey_id,
-                                'orderPosConfig', a.order_pos_config,
-                                'nextOrderPos', a.next_position,
-                                'marketMakerPubkey', a.market_maker,
+                                'positionConfig', a.position_config,
+                                'nextPosition', a.next_position,
+                                'marketMaker', a.market_maker,
                                 'orderType', a.order_type,
                                 'price', a.price,
                                 'size', a.size,
@@ -455,9 +434,9 @@ pub async fn get_trade_pair(
                         array_agg(
                             json_build_object(
                                 'pubkeyId', b.pubkey_id,
-                                'orderPosConfig', b.order_pos_config,
-                                'nextOrderPos', b.next_position,
-                                'marketMakerPubkey', b.market_maker,
+                                'positionConfig', b.position_config,
+                                'nextPosition', b.next_position,
+                                'marketMaker', b.market_maker,
                                 'orderType', b.order_type,
                                 'price', b.price,
                                 'size', b.size,
@@ -483,8 +462,8 @@ pub async fn get_trade_pair(
                         'tokenProgramB', t.token_program_b,
                         'sellMarketPointer', t.sell_market,
                         'buyMarketPointer', t.buy_market,
-                        'tokenDecimalsA', t.token_decimal_a,
-                        'tokenDecimalsB', t.token_decimal_b,
+                        'tokenDecimalsA', t.token_decimals_a,
+                        'tokenDecimalsB', t.token_decimals_b,
                         'tokenSymbolA', t.token_symbol_a,
                         'tokenSymbolB', t.token_symbol_b,
                         'isReverse', t.is_reverse,
@@ -556,8 +535,8 @@ pub async fn get_trade_pair_list(
                             'tokenProgramB', "token_program_b", 
                             'sellMarketPointer', "sell_market", 
                             'buyMarketPointer', "buy_market",
-                            'tokenDecimalsA', "token_decimal_a",
-                            'tokenDecimalsB', "token_decimal_b",
+                            'tokenDecimalsA', "token_decimals_a",
+                            'tokenDecimalsB', "token_decimals_b",
                             'tokenSymbolA', "token_symbol_a",
                             'tokenSymbolB', "token_symbol_b",
                             'ticker', "ticker",

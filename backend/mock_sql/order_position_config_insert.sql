@@ -44,7 +44,7 @@ INSERT INTO order_position_config (
     '9tJJwpjpgZsghxKYUCsxJXySNkBkLQDahrSHA8RTropC', 
     0, 
     0
-);
+),
 
 (
     '2FqYTjMdGDV9mvs4x6F47tJRkLBtnbd7fbcb35kDzXAs', 
