@@ -1,8 +1,8 @@
 INSERT INTO order_position (
     "pubkey_id",
-    "order_book_config_pubkey",
-    "order_position_config_pubkey",
-    "next_order_position_pubkey",
+    "book_config",
+    "position_config",
+    "next_position",
     "source_vault",
     "destination_vault",
     "order_type",

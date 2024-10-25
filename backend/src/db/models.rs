@@ -3,26 +3,21 @@ use {
     actix_web::web,
     chrono::prelude::*,
     serde::{Deserialize, Serialize},
-    serde_json::value::Value,
+    serde_json::{value::Value, Number},
     solana_sdk::pubkey::Pubkey,
-    sqlx::{
-        prelude::FromRow,
-        // types::{Json, JsonRawValue},
-        Pool,
-        Postgres,
-        Row,
-    },
+    sqlx::{prelude::FromRow, Pool, Postgres, Row},
 };
 
+// what's this?
 #[derive(FromRow, Serialize, Deserialize, Clone)]
 pub struct OrderBook {
-    pub pubkey_id: String,
-    pub token_mint_a: String,
-    pub token_mint_b: String,
-    pub token_program_a: String,
-    pub token_program_b: String,
-    pub sell_market_pointer_pubkey: String,
-    pub buy_market_pointer_pubkey: String,
+    pub pubkey_id: Pubkey,
+    pub token_mint_a: Pubkey,
+    pub token_mint_b: Pubkey,
+    pub token_program_a: Pubkey,
+    pub token_program_b: Pubkey,
+    pub sell_market_pointer_pubkey: Pubkey,
+    pub buy_market_pointer_pubkey: Pubkey,
     pub token_mint_a_symbol: String,
     pub token_mint_b_symbol: String,
     pub is_reverse: bool,
@@ -31,13 +26,13 @@ pub struct OrderBook {
 
 #[derive(FromRow, Serialize, Deserialize, Clone)]
 pub struct TradePair {
-    pub pubkey_id: String,
-    pub token_mint_a: String,
-    pub token_mint_b: String,
-    pub token_program_a: String,
-    pub token_program_b: String,
-    pub sell_market_pointer_pubkey: String,
-    pub buy_market_pointer_pubkey: String,
+    pub pubkey_id: Pubkey,
+    pub token_mint_a: Pubkey,
+    pub token_mint_b: Pubkey,
+    pub token_program_a: Pubkey,
+    pub token_program_b: Pubkey,
+    pub sell_market_pointer_pubkey: Pubkey,
+    pub buy_market_pointer_pubkey: Pubkey,
     pub token_mint_a_decimal: u8,
     pub token_mint_b_decimal: u8,
     pub token_mint_a_symbol: String,
@@ -47,22 +42,27 @@ pub struct TradePair {
 }
 
 pub struct PositionConfig {
-    pub pubkey_id: String,
-    pub order_book_config_pubkey: String,
-    pub market_maker_pubkey: String,
-    pub vault_a_pubkey: String,
-    pub vault_b_pubkey: String,
+    pub pubkey_id: Pubkey,
+    pub order_book_config_pubkey: Pubkey,
+    pub market_maker_pubkey: Pubkey,
+    pub capital_a_pubkey: Pubkey,
+    pub capital_b_pubkey: Pubkey,
+    pub vault_a_pubkey: Pubkey,
+    pub vault_b_pubkey: Pubkey,
 }
 
 #[derive(Deserialize)]
 pub struct OrderPosition {
-    pub pubkey_id: String,
+    pub pubkey_id: Pubkey,
     pub order_type: String,
     pub price: u64,
     pub size: u64,
     pub is_available: bool,
-    pub next_order_position_pubkey: Option<String>,
-    pub order_position_config_pubkey: String,
+    pub next_order_position_pubkey: Option<Pubkey>,
+    pub order_position_config_pubkey: Pubkey,
+    pub order_book_config_pubkey: Pubkey,
+    pub source_vault: Pubkey,
+    pub destination_vault: Pubkey,
     pub slot: u64,
     pub timestamp: u64,
 }
@@ -100,26 +100,26 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
                     "token_mint_b", 
                     "token_program_a", 
                     "token_program_b", 
-                    "sell_market_pointer_pubkey", 
-                    "buy_market_pointer_pubkey", 
-                    "token_mint_a_decimal",
-                    "token_mint_b_decimal",
-                    "token_mint_a_symbol",
-                    "token_mint_b_symbol",
+                    "sell_market", 
+                    "buy_market", 
+                    "token_decimal_a",
+                    "token_decimal_b",
+                    "token_symbol_a",
+                    "token_symbol_b",
                     "ticker",
                     "is_reverse"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, CAST($8 AS smallint), CAST($9 AS smallint), $10, $11, $12, $13);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
             "#,
     )
-    .bind(&trade_pair.pubkey_id)
-    .bind(&trade_pair.token_mint_a)
-    .bind(&trade_pair.token_mint_b)
-    .bind(&trade_pair.token_program_a)
-    .bind(&trade_pair.token_program_b)
-    .bind(&trade_pair.sell_market_pointer_pubkey)
-    .bind(&trade_pair.buy_market_pointer_pubkey)
-    .bind(&trade_pair.token_mint_a_decimal.to_string())
-    .bind(&trade_pair.token_mint_b_decimal.to_string())
+    .bind(&trade_pair.pubkey_id.to_string())
+    .bind(&trade_pair.token_mint_a.to_string())
+    .bind(&trade_pair.token_mint_b.to_string())
+    .bind(&trade_pair.token_program_a.to_string())
+    .bind(&trade_pair.token_program_b.to_string())
+    .bind(&trade_pair.sell_market_pointer_pubkey.to_string())
+    .bind(&trade_pair.buy_market_pointer_pubkey.to_string())
+    .bind(trade_pair.token_mint_a_decimal as i16)
+    .bind(trade_pair.token_mint_b_decimal as i16)
     .bind(&trade_pair.token_mint_a_symbol)
     .bind(&trade_pair.token_mint_b_symbol)
     .bind(&trade_pair.ticker)
@@ -134,61 +134,83 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
         r#"
                 INSERT INTO order_position_config (
                     "pubkey_id",
-                    "order_book_config_pubkey",
-                    "market_maker_pubkey",
-                    "vault_a_pubkey",
-                    "vault_b_pubkey",
+                    "book_config",
+                    "market_maker",
+                    "capital_a,
+                    "capital_b,
+                    "vault_a",
+                    "vault_b",
                     "nonce",
                     "reference"
-                ) VALUES ($1, $2, $3, $4, $5, 0, 0);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0);
             "#,
     )
-    .bind(&position_config.pubkey_id)
-    .bind(&position_config.order_book_config_pubkey)
-    .bind(&position_config.market_maker_pubkey)
-    .bind(&position_config.vault_a_pubkey)
-    .bind(&position_config.vault_b_pubkey)
+    .bind(&position_config.pubkey_id.to_string())
+    .bind(&position_config.order_book_config_pubkey.to_string())
+    .bind(&position_config.market_maker_pubkey.to_string())
+    .bind(&position_config.capital_a_pubkey.to_string())
+    .bind(&position_config.capital_b_pubkey.to_string())
+    .bind(&position_config.vault_a_pubkey.to_string())
+    .bind(&position_config.vault_b_pubkey.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
 }
 
+// need to test, need to update, source and dest
 pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
-    sqlx::query(
+    let query = sqlx::query(
         r#"
                 INSERT INTO order_position (
                     "pubkey_id",
+                    "booK_config"
+                    "position_config",
+                    "next_position",
+                    "source_vault",
+                    "destination_vault",
                     "order_type",
                     "price",
                     "size",
                     "is_available",
-                    "next_order_position_pubkey",
-                    "order_position_config_pubkey",
                     "slot",
                     "timestamp"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0);
             "#,
     )
-    .bind(&order_position.pubkey_id)
-    .bind(&order_position.order_type)
-    .bind(&order_position.price.to_string())
-    .bind(&order_position.size.to_string())
-    .bind(&order_position.is_available)
-    // can be Null, how to handle that?
-    .bind(&order_position.next_order_position_pubkey)
-    .bind(&order_position.order_position_config_pubkey)
-    .bind(&order_position.slot.to_string())
-    .bind(&order_position.timestamp.to_string())
-    .execute(&app_state.pool)
-    .await
-    .unwrap();
+    .bind(order_position.pubkey_id.to_string())
+    .bind(order_position.order_book_config_pubkey.to_string())
+    .bind(order_position.order_position_config_pubkey.to_string());
+
+    let query = if order_position.next_order_position_pubkey.is_some() {
+        query.bind(
+            order_position
+                .next_order_position_pubkey
+                .unwrap()
+                .to_string(),
+        )
+    } else {
+        query.bind(Option::<String>::None)
+    };
+
+    query
+        .bind(order_position.source_vault.to_string())
+        .bind(order_position.destination_vault.to_string())
+        .bind(order_position.order_type.to_string())
+        .bind(order_position.price.to_string())
+        .bind(order_position.size.to_string())
+        .bind(order_position.is_available)
+        .bind(order_position.slot.to_string())
+        .bind(order_position.timestamp.to_string())
+        .execute(&app_state.pool)
+        .await
+        .unwrap();
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position (
-                    "order_book_config_pubkey",
+                    "book_config",
                     "order_type",
                     "last_price",
                     "avg_price",
@@ -228,58 +250,58 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                 ), open_time AS (
                     SELECT 
                         MIN("timestamp") AS "timestamp",
-                        order_book_config_pubkey
+                        book_config
                     FROM chart
-                    GROUP BY order_book_config_pubkey
+                    GROUP BY book_config
 
                 ), close_time AS (
                     SELECT 
                         MAX("timestamp") AS "timestamp",
-                        order_book_config_pubkey
+                        book_config
                     FROM chart
-                    GROUP BY order_book_config_pubkey
+                    GROUP BY book_config
 
                 ), open_price AS (
                     SELECT 
                         t.order_book_config_pubkey,
                         last_price
                     FROM chart 
-                    JOIN open_time AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+                    JOIN open_time AS t ON t.book_config = chart.book_config
                     AND t.timestamp = chart.timestamp
 
                 ), close_price AS (
                     SELECT 
-                        t.order_book_config_pubkey,
+                        t.book_config,
                         last_price
                     FROM chart 
-                    JOIN close_time AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+                    JOIN close_time AS t ON t.book_config = chart.book_config
                     AND t.timestamp = chart.timestamp
 
                 ), low_price AS (
                     SELECT 
-                        order_book_config_pubkey,
+                        book_config,
                         MIN(chart.last_price) AS last_price
                     FROM chart 
-                    GROUP BY order_book_config_pubkey
+                    GROUP BY book_config
 
                 ), high_price AS (
                     SELECT 
-                        order_book_config_pubkey,
+                        book_config,
                         MAX(chart.last_price) AS last_price
                     FROM chart 
-                    GROUP BY order_book_config_pubkey
+                    GROUP BY book_config
 
                 ), total AS (
                     SELECT 
-                        order_book_config_pubkey,
+                        book_config,
                         sum(chart.amount) AS "volume",
                         sum(chart.last_price) AS "turnover"
                     FROM chart
-                    GROUP BY order_book_config_pubkey
+                    GROUP BY book_config
 
                 ), market_data AS (
                     SELECT 
-                        DISTINCT chart.order_book_config_pubkey AS "pubkey_id",
+                        DISTINCT chart.book_config AS "pubkey_id",
                         '1m'::interval AS "interval",
                         o.last_price  AS "open",
                         h.last_price as "high",
@@ -289,18 +311,18 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
                         t.turnover,
                         {}::bigint AS "timestamp"
                     FROM chart
-                    INNER JOIN open_price AS o ON o.order_book_config_pubkey = chart.order_book_config_pubkey
-                    INNER JOIN close_price AS c ON c.order_book_config_pubkey = chart.order_book_config_pubkey
-                    INNER JOIN high_price AS h ON h.order_book_config_pubkey = chart.order_book_config_pubkey
-                    INNER JOIN low_price AS l ON l.order_book_config_pubkey = chart.order_book_config_pubkey
-                    INNER JOIN total AS t ON t.order_book_config_pubkey = chart.order_book_config_pubkey
+                    INNER JOIN open_price AS o ON o.book_config = chart.book_config
+                    INNER JOIN close_price AS c ON c.book_config = chart.book_config
+                    INNER JOIN high_price AS h ON h.book_config = chart.book_config
+                    INNER JOIN low_price AS l ON l.book_config = chart.book_config
+                    INNER JOIN total AS t ON t.book_config = chart.book_config
 
                     -- just thought of this now, can do this instead of using DISTINCT, but need to test it
-                    -- WHERE chart.order_book_config_pubkey
+                    -- WHERE chart.book_config
                 )
 
                 INSERT INTO market_order_history (
-                    "order_book_config_pubkey",
+                    "book_config",
                     "interval",
                     "open",
                     "high",
@@ -337,8 +359,8 @@ pub async fn get_trade_pair(
                         -- what other data do I need?
                         op.pubkey_id AS "pubkey_id", 
                         opc.pubkey_id AS "order_pos_config", 
-                        op.next_order_position_pubkey AS "next_order_pos", 
-                        opc.market_maker_pubkey AS "market_maker_pubkey", 
+                        op.next_position AS "next_position", 
+                        opc.market_maker AS "market_maker", 
                         op.order_type AS "order_type", 
                         op.price AS "price", 
                         op.size AS "size", 
@@ -367,17 +389,17 @@ pub async fn get_trade_pair(
                         op.timestamp AS "timestamp"
 
                     FROM order_position_config AS opc
-                    JOIN order_position AS op ON op.order_position_config_pubkey = opc.pubkey_id
+                    JOIN order_position AS op ON op.position_config = opc.pubkey_id
                     JOIN trade_pair AS s ON s.pubkey_id = $1
-                    WHERE opc.order_book_config_pubkey = $1
+                    WHERE opc.book_config = $1
                     -- ORDER BY op.price ASC
 
                 ), bids AS (
                     SELECT
                         p.pubkey_id,
                         p.order_pos_config,
-                        p.next_order_pos,
-                        p.market_maker_pubkey,
+                        p.next_position,
+                        p.market_maker,
                         p.order_type,
                         p.price,
                         p.size,
@@ -394,8 +416,8 @@ pub async fn get_trade_pair(
                     SELECT
                         p.pubkey_id,
                         p.order_pos_config,
-                        p.next_order_pos,
-                        p.market_maker_pubkey,
+                        p.next_position,
+                        p.market_maker,
                         p.order_type,
                         p.price,
                         p.size,
@@ -416,8 +438,8 @@ pub async fn get_trade_pair(
                             json_build_object(
                                 'pubkeyId', a.pubkey_id,
                                 'orderPosConfig', a.order_pos_config,
-                                'nextOrderPos', a.next_order_pos,
-                                'marketMakerPubkey', a.market_maker_pubkey,
+                                'nextOrderPos', a.next_position,
+                                'marketMakerPubkey', a.market_maker,
                                 'orderType', a.order_type,
                                 'price', a.price,
                                 'size', a.size,
@@ -434,8 +456,8 @@ pub async fn get_trade_pair(
                             json_build_object(
                                 'pubkeyId', b.pubkey_id,
                                 'orderPosConfig', b.order_pos_config,
-                                'nextOrderPos', b.next_order_pos,
-                                'marketMakerPubkey', b.market_maker_pubkey,
+                                'nextOrderPos', b.next_position,
+                                'marketMakerPubkey', b.market_maker,
                                 'orderType', b.order_type,
                                 'price', b.price,
                                 'size', b.size,
@@ -459,18 +481,16 @@ pub async fn get_trade_pair(
                         'tokenMintB', t.token_mint_b,
                         'tokenProgramA', t.token_program_a,
                         'tokenProgramB', t.token_program_b,
-                        'sellMarketPointer', t.sell_market_pointer_pubkey,
-                        'buyMarketPointer', t.buy_market_pointer_pubkey,
-                        'tokenDecimalsA', t.token_mint_a_decimal,
-                        'tokenDecimalsB', t.token_mint_b_decimal,
-                        'tokenSymbolA', t.token_mint_a_symbol,
-                        'tokenSymbolB', t.token_mint_b_symbol,
+                        'sellMarketPointer', t.sell_market,
+                        'buyMarketPointer', t.buy_market,
+                        'tokenDecimalsA', t.token_decimal_a,
+                        'tokenDecimalsB', t.token_decimal_b,
+                        'tokenSymbolA', t.token_symbol_a,
+                        'tokenSymbolB', t.token_symbol_b,
                         'isReverse', t.is_reverse,
                         'book', json_build_object(
-                            -- not correct representation of price, it's possible that market pointer did match with position, but is pointer
-                            'lastBuyPrice', book.asks[0],
-                            -- not correct representation of price, it's possible that market pointer did match with position, but is pointer
-                            'lastSellPrice', book.bids[0],
+                            'nextBuyPrice', book.asks[0],
+                            'nextSellPrice', book.bids[0],
                             'asks', book.asks,
                             'bids', book.bids
                         )
@@ -493,6 +513,14 @@ pub async fn get_trade_pair(
     )
     .unwrap();
 
+    if data["book"]["nextBuyPrice"] == Value::Null {
+        data["book"]["nextBuyPrice"] = Value::Number(Number::from_f64(0 as f64).unwrap());
+    }
+
+    if data["book"]["nextSellPrice"] == Value::Null {
+        data["book"]["nextSellPrice"] = Value::Number(Number::from_f64(0 as f64).unwrap());
+    }
+
     if data["book"]["bids"] == Value::Null {
         data["book"]["bids"] = Value::Array(vec![]);
     }
@@ -504,109 +532,161 @@ pub async fn get_trade_pair(
     Ok(data)
 }
 
-// need to figure out how to use u64 or larger with postgress
 pub async fn get_trade_pair_list(
     limit: u64,
     offset: u64,
     app_state: web::Data<AppState>,
-) -> Result<Vec<TradePair>, sqlx::Error> {
+) -> Result<Box<Value>, sqlx::Error> {
     let query = sqlx::query(
         r#"
-            -- need order by functionality
-            SELECT * FROM order_book_config
-            LIMIT $1
-            OFFSET $2;
+                WITH config AS (
+                    SELECT * FROM order_book_config
+                    LIMIT $1
+                    OFFSET $2
+                    
+                )
+
+                SELECT
+                    json_agg(
+                        json_build_object(
+                            'pubkeyId', "pubkey_id",
+                            'tokenMintA', "token_mint_a", 
+                            'tokenMintB', "token_mint_b", 
+                            'tokenProgramA', "token_program_a", 
+                            'tokenProgramB', "token_program_b", 
+                            'sellMarketPointer', "sell_market", 
+                            'buyMarketPointer', "buy_market",
+                            'tokenDecimalsA', "token_decimal_a",
+                            'tokenDecimalsB', "token_decimal_b",
+                            'tokenSymbolA', "token_symbol_a",
+                            'tokenSymbolB', "token_symbol_b",
+                            'ticker', "ticker",
+                            'isReversal', "is_reverse"
+                        )
+                    )
+
+                From config;
         "#,
     )
     .bind(limit as i64)
     .bind(offset as i64)
-    .fetch_all(&app_state.pool)
+    .fetch_one(&app_state.pool)
     .await?;
 
-    let list = query
-        .iter()
-        .map(|row| TradePair {
-            pubkey_id: row.try_get("pubkey_id").unwrap(),
-            token_mint_a: row.try_get("token_mint_a").unwrap(),
-            token_mint_b: row.try_get("token_mint_b").unwrap(),
-            token_program_a: row.try_get("token_program_a").unwrap(),
-            token_program_b: row.try_get("token_program_b").unwrap(),
-            sell_market_pointer_pubkey: row.try_get("sell_market_pointer_pubkey").unwrap(),
-            buy_market_pointer_pubkey: row.try_get("buy_market_pointer_pubkey").unwrap(),
+    let data: Box<Value> = serde_json::from_str(
+        query
+            .try_get_raw("json_build_object")
+            .unwrap()
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
 
-            // WHAT THE FUCK???
-            token_mint_a_decimal: u8::from_be_bytes([row
-                .try_get_raw("token_mint_a_decimal")
-                .unwrap()
-                .as_bytes()
-                .unwrap()[1]]),
-
-            // WHAT THE FUCK???
-            token_mint_b_decimal: u8::from_be_bytes([row
-                .try_get_raw("token_mint_b_decimal")
-                .unwrap()
-                .as_bytes()
-                .unwrap()[1]]),
-
-            token_mint_a_symbol: row.try_get("token_mint_a_symbol").unwrap(),
-            token_mint_b_symbol: row.try_get("token_mint_b_symbol").unwrap(),
-            ticker: row.try_get("ticker").unwrap(),
-            is_reverse: row.try_get("is_reverse").unwrap(),
-        })
-        .collect::<Vec<_>>();
-
-    Ok(list)
+    Ok(data)
 }
 
+// need handle has optional
 pub async fn get_market_order_history(
-    pubkey_id: String,
+    pubkey_id: Pubkey,
+    // interval: PgInterval,
     interval: String,
     limit: u64,
     offset: u64,
     app_state: web::Data<AppState>,
-) -> Result<Vec<MarketOrderHistory>, sqlx::Error> {
-    let query = sqlx::query(&format!(
+) -> Result<Box<Value>, sqlx::Error> {
+    let query = sqlx::query(
         r#"
                 -- can't do this like this
                 -- SET intervalstyle = iso_8601;
 
+                WITH market AS (
+                    SELECT * FROM market_order_history AS m 
+                    WHERE m.book_config = $1
+                    AND m.interval = $2::interval
+                    ORDER BY m.timestamp DESC
+                    LIMIT $3
+                    OFFSET $4;
+                ), p AS (
+                    SELECT 
+                        DISTINCT m.book_config AS book_config,
+                        CASE
+                            WHERE p.interval = 'T1m'::interval THEN '1m'::TEXT,
+                            WHERE p.interval = 'T2m'::interval THEN '2m'::TEXT,
+                            WHERE p.interval = 'T5m'::interval THEN '5m'::TEXT,
+                            WHERE p.interval = 'T10m'::interval THEN '10m'::TEXT,
+                            WHERE p.interval = 'T15m'::interval THEN '15m'::TEXT,
+                            WHERE p.interval = 'T20m'::interval THEN '20m'::TEXT,
+                            WHERE p.interval = 'T30m'::interval THEN '30m'::TEXT,
+                            WHERE p.interval = 'T1h'::interval THEN '1h'::TEXT,
+                            WHERE p.interval = 'T2h'::interval THEN '2h'::TEXT,
+                            WHERE p.interval = 'T3h'::interval THEN '3h'::TEXT,
+                            WHERE p.interval = 'T4h'::interval THEN '4h'::TEXT,
+                            WHERE p.interval = 'T6h'::interval THEN '6h'::TEXT,
+                            WHERE p.interval = 'T8h'::interval THEN '8h'::TEXT,
+                            WHERE p.interval = 'T12h'::interval THEN '12h'::TEXT,
+                            WHERE p.interval = 'PD'::interval THEN 'D'::TEXT,
+                            WHERE p.interval = 'P2D'::interval THEN '2D'::TEXT,
+                            WHERE p.interval = 'P3D'::interval THEN '3D'::TEXT,
+                            WHERE p.interval = 'PW'::interval THEN 'W'::TEXT,
+                            WHERE p.interval = 'P2W'::interval THEN '2W'::TEXT,
+                            WHERE p.interval = 'P3W'::interval THEN '3W'::TEXT,
+                            WHERE p.interval = 'P1M'::interval THEN '1M'::TEXT,
+                            WHERE p.interval = 'P2M'::interval THEN '2M'::TEXT,
+                            WHERE p.interval = 'P3M'::interval THEN '3M'::TEXT,
+                            WHERE p.interval = 'P4M'::interval THEN '4M'::TEXT,
+                            WHERE p.interval = 'P6M'::interval THEN '6M'::TEXT,
+                            WHERE p.interval = 'P12M'::interval THEN '12M'::TEXT,
+                        END AS interval
+
+                    FROM market_order_history AS m 
+                    WHERE m.book_config = $1
+                    AND m.interval = '$2::interval
+                    
+                )
+
                 SELECT 
-                    *,
-                    CAST(m.interval AS TEXT) AS interval
-                FROM market_order_history as m
-                WHERE m.order_book_config_pubkey = $1
-                AND m.interval = '{}'
-                ORDER BY m.timestamp DESC
-                LIMIT $2
-                OFFSET $3;
+                    json_build_object(
+                        'orderBookConfig', p.book_config,
+                        'interval', p.interval,
+                        'market', json_agg(
+                            json_build_object(
+                                -- 'id', m.id,
+                                'open', m.open,
+                                'high', m.high,
+                                'low', m.low,
+                                'close', m.close,
+                                'volume', m.volume,
+                                'turnover', m.turnover,
+                                'timestamp', m.timestamp
+                            )
+                        )
+                    )
+
+                FROM market AS m
+                JOIN p ON p.book_config = m.book_config;
             "#,
-        interval
-    ))
-    .bind(pubkey_id)
-    // well I can'g get this bind to work so I just insert it directly into the SQL
-    // .bind(interval)
+    )
+    .bind(pubkey_id.to_string())
+    .bind(interval)
     .bind(limit as i64)
     .bind(offset as i64)
-    .fetch_all(&app_state.pool)
+    .fetch_one(&app_state.pool)
     .await?;
 
-    let list = query
-        .iter()
-        .map(|row| MarketOrderHistory {
-            order_book_config_pubkey: row.try_get("order_book_config_pubkey").unwrap(),
-            interval: interval.clone(),
-            open: row.try_get("open").unwrap(),
-            high: row.try_get("high").unwrap(),
-            low: row.try_get("low").unwrap(),
-            close: row.try_get("close").unwrap(),
-            volume: row.try_get("volume").unwrap(),
-            turnover: row.try_get("turnover").unwrap(),
-            timestamp: row.try_get("timestamp").unwrap(),
-        })
-        .collect::<Vec<_>>();
+    let data: Box<Value> = serde_json::from_str(
+        query
+            .try_get_raw("json_build_object")
+            .unwrap()
+            .as_str()
+            .unwrap(),
+    )
+    .unwrap();
 
-    Ok(list)
+    Ok(data)
 }
+
+// WIP
+pub async fn get_current() {}
 
 pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
     sqlx::query(

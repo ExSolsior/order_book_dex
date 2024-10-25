@@ -7,9 +7,9 @@ WITH trade_pair AS (
         -- should also include capital source and captial dest?
         -- what other data do I need?
         op.pubkey_id AS "pubkey_id", 
-        opc.pubkey_id AS "order_pos_config", 
-        op.next_order_position_pubkey AS "next_order_pos", 
-        opc.market_maker_pubkey AS "market_maker_pubkey", 
+        opc.pubkey_id AS "position_config", 
+        op.next_position AS "next_position", 
+        opc.market_maker AS "market_maker", 
         op.order_type AS "order_type", 
         op.price AS "price", 
         op.size AS "size", 
@@ -38,17 +38,17 @@ WITH trade_pair AS (
         op.timestamp AS "timestamp"
 
     FROM order_position_config AS opc
-    JOIN order_position AS op ON op.order_position_config_pubkey = opc.pubkey_id
+    JOIN order_position AS op ON op.position_config = opc.pubkey_id
     JOIN trade_pair AS s ON s.pubkey_id = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
-    WHERE opc.order_book_config_pubkey = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+    WHERE opc.book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
     -- ORDER BY op.price ASC
 
 ), bids AS (
     SELECT
         p.pubkey_id,
-        p.order_pos_config,
-        p.next_order_pos,
-        p.market_maker_pubkey,
+        p.position_config,
+        p.next_position,
+        p.market_maker,
         p.order_type,
         p.price,
         p.size,
@@ -66,7 +66,7 @@ WITH trade_pair AS (
         p.pubkey_id,
         p.order_pos_config,
         p.next_order_pos,
-        p.market_maker_pubkey,
+        p.market_maker,
         p.order_type,
         p.price,
         p.size,
@@ -88,7 +88,7 @@ WITH trade_pair AS (
                 'pubkeyId', a.pubkey_id,
                 'orderPosConfig', a.order_pos_config,
                 'nextOrderPos', a.next_order_pos,
-                'marketMakerPubkey', a.market_maker_pubkey,
+                'marketMakerPubkey', a.market_maker,
                 'orderType', a.order_type,
                 'price', a.price,
                 'size', a.size,
@@ -106,7 +106,7 @@ WITH trade_pair AS (
                 'pubkeyId', b.pubkey_id,
                 'orderPosConfig', b.order_pos_config,
                 'nextOrderPos', b.next_order_pos,
-                'marketMakerPubkey', b.market_maker_pubkey,
+                'marketMakerPubkey', b.market_maker,
                 'orderType', b.order_type,
                 'price', b.price,
                 'size', b.size,
@@ -130,12 +130,12 @@ SELECT
         'tokenMintB', t.token_mint_b,
         'tokenProgramA', t.token_program_a,
         'tokenProgramB', t.token_program_b,
-        'sellMarketPointer', t.sell_market_pointer_pubkey,
-        'buyMarketPointer', t.buy_market_pointer_pubkey,
-        'tokenDecimalsA', t.token_mint_a_decimal,
-        'tokenDecimalsB', t.token_mint_b_decimal,
-        'tokenSymbolA', t.token_mint_a_symbol,
-        'tokenSymbolB', t.token_mint_b_symbol,
+        'sellMarketPointer', t.sell_market,
+        'buyMarketPointer', t.buy_market,
+        'tokenDecimalsA', t.token_decimal_a,
+        'tokenDecimalsB', t.token_decimal_b,
+        'tokenSymbolA', t.token_symbol_a,
+        'tokenSymbolB', t.token_symbol_b,
         'isReverse', t.is_reverse,
         'book', json_build_object(
             -- not correct representation of price, it's possible that market pointer did match with position, but is pointer

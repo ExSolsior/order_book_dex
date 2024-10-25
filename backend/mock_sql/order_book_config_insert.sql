@@ -4,12 +4,12 @@ INSERT INTO order_book_config (
     "token_mint_b", 
     "token_program_a", 
     "token_program_b", 
-    "sell_market_pointer_pubkey", 
-    "buy_market_pointer_pubkey", 
-    "token_mint_a_decimal",
-    "token_mint_b_decimal",
-    "token_mint_a_symbol",
-    "token_mint_b_symbol",
+    "sell_market", 
+    "buy_market", 
+    "token_decimal_a",
+    "token_decimal_a",
+    "token_symbol_a",
+    "token_symbol_b",
     "ticker",
     "is_reverse"
 ) VALUES 

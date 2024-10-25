@@ -1,5 +1,5 @@
 INSERT INTO real_time_trade_data (
-    "order_book_config_pubkey",
+    "book_config",
     "order_type",
     "last_price",
     "avg_price",

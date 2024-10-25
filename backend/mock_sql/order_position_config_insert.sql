@@ -1,9 +1,11 @@
 INSERT INTO order_position_config (
     "pubkey_id",
-    "order_book_config_pubkey",
-    "market_maker_pubkey",
-    "vault_a_pubkey",            -- keypair generated, should be ATA derived
-    "vault_b_pubkey",            -- keypair generated, should be ATA derived
+    "book_config",
+    "market_maker",
+    "capital_a",            -- keypair generated, should be ATA derived
+    "capital_b",            -- keypair generated, should be ATA derived
+    "vault_a",            
+    "vault_b",            
     "nonce",
     "reference"
 ) VALUES 

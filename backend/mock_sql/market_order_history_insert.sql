@@ -1,5 +1,5 @@
 INSERT INTO market_order_history (
-    "order_book_config_pubkey",
+    "book_config",
     "interval",
     "open",
     "high",

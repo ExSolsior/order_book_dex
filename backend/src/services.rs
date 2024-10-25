@@ -60,8 +60,14 @@ pub async fn market_history(
     query: web::Query<MarketTradeQuery>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
+    // let interval = match query.interval.as_str() {
+    //     "1m" => PgInterval::try_from(Duration::from_secs(60)),
+    //     _ => PgInterval::try_from(Duration::from_secs(60)),
+    // };
+
     match get_market_order_history(
-        query.pubkey_id.clone(),
+        Pubkey::from_str(&query.pubkey_id).unwrap(),
+        // interval.unwrap(),
         query.interval.clone(),
         query.limit,
         query.offset,
@@ -166,20 +172,26 @@ pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
     // let slot = get_slot(&data, &mut offset);
     // let timestamp = get_timestamp(&data, &mut offset);
 
+    let ticker = if !is_reverse {
+        format!("{}/{}", token_symbol_a, token_symbol_b)
+    } else {
+        format!("{}/{}", token_symbol_b, token_symbol_a)
+    };
+
     insert_trade_pair(
         crate::db::models::TradePair {
-            pubkey_id: book_config.to_string(),
-            token_mint_a: token_mint_a.to_string(),
-            token_mint_b: token_mint_b.to_string(),
-            token_program_a: token_program_a.to_string(),
-            token_program_b: token_program_b.to_string(),
+            pubkey_id: book_config,
+            token_mint_a: token_mint_a,
+            token_mint_b: token_mint_b,
+            token_program_a: token_program_a,
+            token_program_b: token_program_b,
 
-            sell_market_pointer_pubkey: sell_market_pointer.to_string(),
-            buy_market_pointer_pubkey: buy_market_pointer.to_string(),
+            sell_market_pointer_pubkey: sell_market_pointer,
+            buy_market_pointer_pubkey: buy_market_pointer,
 
             token_mint_a_symbol: token_symbol_a.to_string(),
             token_mint_b_symbol: token_symbol_b.to_string(),
-            ticker: String::from(""),
+            ticker: ticker,
             token_mint_a_decimal: token_decimals_a,
             token_mint_b_decimal: token_decimals_b,
             is_reverse,
@@ -195,6 +207,8 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
     let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
     let market_maker = get_pubkey(&data, &mut offset);
+    let capital_a = get_pubkey(&data, &mut offset);
+    let capital_b = get_pubkey(&data, &mut offset);
     let vault_a = get_pubkey(&data, &mut offset);
     let vault_b = get_pubkey(&data, &mut offset);
     // let slot = get_slot(&data, &mut offset);
@@ -202,11 +216,13 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
 
     insert_order_position_config(
         PositionConfig {
-            pubkey_id: pos_config.to_string(),
-            order_book_config_pubkey: book_config.to_string(),
-            market_maker_pubkey: market_maker.to_string(),
-            vault_a_pubkey: vault_a.to_string(),
-            vault_b_pubkey: vault_b.to_string(),
+            pubkey_id: pos_config,
+            order_book_config_pubkey: book_config,
+            market_maker_pubkey: market_maker,
+            capital_a_pubkey: capital_a,
+            capital_b_pubkey: capital_b,
+            vault_a_pubkey: vault_a,
+            vault_b_pubkey: vault_b,
         },
         app_state,
     )
@@ -226,11 +242,10 @@ pub async fn _parse_create_order_position_event(data: &[u8], _app_state: AppStat
 pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
-    let _book_config = get_pubkey(&data, &mut offset);
+    let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
-    let _source = get_pubkey(&data, &mut offset);
-    let _destination = get_pubkey(&data, &mut offset);
-
+    let source = get_pubkey(&data, &mut offset);
+    let destination = get_pubkey(&data, &mut offset);
     let next_pos_pubkey = get_option_pubkey(&data, &mut offset);
     let order_type = get_order_type(&data, &mut offset);
     let price = get_slot(&data, &mut offset);
@@ -242,13 +257,16 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
     // should call OrderPosition as LimitOrder
     insert_order_position(
         OrderPosition {
-            pubkey_id: pos_pubkey.to_string(),
+            pubkey_id: pos_pubkey,
+            order_book_config_pubkey: book_config,
             order_type: order_type,
             price: price,
             size: size,
             is_available: is_available,
             next_order_position_pubkey: next_pos_pubkey,
-            order_position_config_pubkey: pos_config.to_string(),
+            order_position_config_pubkey: pos_config,
+            source_vault: source,
+            destination_vault: destination,
             slot: slot,
             timestamp: timestamp as u64,
         },
@@ -364,7 +382,7 @@ pub fn get_pubkey(data: &[u8], offset: &mut u64) -> Pubkey {
     return pubkey;
 }
 
-pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<String> {
+pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<Pubkey> {
     let length = 1;
     let is_option = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
@@ -385,7 +403,7 @@ pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<String> {
             .expect("expect u8 array 32 bytes"),
     );
 
-    Some(pubkey.to_string())
+    Some(pubkey)
 }
 
 pub fn get_order_type(data: &[u8], offset: &mut u64) -> String {
@@ -429,11 +447,7 @@ pub fn get_reverse(data: &[u8], offset: &mut u64) -> bool {
     let flag = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
 
-    if flag == 1 {
-        true
-    } else {
-        false
-    }
+    flag != 1
 }
 
 pub fn get_slot(data: &[u8], offset: &mut u64) -> u64 {
@@ -461,6 +475,7 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
     return num;
 }
 
+// WIP
 #[post("/open_limit_order")]
 pub async fn open_limit_order(
     _info: web::Json<Info>,
