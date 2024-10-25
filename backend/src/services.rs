@@ -1,19 +1,39 @@
-use crate::{
-    db::models::{
-        delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
-        get_trade_pair_list, insert_market_order_history, insert_order_position,
-        insert_order_position_config, insert_real_time_trade, insert_trade_pair,
-        update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+use {
+    crate::{
+        db::models::{
+            delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
+            get_trade_pair_list, insert_market_order_history, insert_order_position,
+            insert_order_position_config, insert_real_time_trade, insert_trade_pair,
+            update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+        },
+        AppState, POOL,
     },
-    POOL,
+    actix_web::{get, post, web, HttpResponse, Responder},
+    base64::engine::{general_purpose, Engine},
+    serde::Deserialize,
+    solana_rpc_client_api::response::{Response, RpcLogsResponse},
+    solana_sdk::pubkey::Pubkey,
+    std::str::FromStr,
 };
-use actix_web::{get, web, HttpResponse, Responder};
-use base64::engine::{general_purpose, Engine};
-use solana_rpc_client_api::response::{Response, RpcLogsResponse};
-use solana_sdk::pubkey::Pubkey;
 
-use crate::AppState;
-use serde::Deserialize;
+// pub struct OrderBook {
+//     pub pubkey_id: Pubkey,
+//     pub ask: Vec<LimitOrder>,
+//     pub bid: Vec<LimitOrder>,
+// }
+
+// pub struct LimitOrder {
+//     pub price: u64,
+//     pub amount: u64,
+//     pub position: Pubkey,
+//     pub position_config: Pubkey,
+//     pub source: Pubkey,
+//     pub destination: Pubkey,
+//     pub capital_source: Pubkey,
+//     pub capital_destination: Pubkey,
+//     pub next_limit_order: Option<Pubkey>,
+//     pub is_available: bool,
+// }
 
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
@@ -39,9 +59,18 @@ pub async fn market_order_book(
     query: web::Query<TradePair>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
-    match get_trade_pair(query.pubkey_id.clone(), app_state).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+    match get_trade_pair(&Pubkey::from_str(&query.pubkey_id).unwrap(), app_state).await {
+        Ok(data) =>
+        // should should as structured message
+        {
+            HttpResponse::Ok().json(data)
+        }
+
+        Err(_) =>
+        // should send as structured error message
+        {
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 
@@ -50,8 +79,14 @@ pub async fn market_history(
     query: web::Query<MarketTradeQuery>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
+    // let interval = match query.interval.as_str() {
+    //     "1m" => PgInterval::try_from(Duration::from_secs(60)),
+    //     _ => PgInterval::try_from(Duration::from_secs(60)),
+    // };
+
     match get_market_order_history(
-        query.pubkey_id.clone(),
+        Pubkey::from_str(&query.pubkey_id).unwrap(),
+        // interval.unwrap(),
         query.interval.clone(),
         query.limit,
         query.offset,
@@ -156,22 +191,28 @@ pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
     // let slot = get_slot(&data, &mut offset);
     // let timestamp = get_timestamp(&data, &mut offset);
 
+    let ticker = if !is_reverse {
+        format!("{}/{}", token_symbol_a, token_symbol_b)
+    } else {
+        format!("{}/{}", token_symbol_b, token_symbol_a)
+    };
+
     insert_trade_pair(
         crate::db::models::TradePair {
-            pubkey_id: book_config.to_string(),
-            token_mint_a: token_mint_a.to_string(),
-            token_mint_b: token_mint_b.to_string(),
-            token_program_a: token_program_a.to_string(),
-            token_program_b: token_program_b.to_string(),
+            pubkey_id: book_config,
+            token_mint_a: token_mint_a,
+            token_mint_b: token_mint_b,
+            token_program_a: token_program_a,
+            token_program_b: token_program_b,
 
-            sell_market_pointer_pubkey: sell_market_pointer.to_string(),
-            buy_market_pointer_pubkey: buy_market_pointer.to_string(),
+            sell_market: sell_market_pointer,
+            buy_market: buy_market_pointer,
 
-            token_mint_a_symbol: token_symbol_a.to_string(),
-            token_mint_b_symbol: token_symbol_b.to_string(),
-            ticker: String::from(""),
-            token_mint_a_decimal: token_decimals_a,
-            token_mint_b_decimal: token_decimals_b,
+            token_symbol_a: token_symbol_a.to_string(),
+            token_symbol_b: token_symbol_b.to_string(),
+            ticker: ticker,
+            token_decimals_a: token_decimals_a,
+            token_decimals_b: token_decimals_b,
             is_reverse,
         },
         app_state,
@@ -185,6 +226,8 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
     let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
     let market_maker = get_pubkey(&data, &mut offset);
+    let capital_a = get_pubkey(&data, &mut offset);
+    let capital_b = get_pubkey(&data, &mut offset);
     let vault_a = get_pubkey(&data, &mut offset);
     let vault_b = get_pubkey(&data, &mut offset);
     // let slot = get_slot(&data, &mut offset);
@@ -192,11 +235,13 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
 
     insert_order_position_config(
         PositionConfig {
-            pubkey_id: pos_config.to_string(),
-            order_book_config_pubkey: book_config.to_string(),
-            market_maker_pubkey: market_maker.to_string(),
-            vault_a_pubkey: vault_a.to_string(),
-            vault_b_pubkey: vault_b.to_string(),
+            pubkey_id: pos_config,
+            book_config: book_config,
+            market_maker: market_maker,
+            capital_a: capital_a,
+            capital_b: capital_b,
+            vault_a: vault_a,
+            vault_b: vault_b,
         },
         app_state,
     )
@@ -216,11 +261,10 @@ pub async fn _parse_create_order_position_event(data: &[u8], _app_state: AppStat
 pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
-    let _book_config = get_pubkey(&data, &mut offset);
+    let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
-    let _source = get_pubkey(&data, &mut offset);
-    let _destination = get_pubkey(&data, &mut offset);
-
+    let source = get_pubkey(&data, &mut offset);
+    let destination = get_pubkey(&data, &mut offset);
     let next_pos_pubkey = get_option_pubkey(&data, &mut offset);
     let order_type = get_order_type(&data, &mut offset);
     let price = get_slot(&data, &mut offset);
@@ -232,13 +276,16 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
     // should call OrderPosition as LimitOrder
     insert_order_position(
         OrderPosition {
-            pubkey_id: pos_pubkey.to_string(),
+            pubkey_id: pos_pubkey,
+            book_config: book_config,
             order_type: order_type,
             price: price,
             size: size,
             is_available: is_available,
-            next_order_position_pubkey: next_pos_pubkey,
-            order_position_config_pubkey: pos_config.to_string(),
+            next_position: next_pos_pubkey,
+            position_config: pos_config,
+            source_vault: source,
+            destination_vault: destination,
             slot: slot,
             timestamp: timestamp as u64,
         },
@@ -317,7 +364,7 @@ pub async fn parse_market_order_complete_event(data: &[u8], app_state: AppState)
 
     insert_real_time_trade(
         RealTimeTrade {
-            order_book_config_pubkey: book_config.to_string(),
+            book_config: book_config.to_string(),
             order_type: order_type,
             last_price,
             avg_price: total_cost / total_amount,
@@ -354,7 +401,7 @@ pub fn get_pubkey(data: &[u8], offset: &mut u64) -> Pubkey {
     return pubkey;
 }
 
-pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<String> {
+pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<Pubkey> {
     let length = 1;
     let is_option = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
@@ -375,7 +422,7 @@ pub fn get_option_pubkey(data: &[u8], offset: &mut u64) -> Option<String> {
             .expect("expect u8 array 32 bytes"),
     );
 
-    Some(pubkey.to_string())
+    Some(pubkey)
 }
 
 pub fn get_order_type(data: &[u8], offset: &mut u64) -> String {
@@ -419,11 +466,7 @@ pub fn get_reverse(data: &[u8], offset: &mut u64) -> bool {
     let flag = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
 
-    if flag == 1 {
-        true
-    } else {
-        false
-    }
+    flag != 1
 }
 
 pub fn get_slot(data: &[u8], offset: &mut u64) -> u64 {
@@ -450,3 +493,42 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
 
     return num;
 }
+
+// WIP
+#[post("/open_limit_order")]
+pub async fn open_limit_order(
+    _info: web::Json<Info>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    // app_state.order_book;
+    HttpResponse::Ok().body("it works")
+}
+
+#[derive(Deserialize)]
+struct Info {
+    pub _pubkey_id: Pubkey,
+    pub _order_type: OrderType,
+    pub _price: u64,
+    pub _amount: u64,
+}
+
+#[derive(Deserialize)]
+enum OrderType {
+    Ask,
+    Bid,
+    Sell,
+    Buy,
+}
+
+// post request -> trade reponse
+// market order
+//  amount
+//  order type
+//  fill -> partial ->
+
+// limit order
+//  open
+//      order type
+//      price
+//      amount
+//  cancel
