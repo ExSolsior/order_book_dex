@@ -1,8 +1,8 @@
 CREATE TYPE order_type as ENUM (
-    'buy',
     'sell',
-    'bid',
-    'ask'
+    'buy',
+    'ask',
+    'bid'
 );
 
 -- CREATE TYPE tab AS ENUM (
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS order_book_config (
     "token_program_b"       varchar(44) NOT NULL, 
     "sell_market"           varchar(44) NOT NULL, 
     "buy_market"            varchar(44) NOT NULL,
-    "token_decimals_a"       smallint NOT NULL,
-    "token_decimals_b"       smallint NOT NULL,
+    "token_decimals_a"      smallint NOT NULL,
+    "token_decimals_b"      smallint NOT NULL,
     "token_symbol_a"        varchar(12) NOT NULL,
     "token_symbol_b"        varchar(12) NOT NULL,
     "ticker"                varchar(25) NOT NULL,
@@ -50,56 +50,62 @@ CREATE TABLE IF NOT EXISTS order_position_config (
     "capital_b"             varchar(44) NOT NULL,
     "vault_a"               varchar(44) NOT NULL,
     "vault_b"               varchar(44) NOT NULL,
-    "nonce"                 bigserial,
-    "reference"             bigserial
+    "nonce"                 bigint,
+    "reference"             bigint
 );
 
 CREATE TABLE IF NOT EXISTS order_position (
     "pubkey_id"             varchar(44) PRIMARY KEY,
+    -- not sure if needed, it's being derived from position config
     "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "position_config"       varchar(44) NOT NULL REFERENCES order_position_config (pubkey_id),
     "next_position"         varchar(44),
-    "source_vault"          varchar(44) NOT NULL,
-    "destination_vault"     varchar(44) NOT NULL,
+    -- not sure if needed, it's being derived from position config
+    "source_vault"          varchar(44) NOT NULL,   
+    -- not sure if needed, it's being derived from position config
+    "destination_vault"     varchar(44) NOT NULL,   
     "order_type"            order_type NOT NULL,
-    "price"                 bigserial NOT NULL,
-    "size"                  bigserial NOT NULL,
+    "price"                 bigint NOT NULL,
+    "size"                  bigint NOT NULL,
     "is_available"          boolean NOT NULL,
-    "slot"                  bigserial NOT NULL,
-    "timestamp"             bigserial NOT NULL
+    "slot"                  bigint NOT NULL,
+    "timestamp"             bigint NOT NULL
 );
 
 -- real time data
 CREATE TABLE IF NOT EXISTS real_time_trade_data (
-    "id"                    bigserial PRIMARY KEY,
     "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "order_type"            order_type NOT NULL,
-    "last_price"            bigserial NOT NULL,
-    "avg_price"             bigserial NOT NULL,
-    "amount"                bigserial NOT NULL,
-    "turnover"              bigserial NOT NULL,
-    "timestamp"             bigserial NOT NULL,
-    "slot"                  bigserial NOT NULL
+    "last_price"            bigint NOT NULL,
+    "avg_price"             bigint NOT NULL,
+    "amount"                bigint NOT NULL,
+    "turnover"              bigint NOT NULL,
+    "timestamp"             bigint NOT NULL,
+    "slot"                  bigint NOT NULL
 );
 
--- WIP
--- CREATE TABLE IF NOT EXIST trade_data_24_hour (
---     "book_config_id"
---     "last_price"
---     "24_hour_volume"
---     "24_hour_turnover"
--- );
+CREATE TABLE IF NOT EXISTS trade_data_24_hour (
+    "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
+    "last_price"            bigint NOT NULL,
+    "24_hour_volume"        bigint NOT NULL,
+    "24_hour_turnover"      bigint NOT NULL,
+    "24_hour_price_change"  bigint NOT NULL,
+    "timestamp"             bigint NOT NULL,
+
+    UNIQUE ("book_config", "timestamp")
+);
 
 CREATE TABLE IF NOT EXISTS market_order_history (
-    "id"                    bigserial PRIMARY KEY,
     "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "interval"              interval NOT NULL,
-    "open"                  bigserial NOT NULL,
-    "high"                  bigserial NOT NULL,
-    "low"                   bigserial NOT NULL,
-    "close"                 bigserial NOT NULL,
-    "volume"                bigserial NOT NULL,
-    "turnover"              bigserial NOT NULL,
-    "timestamp"             bigserial NOT NULL
+    "open"                  bigint NOT NULL,
+    "high"                  bigint NOT NULL,
+    "low"                   bigint NOT NULL,
+    "close"                 bigint NOT NULL,
+    "volume"                bigint NOT NULL,
+    "turnover"              bigint NOT NULL,
+    "timestamp"             bigint NOT NULL,
+
+    UNIQUE ("book_config", "timestamp")
 );
 
