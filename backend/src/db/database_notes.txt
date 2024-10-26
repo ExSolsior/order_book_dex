@@ -1,12 +1,12 @@
-1. docker run --name order-book-dex -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -d postgres
-2. sqlx migrate run --database-url postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/
+docker run --name order-book-dex -e POSTGRES_PASSWORD=admin0rderb00kdex -e POSTGRES_DB=order-book-dex -p 5431:5432 -d postgres
+sqlx migrate run --database-url postgres://postgres:admin0rderb00kdex@127.0.0.1:5431/
 
 -- to run queries in the terminal
 docker exec -it order-book-dex psql -U postgres
 
 -- stop execution of DB in docker
-docker stop order-book-dex
-docker rm order-book-dex
+docker stop order-book-dex && docker rm order-book-dex
+
 
 -- list all docker process
 docker ps -a

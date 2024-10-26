@@ -84,17 +84,6 @@ CREATE TABLE IF NOT EXISTS real_time_trade_data (
     "slot"                  bigint NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS trade_data_24_hour (
-    "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
-    "last_price"            bigint NOT NULL,
-    "24_hour_volume"        bigint NOT NULL,
-    "24_hour_turnover"      bigint NOT NULL,
-    "24_hour_price_change"  bigint NOT NULL,
-    "timestamp"             bigint NOT NULL,
-
-    UNIQUE ("book_config", "timestamp")
-);
-
 CREATE TABLE IF NOT EXISTS market_order_history (
     "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "interval"              interval NOT NULL,
@@ -109,3 +98,14 @@ CREATE TABLE IF NOT EXISTS market_order_history (
     UNIQUE ("book_config", "timestamp")
 );
 
+CREATE TABLE IF NOT EXISTS trade_data_24_hour (
+    "book_config"               varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
+    "last_price"                bigint NOT NULL,
+    "24_hour_volume"            bigint NOT NULL,
+    "24_hour_turnover"          bigint NOT NULL,
+    "24_hour_price_change"      bigint NOT NULL,
+    "24_hour_prev_last_price"   bigint NOT NULL,
+    "timestamp"                 bigint NOT NULL,
+
+    UNIQUE ("book_config", "timestamp")
+);
