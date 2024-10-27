@@ -1156,6 +1156,14 @@ pub async fn get_trade_pair_list(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    let dt: DateTime<Utc> = Utc::now();
+    let delta = dt.timestamp() % 60;
+    let time = if delta < 6 {
+        dt.timestamp() / 60 * 60 - 60
+    } else {
+        dt.timestamp() / 60 * 60
+    };
+
     let query = sqlx::query(
         r#"
                 WITH config AS (
@@ -1163,6 +1171,10 @@ pub async fn get_trade_pair_list(
                     LIMIT $1
                     OFFSET $2
                     
+                ), market_data AS (
+                    SELECT * FROM trade_data_24_hour as td
+                    WHERE td.timestamp = $3
+
                 )
 
                 SELECT
@@ -1180,15 +1192,50 @@ pub async fn get_trade_pair_list(
                             'tokenSymbolA', "token_symbol_a",
                             'tokenSymbolB', "token_symbol_b",
                             'ticker', "ticker",
-                            'isReversal', "is_reverse"
+                            'isReversal', "is_reverse",
+
+                            'marketData', json_build_object(
+                                'lastPrice',
+                                    CASE WHEN m.last_price IS NOT NULL
+                                        THEN m.last_price
+                                        ELSE 0
+                                    END,
+                                '24hVolume',
+                                    CASE WHEN "24_hour_volume" IS NOT NULL
+                                        THEN "24_hour_volume"
+                                        ELSE 0
+                                    END,
+                                '24hTurnover',
+                                    CASE WHEN "24_hour_turnover" IS NOT NULL
+                                        THEN "24_hour_turnover"
+                                        ELSE 0
+                                    END,
+                                '24hPriceChange',
+                                    CASE WHEN "24_hour_price_change" IS NOT NULL
+                                        THEN "24_hour_price_change"
+                                        ELSE 0
+                                    END,
+                                '24hPrevLastPrice',
+                                    CASE WHEN "24_hour_prev_last_price" IS NOT NULL
+                                        THEN "24_hour_prev_last_price"
+                                        ELSE 0
+                                    END,
+                                'timestamp', 
+                                    CASE WHEN m.timestamp IS NOT NULL
+                                        THEN m.timestamp
+                                        ELSE $3
+                                    END
+                            )
                         )
                     )
 
-                From config;
+                From config
+                LEFT JOIN market_data AS m ON m.book_config = config.pubkey_id;
         "#,
     )
     .bind(limit as i64)
     .bind(offset as i64)
+    .bind(time as i64)
     .fetch_one(&app_state.pool)
     .await?;
 
