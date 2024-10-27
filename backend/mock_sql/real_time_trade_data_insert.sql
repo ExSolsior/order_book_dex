@@ -104,3 +104,39 @@ INSERT INTO real_time_trade_data (
     'sell', 920, 0, 10, 920 * 10,
     1431648045, 0
 );
+
+
+INSERT INTO real_time_trade_data (
+    "book_config",
+    "order_type",
+    "last_price",
+    "avg_price",
+    "amount",
+    "turnover",
+    "timestamp",
+    "slot"
+) values
+
+(
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'buy', 1000, 0, 100, 1000 * 100,
+    86400, 0
+),
+
+(
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'sell', 900, 0, 100, 900 * 100,
+    86400 + 5, 0
+),
+
+(
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'buy', 950, 0, 100, 950 * 100,
+    86400 + 10, 0
+),
+
+(
+    'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+    'buy', 1100, 0, 100, 1100 * 100,
+    86400 +  13, 0
+);
