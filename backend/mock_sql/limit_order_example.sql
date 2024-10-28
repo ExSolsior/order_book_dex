@@ -1,10 +1,8 @@
 WITH input AS (
-    SELECT 
-        *
-    FROM (
+    SELECT * FROM (
     VALUES  (
         'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-        20, 
+        24, 
         'ask'::order_type
     )) AS t ("book_config", "price", "order_type")
 
@@ -114,7 +112,6 @@ WITH input AS (
 
 ), node AS (
     SELECT 
-        -- *,
         CASE
             WHEN order_type = 'bid' 
             AND ((
@@ -133,13 +130,19 @@ WITH input AS (
                 THEN max_pubkey_id
 
             WHEN order_type = 'ask'  
-            AND min_pubkey_id IS NOT NULL
-            AND max_pubkey_id IS NOT NULL
-                THEN max_pubkey_id
+            AND ((
+                min_pubkey_id IS NOT NULL
+                AND max_pubkey_id IS NOT NULL)
+            OR (
+                max_pubkey_id IS NOT NULL
+                AND min_pubkey_id IS NULL
+                AND max_next_position IS NULL))
+                    THEN max_pubkey_id
 
             WHEN order_type = 'ask'  
             AND min_pubkey_id IS NOT NULL
             AND max_pubkey_id IS NULL
+            AND NOT (min_pubkey_id = (SELECT pubkey_id FROM head_ask))
                 THEN min_pubkey_id
             
             ELSE NULL
@@ -162,13 +165,18 @@ WITH input AS (
                 THEN min_pubkey_id
 
             WHEN order_type = 'ask'  
-            AND min_pubkey_id IS NOT NULL
-            AND max_pubkey_id IS NOT NULL
-                THEN min_pubkey_id
+            AND ( 
+                min_pubkey_id IS NOT NULL
+                AND max_pubkey_id IS NOT NULL)
+            OR (
+                min_pubkey_id = (SELECT pubkey_id FROM head_ask)
+                AND (SELECT price FROM input) > (SELECT price FROM head_bid))
+                    THEN min_pubkey_id
 
             WHEN order_type = 'ask'  
-            AND min_pubkey_id IS NULL
             AND max_pubkey_id IS NOT NULL
+            AND max_next_position IS NOT NULL
+            AND min_pubkey_id IS NULL
                 THEN max_pubkey_id
             
             ELSE NULL
@@ -199,107 +207,7 @@ WITH input AS (
             min_price.next_position AS min_next_position, 
             min_price.slot AS min_slot,
 
-            NULL AS max_pubkey_id, 
-            NULL AS max_price,
-            NULL AS max_next_position, 
-            NULL AS max_slot
-        FROM ledger
-        LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
-        LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-        WHERE min_price.pubkey_id IS NOT NULL 
-        AND max_price.pubkey_id IS NULL
-        AND min_price.next_position IS NULL
-
-        UNION
-        SELECT
-            ledger.order_type AS order_type,
-            ledger.slot AS slot,
-
-            NULL AS min_pubkey_id, 
-            NULL AS min_price,
-            NULL AS min_next_position, 
-            NULL AS min_slot,
-
-            max_price.pubkey_id AS max_pubkey_id, 
-            max_price.price AS max_price,
-            max_price.next_position AS max_next_position, 
-            max_price.slot AS max_slot
-        FROM ledger
-        LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
-        LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-        WHERE max_price.pubkey_id IS NOT NULL
-        AND min_price.pubkey_id IS NULL
-
-    )
-    -- WHERE min_pubkey_id IS NOT NULL OR max_pubkey_id IS NOT NULL
-
-    -- WHERE ( 
-    --     min_pubkey_id IS NULL
-    --     AND max_pubkey_id IS NULL
-        
-    -- ) OR (('bid'::order_type) = 'bid'::order_type AND (
-    --     min_pubkey_id IS NOT NULL
-    --     AND max_pubkey_id IS NOT NULL
-    --     AND min_next_position = max_pubkey_id
-        
-    -- ) OR (
-    --     min_pubkey_id IS NULL
-    --     AND max_pubkey_id IS NOT NULL
-    --     AND max_next_position IS NULL
-
-    -- ) OR (
-    --     min_pubkey_id IS NOT NULL
-    --     AND max_pubkey_id IS NULL
-    --     AND (SELECT price FROM input) < (SELECT price FROM head_ask)
-    --     AND min_pubkey_id = (SELECT pubkey_id FROM head_bid)
-
-    -- )) OR ( 'ask'::order_type = 'ask'::order_type AND (
-    --     min_pubkey_id IS NOT NULL
-    --     AND max_pubkey_id IS NOT NULL
-    --     AND max_next_position = min_pubkey_id
-
-    -- ) OR (
-    --     min_pubkey_id IS NOT NULL
-    --     AND max_pubkey_id IS NULL
-    --     AND min_next_position IS NULL
-
-    -- ) OR (
-    --     min_pubkey_id IS NULL
-    --     AND max_pubkey_id IS NOT NULL
-    --     AND (SELECT price FROM input) > (SELECT price FROM head_bid)
-    --     AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
-
-    -- ))
-
-)
-
--- SELECT * FROM min_price;
-
-        SELECT
-            min_price.order_type AS order_type,
-            max_price.slot AS slot,
-            min_price.pubkey_id AS min_pubkey_id, 
-            min_price.price AS min_price,
-            min_price.next_position AS min_next_position, 
-            min_price.slot AS min_slot,
-
-            max_price.pubkey_id AS max_pubkey_id, 
-            max_price.price AS max_price,
-            max_price.next_position AS max_next_position, 
-            max_price.slot AS max_slot
-        FROM min_price, max_price
-
-        UNION
-        SELECT
-            ledger.order_type AS order_type,
-            ledger.slot AS slot,
-
-            min_price.pubkey_id AS min_pubkey_id, 
-            min_price.price AS min_price,
-            min_price.next_position AS min_next_position, 
-            min_price.slot AS min_slot,
-
-            NULL AS max_pubkey_id, 
+            max_price.pubkey_id  AS max_pubkey_id, 
             NULL AS max_price,
             NULL AS max_next_position, 
             NULL AS max_slot
@@ -315,7 +223,9 @@ WITH input AS (
         OR (
             ledger.order_type = 'ask'::order_type
             AND max_price.pubkey_id IS NULL
-            AND min_price.next_position IS NULL
+            AND ((SELECT price FROM input) > min_price.price
+            OR (SELECT pubkey_id FROM head_ask) = min_price.pubkey_id
+            AND (SELECT price FROM input) > (SELECT price FROM head_bid))
         ))
 
         UNION
@@ -332,6 +242,7 @@ WITH input AS (
             max_price.price AS max_price,
             max_price.next_position AS max_next_position, 
             max_price.slot AS max_slot
+
         FROM ledger
         LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
         LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
@@ -339,10 +250,59 @@ WITH input AS (
         AND ((
             ledger.order_type = 'bid'::order_type
             AND min_price.pubkey_id IS NULL
+            AND ((SELECT price FROM input) < max_price.price
+            OR (SELECT pubkey_id FROM head_bid) = max_price.pubkey_id
+            AND (SELECT price FROM input) < (SELECT price FROM head_ask))
         ) 
         OR (
             ledger.order_type = 'ask'::order_type
             AND min_price.pubkey_id IS NULL
             AND max_price.next_position IS NULL
-        ));
+        ))
+    )
+
+    WHERE ( 
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NULL
+        
+    ) OR ((SELECT order_type FROM input) = 'bid'::order_type AND (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NOT NULL
+        AND min_next_position = max_pubkey_id
+        
+    ) OR (
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NOT NULL
+        AND (max_next_position IS NULL
+        OR  max_pubkey_id = (SELECT pubkey_id FROM head_bid))
+
+    ) OR (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NULL
+
+    )) OR ((SELECT order_type FROM input) = 'ask'::order_type AND (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NOT NULL
+        AND max_next_position = min_pubkey_id
+
+    ) OR (
+        max_pubkey_id IS NULL
+        AND min_pubkey_id IS NOT NULL
+        AND (min_next_position IS NULL
+        OR min_pubkey_id = (SELECT pubkey_id FROM head_ask))
+
+    ) OR (
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NOT NULL
+        AND (SELECT price FROM input) > (SELECT price FROM head_bid)
+        AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
+
+    ))
+
+)
+
+SELECT * FROM node;
+
+
+
 
