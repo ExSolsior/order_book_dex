@@ -2,9 +2,10 @@ WITH input AS (
     SELECT * FROM (
     VALUES  (
         'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
+        '49wBdBzzw9eMre1wT27TD1b8hgW9x9tCWFtvAUmLohtp',
         24, 
         'ask'::order_type
-    )) AS t ("book_config", "price", "order_type")
+    )) AS t ("book_config", "position_config", "price", "order_type")
 
 ), trade_pair AS (
     SELECT * FROM order_book_config AS obc
@@ -112,6 +113,7 @@ WITH input AS (
 
 ), node AS (
     SELECT 
+        (SELECT book_config FROM input) AS book_config,
         CASE
             WHEN order_type = 'bid' 
             AND ((
@@ -301,8 +303,44 @@ WITH input AS (
 
 )
 
-SELECT * FROM node;
+SELECT 
+    t.pubkey_id AS book_config,
+    CASE 
+        WHEN (SELECT order_type FROM input) = 'bid'::order_type
+            THEN t.sell_market
+        WHEN (SELECT order_type FROM input) = 'ask'::order_type
+            THEN t.buy_market
+    END AS market_pointer,
+    (SELECT order_type FROM input) as order_type,
+    t.token_mint_a,
+    t.token_mint_b,
+    t.token_program_a,
+    t.token_program_b,
+    pc.pubkey_id,
+    pc.market_maker,
+    pc.capital_a,
+    pc.capital_b,
+    pc.vault_a,
+    pc.vault_b,
+    pc.nonce,
+    pc.reference,
+    node.prev_pubkey_id,
+    node.next_pubkey_id
 
+FROM trade_pair AS t
+LEFT JOIN node ON node.book_config = t.pubkey_id
+LEFT JOIN (
+    SELECT 
+        pc.pubkey_id,
+        pc.market_maker,
+        pc.capital_a,
+        pc.capital_b,
+        pc.vault_a,
+        pc.vault_b,
+        pc.nonce,
+        pc.reference,
+        (SELECT book_config FROM input) AS book_config
+    FROM order_position_config AS pc
+    WHERE pc.pubkey_id = (SELECT position_config FROM input)
 
-
-
+) AS pc ON pc.book_config = t.pubkey_id;
