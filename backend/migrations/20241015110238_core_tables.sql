@@ -69,7 +69,8 @@ CREATE TABLE IF NOT EXISTS order_position (
     "size"                  bigint NOT NULL,
     "is_available"          boolean NOT NULL,
     "slot"                  bigint NOT NULL,
-    "timestamp"             bigint NOT NULL
+    "timestamp"             bigint NOT NULL,
+    "is_head"               boolean NOT NULL DEFAULT 'f'
 );
 
 -- real time data
