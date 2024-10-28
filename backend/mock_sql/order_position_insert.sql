@@ -10,7 +10,8 @@ INSERT INTO order_position (
     "size",
     "is_available",
     "slot",
-    "timestamp"
+    "timestamp",
+    "is_head"
 ) VALUES 
 
 ---  ASKS
@@ -26,7 +27,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'false'
 ),
 
 (
@@ -41,7 +43,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'false'
 ),
 
 (
@@ -56,7 +59,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'true'
 ),
 
 
@@ -75,7 +79,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'true'
 ),
 
 (
@@ -90,7 +95,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'false'
 ),
 
 (
@@ -105,7 +111,8 @@ INSERT INTO order_position (
     2,
     'true',
     0,
-    0
+    0,
+    'false'
 );
 
 

@@ -61,104 +61,7 @@ SELECT
 FROM s
 
 
--- get orber book config list
-SELECT * FROM order_book_config_table
 
-
--- get market order history by order book config pubkey
-SELECT * FROM market_order_histry as m
-WHERE m.order_book_config_pubkey == ? AND interval == ?
-ORDER BY m.timestamp ASC
-
-
--- insert order book config
-CREATE TABLE order_book_config_table (
-    "pubkey_id"                     bytea PRIMARY KEY,
-    "token_mint_a"                  bytea NOT NULL, 
-    "token_mint_b"                  bytea NOT NULL, 
-    "token_program_a"               bytea NOT NULL, 
-    "token_program_b"               bytea NOT NULL, 
-    "sell_market_pointer_pubkey"    bytea NOT NULL, 
-    "buy_market_pointer_pubkey"     bytea NOT NULL, 
-    "token_mint_a_decimal"          smallint NOT NULL,
-    "token_mint_b_decimal"          smallint NOT NULL,
-    "token_mint_a_symbol"           varchar(5) NOT NULL,
-    "token_mint_b_symbol"           varchar(5) NOT NULL,
-    "is_reverse"                    boolean NOT NULL
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-
--- delete order book config
-DELETE FROM order_book_config_table
-WHERE pubkey_id == ?
-
--- insert order_position_config
-INSERT INTO order_position_config_table (
-    "pubkey_id",
-    "order_book_config_pubkey",
-    "market_maker_pubkey",
-    "vault_a_pubkey",
-    "vault_b_pubkey",
-    "nonce",
-    "reference"
-) VALUES (?, ?, ?, ?, ?, ?, ?);
-
--- update order_position_config
-UPDATE order_position_config_table SET "nonce" = ?, "reference" = ?
-WHERE pubkey_id = ?
-
--- delete order_position_config
-DELETE FROM order_position_config_table
-WHERE pubkey_id == ?
-
--- insert order position
-CREATE TABLE order_position_table (
-    "pubkey_id",
-    "order_type",
-    "price",
-    "size",
-    "is_available",
-    "next_order_position_pubkey",
-    "order_position_config_pubkey",
-    "slot",
-    "timestamp"
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
-
--- update order position
-UPDATE order_position_table SET "is_available" = ?, "size" = ?
-WHERE pubkey_id = ?
-
--- delete order position
-DELETE FROM order_position_table
-WHERE pubkey_id == ?
-
--- insert 24 hour trade data
-CREATE TABLE 24_hour_trade_data (
-    "order_book_config_pubkey",
-    "order_type",
-    "last_price",
-    "avg_price",
-    "amount",
-    "turnover",
-    "timestamp",
-    "slot",
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?);
-
--- delete 24 hour trade data
-DELETE FROM 24_hour_trade_data as t
-WHERE t.timestamp <= ?
-
--- insert market order trade history
-CREATE TABLE market_order_histry (
-    "order_book_config_pubkey",
-    "interval",
-    "open",
-    "low",
-    "high",
-    "close",
-    "volume",
-    "turnover",
-    "timestamp"
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- one thing left to do, pubkey format in json sould be a 32 byte array
 
@@ -177,51 +80,6 @@ OFFSET $4;
 
 
 --------------------------------------------
-
-INSERT INTO order_position (
-    "pubkey_id",
-    "order_type",
-    "price",
-    "size",
-    "is_available",
-    "next_order_position_pubkey",
-    "order_position_config_pubkey",
-    "slot",
-    "timestamp"
-) VALUES (
-    '8gFbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
-    'ask', 
-    100, 
-    100, 
-    'true',
-    NULL,
-    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3',
-    0, 
-    0
-);
-
-INSERT INTO order_position (
-    "pubkey_id",
-    "order_type",
-    "price",
-    "size",
-    "is_available",
-    "next_order_position_pubkey",
-    "order_position_config_pubkey",
-    "slot",
-    "timestamp"
-) VALUES (
-    '1gFbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3', 
-    'ask', 
-    100, 
-    100, 
-    'true',
-    NULL,
-    '88FbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbcF3',
-    0, 
-    0
-);
-
 
 
 -----------------------------------------------
@@ -454,8 +312,8 @@ order_position                  -- from client
 token_mint_a                    -- order book config table
 token_mint_b                    -- order book config table
 capital_source                  -- client should handle <- get from client
-source                          -- order position config table
-destination                     -- order position config table
+source                          -- order position config table, I think should come from client, or derived
+destination                     -- order position config table, I think should come from client, or derived
 token_program_a                 -- order book config table
 token_program_b                 -- order book config table
 
@@ -540,16 +398,16 @@ WITH s AS (
     SELECT
         CASE 
             WHEN t.order_type = 'bid'
-                THEN max_price.pubkey_id
+                THEN max_pubkey_id
             WHEN t.order_type = 'ask'
-                THEN min_price.pubkey_id
+                THEN min_pubkey_id
         END AS prev_pubkey_id,
 
         CASE 
             WHEN t.order_type = 'bid'
-                THEN min_price.pubkey_id
+                THEN min_pubkey_id
             WHEN t.order_type = 'ask'
-                THEN max_price.pubkey_id
+                THEN max_pubkey_id
         END AS next_pubkey_id
 
     FROM min_price 
@@ -826,3 +684,222 @@ WITH s AS (
     -- FULL JOIN min_price_id ON min_price_id.price = t.price
     -- WHERE t.price = min_price_id.price OR t.price = max_price_id.price;
 
+
+
+WITH trade_pair AS (
+    SELECT * FROM order_book_config AS obc
+    WHERE obc.pubkey_id = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+
+), ledger AS (
+    SELECT
+        op.pubkey_id AS "pubkey_id",
+        op.next_position AS "next_position",
+        op.order_type AS "order_type",
+        op.price AS "price",
+        op.slot AS "slot"
+
+    FROM order_position AS op
+    WHERE op.book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' 
+    AND op.order_type = 'bid'::order_type
+    AND op.is_available = 't'
+    ORDER BY op.price ASC
+
+), min_price AS (
+    SELECT 
+        ledger.pubkey_id AS "pubkey_id",
+        ledger.next_position AS "next_position",
+        ledger.order_type AS "order_type",
+        ledger.price AS "price",
+        ledger.slot AS "slot"
+
+    FROM ledger
+    JOIN (
+        SELECT
+            ledger.pubkey_id,
+            l.price,
+            MIN(ledger.slot) AS slot
+
+        FROM (
+            SELECT
+                -- ledger.pubkey_id AS "pubkey_id",
+                MIN(ledger.price) as price
+
+            FROM ledger
+            WHERE ledger.price >= 11
+            -- GROUP BY ledger.pubkey_id
+
+        ) AS l
+        JOIN ledger ON l.price = ledger.price
+        GROUP BY GROUPING SETS (
+            (1, 2)
+        )
+    ) AS _min ON _min.pubkey_id = ledger.pubkey_id
+
+), max_price AS (
+    SELECT 
+        ledger.pubkey_id AS "pubkey_id",
+        ledger.next_position AS "next_position",
+        ledger.order_type AS "order_type",
+        ledger.price AS "price",
+        ledger.slot AS "slot"
+
+    FROM ledger
+    JOIN (
+        SELECT
+            ledger.pubkey_id,
+            l.price,
+            MIN(ledger.slot) AS slot
+
+        FROM (
+            SELECT
+                -- ledger.pubkey_id AS "pubkey_id",
+                MAX(ledger.price) as price
+
+            FROM ledger
+            WHERE ledger.price <= 11
+            -- GROUP BY ledger.pubkey_id
+
+        ) AS l
+        JOIN ledger ON l.price = ledger.price
+        GROUP BY GROUPING SETS (
+            (1, 2)
+        )
+    ) AS _min ON _min.pubkey_id = ledger.pubkey_id
+
+), head_ask AS (
+    SELECT 
+        pubkey_id,
+        price
+    FROM order_position AS p
+    WHERE p.book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+    AND p.order_type = 'ask' AND p.is_head
+    LIMIT 1
+
+), head_bid AS (
+    SELECT 
+        pubkey_id,
+        price
+    FROM order_position AS p
+    WHERE p.book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+    AND p.order_type = 'bid' AND p.is_head
+    LIMIT 1
+
+), node AS (
+    SELECT 
+        CASE
+            WHEN order_type = 'bid' 
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN min_pubkey_id
+
+            WHEN order_type = 'bid'
+            AND min_pubkey_id IS NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN max_pubkey_id
+
+            WHEN order_type = 'ask'  
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN max_pubkey_id
+
+            WHEN order_type = 'ask'  
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NULL
+                THEN min_pubkey_id
+            
+            ELSE NULL
+        END AS prev_pubkey_id,
+
+        CASE
+            WHEN order_type = 'bid' 
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN max_pubkey_id
+
+            WHEN order_type = 'bid' 
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NULL
+                THEN min_pubkey_id
+
+            WHEN order_type = 'ask'  
+            AND min_pubkey_id IS NOT NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN min_pubkey_id
+
+            WHEN order_type = 'ask'  
+            AND min_pubkey_id IS NULL
+            AND max_pubkey_id IS NOT NULL
+                THEN max_pubkey_id
+            
+            ELSE NULL
+        END AS next_pubkey_id
+    
+    FROM (
+        SELECT
+            min_price.order_type AS order_type,
+            max_price.slot AS slot,
+            min_price.pubkey_id AS min_pubkey_id, -- min_price.pubkey_id
+            min_price.price AS min_price,
+            min_price.next_position AS min_next_position, -- min_price.next_position
+            min_price.slot AS min_slot,
+
+            max_price.pubkey_id AS max_pubkey_id, -- max_price.pubkey_id
+            max_price.price AS max_price,
+            max_price.next_position AS max_next_position, -- max_price.next__position 
+            max_price.slot AS max_slot
+        FROM min_price, max_price
+    )
+    WHERE min_pubkey_id IS NOT NULL OR max_pubkey_id IS NOT NULL
+    AND ( 
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NULL
+        
+    ) OR ( ('bid'::order_type) = 'bid'::order_type AND (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NOT NULL
+        AND min_next_position = max_pubkey_id
+        
+    ) OR (
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NOT NULL
+        AND max_next_position IS NULL
+
+    ) OR (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NULL
+        AND 11 < (SELECT price FROM head_ask)
+        AND min_pubkey_id = (SELECT pubkey_id FROM head_bid)
+
+    )) OR ( 'ask'::order_type = 'ask'::order_type AND (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NOT NULL
+        AND max_next_position = min_pubkey_id
+
+    ) OR (
+        min_pubkey_id IS NOT NULL
+        AND max_pubkey_id IS NULL
+        AND min_next_position IS NULL
+
+    ) OR (
+        min_pubkey_id IS NULL
+        AND max_pubkey_id IS NOT NULL
+        AND 11 > (SELECT price FROM head_bid)
+        AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
+
+    ))
+
+)
+
+SELECT * FROM node;
+
+
+
+, position_config_id AS (
+    SELECT pubkey_id FROM order_position_config
+    WHERE pubkey_id = $5
+)
+
+SELECT
+    *
+FROM min_price, max_price
+JOIN ledger ON ledger.pubkey_id = min_pubkey_id;

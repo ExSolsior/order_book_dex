@@ -1351,9 +1351,6 @@ pub async fn get_market_order_history(
     Ok(data)
 }
 
-// WIP
-pub async fn get_current() {}
-
 pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
     sqlx::query(
         r#"
