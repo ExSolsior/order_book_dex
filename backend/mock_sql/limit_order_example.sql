@@ -316,7 +316,8 @@ SELECT
     t.token_mint_b,
     t.token_program_a,
     t.token_program_b,
-    pc.pubkey_id,
+    t.is_reverse,
+    pc.pubkey_id AS position_config,
     pc.market_maker,
     pc.capital_a,
     pc.capital_b,
@@ -325,7 +326,9 @@ SELECT
     pc.nonce,
     pc.reference,
     node.prev_pubkey_id,
-    node.next_pubkey_id
+    node.next_pubkey_id,
+    (SELECT price FROM head_ask) AS head_ask_price,
+    (SELECT price FROM head_bid) AS head_bid_price
 
 FROM trade_pair AS t
 LEFT JOIN node ON node.book_config = t.pubkey_id

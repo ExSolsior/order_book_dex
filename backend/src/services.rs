@@ -6,10 +6,12 @@ use {
             insert_order_position_config, insert_real_time_trade, insert_trade_pair,
             update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
         },
+        transactions::{self, open_limit_order::OpenLimitOrderParams},
         AppState, POOL,
     },
-    actix_web::{get, post, web, HttpResponse, Responder},
+    actix_web::{get, web, HttpResponse, Responder},
     base64::engine::{general_purpose, Engine},
+    order_book_dex::state::Order,
     serde::Deserialize,
     solana_rpc_client_api::response::{Response, RpcLogsResponse},
     solana_sdk::pubkey::Pubkey,
@@ -106,6 +108,49 @@ pub async fn market_list(
 ) -> impl Responder {
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
         Ok(data) => HttpResponse::Ok().json(data),
+        Err(_) => HttpResponse::BadRequest().into(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LimitOrder {
+    pub pubkey_id: String,
+    pub signer: String,
+    pub next_pointer: Option<String>,
+    pub order_type: String,
+    pub price: u64,
+    pub amount: u64,
+    pub nonce: u64,
+}
+
+#[get("/open_limit_order")]
+pub async fn open_limit_order(
+    query: web::Query<LimitOrder>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let order_type = match query.order_type.as_str() {
+        "ask" => Order::Ask,
+        "bid" => Order::Bid,
+        _ => Order::Bid,
+    };
+
+    let next_position_pointer = query
+        .next_pointer
+        .is_some()
+        .then_some(Pubkey::from_str(&query.next_pointer.as_ref().unwrap()).unwrap());
+
+    let limit_order = OpenLimitOrderParams {
+        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        signer: Pubkey::from_str(&query.signer).unwrap(),
+        next_position_pointer,
+        order_type,
+        price: query.price,
+        amount: query.amount,
+        nonce: query.nonce,
+    };
+
+    match transactions::open_limit_order::open_limit_order(app_state, limit_order).await {
+        Ok(_) => HttpResponse::Ok().body(""),
         Err(_) => HttpResponse::BadRequest().into(),
     }
 }
@@ -495,14 +540,14 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
 }
 
 // WIP
-#[post("/open_limit_order")]
-pub async fn open_limit_order(
-    _info: web::Json<Info>,
-    app_state: web::Data<AppState>,
-) -> impl Responder {
-    // app_state.order_book;
-    HttpResponse::Ok().body("it works")
-}
+// #[post("/open_limit_order")]
+// pub async fn open_limit_order(
+//     _info: web::Json<Info>,
+//     app_state: web::Data<AppState>,
+// ) -> impl Responder {
+//     // app_state.order_book;
+//     HttpResponse::Ok().body("it works")
+// }
 
 #[derive(Deserialize)]
 struct Info {
