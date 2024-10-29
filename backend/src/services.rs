@@ -131,7 +131,7 @@ pub async fn open_limit_order(
     let order_type = match query.order_type.as_str() {
         "ask" => Order::Ask,
         "bid" => Order::Bid,
-        _ => Order::Bid,
+        _ => unreachable!(),
     };
 
     let next_position_pointer = query

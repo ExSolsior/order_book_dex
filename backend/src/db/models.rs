@@ -61,6 +61,7 @@ pub struct PositionConfig {
 #[derive(Deserialize)]
 pub struct OrderPosition {
     pub pubkey_id: Pubkey,
+    // need to use enum Order but need to impl Deserialize trait
     pub order_type: String,
     pub price: u64,
     pub size: u64,
@@ -1455,10 +1456,11 @@ pub async fn open_limit_order(
     price: u64,
     app_state: web::Data<AppState>,
 ) -> Result<OpenLimitOrder, sqlx::Error> {
-    let order_type = if *order_type == Order::Ask {
-        "sell"
-    } else {
-        "buy"
+    // need to implement to_string for Order
+    let order_type = match *order_type {
+        Order::Ask => "ask",
+        Order::Bid => "bid",
+        _ => unreachable!(),
     };
 
     let query = sqlx::query(
@@ -1857,7 +1859,7 @@ pub async fn open_limit_order(
                 let order_type = match query.try_get_raw("order_type").unwrap().as_str().unwrap() {
                     "ask" => Order::Ask,
                     "bid" => Order::Bid,
-                    _ => Order::Bid,
+                    _ => unreachable!(),
                 };
 
                 let is_reverse =

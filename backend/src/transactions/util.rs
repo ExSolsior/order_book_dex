@@ -1,4 +1,4 @@
-use std::str::FromStr;
+// use std::str::FromStr;
 
 use order_book_dex::state::Order;
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -104,12 +104,12 @@ pub fn find_prev_next_entries(
 
     // Get the previous and next entries based on the position
     let prev = if position > 0 {
-        Some(Pubkey::from_str(&sorted_order_book[position - 1].pubkey_id).unwrap())
+        Some(sorted_order_book[position - 1].pubkey_id)
     } else {
         None
     };
     let next = if position < sorted_order_book.len() {
-        Some(Pubkey::from_str(&sorted_order_book[position].pubkey_id).unwrap())
+        Some(sorted_order_book[position].pubkey_id)
     } else {
         None
     };

@@ -4,8 +4,8 @@ use actix_web::web;
 use anchor_lang::{InstructionData, ToAccountMetas};
 use order_book_dex::{accounts, instruction, state::Order, ID as program_id};
 use solana_sdk::{
-    instruction::Instruction, pubkey::Pubkey, system_program::ID as system_program,
-    transaction::VersionedTransaction,
+    feature_set::instructions_sysvar_owned_by_sysvar, instruction::Instruction, pubkey::Pubkey,
+    system_program::ID as system_program, transaction::VersionedTransaction,
 };
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 
@@ -40,63 +40,50 @@ pub async fn cancel_limit_order(
     } = params;
 
     let rpc_client = create_rpc_client();
-    let order_book_data = get_trade_pair(order_book_config.to_string(), app_state).await?;
+    let order_book_data = get_trade_pair(&order_book_config, app_state).await?;
 
-    // TODO: Fix double parsing once backend data is changed
-    let order_book_entries =
-        serde_json::from_str::<Vec<OrderPosition>>(&order_book_data.order_book).unwrap();
+    let cleaned_order_book_entries = match order_type {
+        Order::Bid => serde_json::from_str::<Vec<OrderPosition>>(
+            order_book_data["book"]["bids"].as_str().unwrap(),
+        )
+        .unwrap(),
 
-    // Filtered and sorted order book entries
-    let mut cleaned_order_book_entries: Vec<_> = order_book_entries
-        .into_iter()
-        .filter(|op| {
-            op.order_type
-                == if order_type == Order::Bid {
-                    "bid"
-                } else {
-                    "ask"
-                }
-        })
-        .collect();
-    if order_type == Order::Bid {
-        cleaned_order_book_entries.sort_by(|a, b| a.price.cmp(&b.price));
-    } else {
-        cleaned_order_book_entries.sort_by(|a, b| b.price.cmp(&a.price));
-    }
+        Order::Ask => serde_json::from_str::<Vec<OrderPosition>>(
+            order_book_data["book"]["asks"].as_str().unwrap(),
+        )
+        .unwrap(),
+
+        _ => unreachable!(),
+    };
 
     let (index, order_position_data) = cleaned_order_book_entries
         .iter()
         .enumerate()
-        .find(|(_, op)| op.pubkey_id == order_position.to_string())
+        .find(|(_, op)| op.pubkey_id == order_position)
         .unwrap();
 
+    // not sure if this is correct... the index
     let prev_order_position_data = match order_type {
-        Order::Bid => {
-            if index == cleaned_order_book_entries.len() - 1 {
-                None
-            } else {
-                cleaned_order_book_entries.get(index + 1)
-            }
-        }
-        Order::Ask => {
-            if index == 0 {
-                None
-            } else {
-                cleaned_order_book_entries.get(index - 1)
-            }
-        }
+        Order::Bid => (!(index == cleaned_order_book_entries.len() - 1))
+            .then_some(cleaned_order_book_entries.get(index + 1)),
+
+        Order::Ask => (!(index == 0)).then_some(cleaned_order_book_entries.get(index - 1)),
+
         _ => unreachable!(), // Not handling buy and sell order types
     };
-    let prev_order_position =
-        prev_order_position_data.map(|op| Pubkey::from_str(&op.pubkey_id).unwrap());
-    let next_order_position = order_position_data
-        .next_order_position_pubkey
-        .as_ref()
-        .map(|pubkey_str| Pubkey::from_str(pubkey_str).unwrap());
 
-    let buy_market_pointer = Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap();
+    let prev_order_position = prev_order_position_data.map(|op| op.unwrap().pubkey_id);
+    let next_order_position = order_position_data
+        .next_position
+        .as_ref()
+        .map(|pubkey| pubkey.clone());
+
+    let buy_market_pointer =
+        Pubkey::from_str(order_book_data["buyMarketPointer"].as_str().unwrap()).unwrap();
     let sell_market_pointer =
-        Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap();
+        Pubkey::from_str(order_book_data["sellMarketPointer"].as_str().unwrap()).unwrap();
+
+    // not sure if this is correct... the index
     let (market_pointer, is_write) = match order_type {
         Order::Bid => (
             sell_market_pointer,
@@ -105,33 +92,138 @@ pub async fn cancel_limit_order(
         Order::Ask => (buy_market_pointer, index == 0),
         _ => unreachable!(), // Not handling buy and sell order types
     };
-    let order_position_config =
-        Pubkey::from_str(&order_position_data.order_position_config_pubkey).unwrap();
+
+    let order_position_config = order_position_data.book_config;
 
     let ixs = build_ixs(BuildIxParams {
         signer,
         order_book_config,
-        market_pointer_read: if !is_write {
-            Some(market_pointer)
-        } else {
-            None
-        },
-        market_pointer_write: if is_write { Some(market_pointer) } else { None },
+        market_pointer_read: (!is_write).then_some(market_pointer),
+        market_pointer_write: is_write.then_some(market_pointer),
+
         order_position,
         order_position_config,
         prev_order_position,
         next_order_position,
-        is_reverse: order_book_data.is_reverse,
+        is_reverse: order_book_data["is_reverse"].as_bool().unwrap(),
         order_type,
-        token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
-        token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
-        token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
-        token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
+
+        token_mint_a: Pubkey::from_str(order_book_data["tokenMintA"].as_str().unwrap()).unwrap(),
+        token_mint_b: Pubkey::from_str(order_book_data["tokenMintB"].as_str().unwrap()).unwrap(),
+        token_program_a: Pubkey::from_str(order_book_data["tokenProgramA"].as_str().unwrap())
+            .unwrap(),
+        token_program_b: Pubkey::from_str(order_book_data["tokenProgramB"].as_str().unwrap())
+            .unwrap(),
     });
 
     let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
     Ok(tx)
 }
+
+// pub async fn cancel_limit_order(
+//     app_state: web::Data<AppState>,
+//     params: CancelLimitOrderParams,
+// ) -> Result<VersionedTransaction, TransactionBuildError> {
+//     let CancelLimitOrderParams {
+//         order_book_config,
+//         signer,
+//         order_position,
+//         order_type,
+//     } = params;
+
+//     let rpc_client = create_rpc_client();
+//     let order_book_data = get_trade_pair(order_book_config.to_string(), app_state).await?;
+
+//     // TODO: Fix double parsing once backend data is changed
+//     let order_book_entries =
+//         serde_json::from_str::<Vec<OrderPosition>>(&order_book_data.order_book).unwrap();
+
+//     // Filtered and sorted order book entries
+//     let mut cleaned_order_book_entries: Vec<_> = order_book_entries
+//         .into_iter()
+//         .filter(|op| {
+//             op.order_type
+//                 == if order_type == Order::Bid {
+//                     "bid"
+//                 } else {
+//                     "ask"
+//                 }
+//         })
+//         .collect();
+//     if order_type == Order::Bid {
+//         cleaned_order_book_entries.sort_by(|a, b| a.price.cmp(&b.price));
+//     } else {
+//         cleaned_order_book_entries.sort_by(|a, b| b.price.cmp(&a.price));
+//     }
+
+//     let (index, order_position_data) = cleaned_order_book_entries
+//         .iter()
+//         .enumerate()
+//         .find(|(_, op)| op.pubkey_id == order_position.to_string())
+//         .unwrap();
+
+//     let prev_order_position_data = match order_type {
+//         Order::Bid => {
+//             if index == cleaned_order_book_entries.len() - 1 {
+//                 None
+//             } else {
+//                 cleaned_order_book_entries.get(index + 1)
+//             }
+//         }
+//         Order::Ask => {
+//             if index == 0 {
+//                 None
+//             } else {
+//                 cleaned_order_book_entries.get(index - 1)
+//             }
+//         }
+//         _ => unreachable!(), // Not handling buy and sell order types
+//     };
+//     let prev_order_position =
+//         prev_order_position_data.map(|op| Pubkey::from_str(&op.pubkey_id).unwrap());
+//     let next_order_position = order_position_data
+//         .next_order_position_pubkey
+//         .as_ref()
+//         .map(|pubkey_str| Pubkey::from_str(pubkey_str).unwrap());
+
+//     let buy_market_pointer = Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap();
+//     let sell_market_pointer =
+//         Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap();
+//     let (market_pointer, is_write) = match order_type {
+//         Order::Bid => (
+//             sell_market_pointer,
+//             index == cleaned_order_book_entries.len() - 1,
+//         ),
+//         Order::Ask => (buy_market_pointer, index == 0),
+//         _ => unreachable!(), // Not handling buy and sell order types
+//     };
+//     let order_position_config =
+//         Pubkey::from_str(&order_position_data.order_position_config_pubkey).unwrap();
+
+//     let ixs = build_ixs(BuildIxParams {
+//         signer,
+//         order_book_config,
+//         market_pointer_read: if !is_write {
+//             Some(market_pointer)
+//         } else {
+//             None
+//         },
+//         market_pointer_write: if is_write { Some(market_pointer) } else { None },
+//         order_position,
+//         order_position_config,
+//         prev_order_position,
+//         next_order_position,
+//         is_reverse: order_book_data.is_reverse,
+//         order_type,
+//         token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
+//         token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
+//         token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
+//         token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
+//     });
+
+//     let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
+//     Ok(tx)
+// }
 
 #[derive(Debug, Clone)]
 pub struct BuildIxParams {
