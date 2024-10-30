@@ -21,25 +21,6 @@ use {
     std::str::FromStr,
 };
 
-// pub struct OrderBook {
-//     pub pubkey_id: Pubkey,
-//     pub ask: Vec<LimitOrder>,
-//     pub bid: Vec<LimitOrder>,
-// }
-
-// pub struct LimitOrder {
-//     pub price: u64,
-//     pub amount: u64,
-//     pub position: Pubkey,
-//     pub position_config: Pubkey,
-//     pub source: Pubkey,
-//     pub destination: Pubkey,
-//     pub capital_source: Pubkey,
-//     pub capital_destination: Pubkey,
-//     pub next_limit_order: Option<Pubkey>,
-//     pub is_available: bool,
-// }
-
 #[derive(Debug, Deserialize)]
 pub struct LimitOrder {
     pub pubkey_id: String,
@@ -570,42 +551,3 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
 
     return num;
 }
-
-// WIP
-// #[post("/open_limit_order")]
-// pub async fn open_limit_order(
-//     _info: web::Json<Info>,
-//     app_state: web::Data<AppState>,
-// ) -> impl Responder {
-//     // app_state.order_book;
-//     HttpResponse::Ok().body("it works")
-// }
-
-#[derive(Deserialize)]
-struct Info {
-    pub _pubkey_id: Pubkey,
-    pub _order_type: OrderType,
-    pub _price: u64,
-    pub _amount: u64,
-}
-
-#[derive(Deserialize)]
-enum OrderType {
-    Ask,
-    Bid,
-    Sell,
-    Buy,
-}
-
-// post request -> trade reponse
-// market order
-//  amount
-//  order type
-//  fill -> partial ->
-
-// limit order
-//  open
-//      order type
-//      price
-//      amount
-//  cancel
