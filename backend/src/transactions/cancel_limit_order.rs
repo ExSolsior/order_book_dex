@@ -4,8 +4,11 @@ use actix_web::web;
 use anchor_lang::{InstructionData, ToAccountMetas};
 use order_book_dex::{accounts, instruction, state::Order, ID as program_id};
 use solana_sdk::{
-    feature_set::instructions_sysvar_owned_by_sysvar, instruction::Instruction, pubkey::Pubkey,
-    system_program::ID as system_program, transaction::VersionedTransaction,
+    // feature_set::instructions_sysvar_owned_by_sysvar,
+    instruction::Instruction,
+    pubkey::Pubkey,
+    system_program::ID as system_program,
+    transaction::VersionedTransaction,
 };
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 
@@ -62,15 +65,8 @@ pub async fn cancel_limit_order(
         .find(|(_, op)| op.pubkey_id == order_position)
         .unwrap();
 
-    // not sure if this is correct... the index
-    let prev_order_position_data = match order_type {
-        Order::Bid => (!(index == cleaned_order_book_entries.len() - 1))
-            .then_some(cleaned_order_book_entries.get(index + 1)),
-
-        Order::Ask => (!(index == 0)).then_some(cleaned_order_book_entries.get(index - 1)),
-
-        _ => unreachable!(), // Not handling buy and sell order types
-    };
+    let prev_order_position_data =
+        (!(index == 0)).then_some(cleaned_order_book_entries.get(index + 1));
 
     let prev_order_position = prev_order_position_data.map(|op| op.unwrap().pubkey_id);
     let next_order_position = order_position_data
@@ -83,12 +79,8 @@ pub async fn cancel_limit_order(
     let sell_market_pointer =
         Pubkey::from_str(order_book_data["sellMarketPointer"].as_str().unwrap()).unwrap();
 
-    // not sure if this is correct... the index
     let (market_pointer, is_write) = match order_type {
-        Order::Bid => (
-            sell_market_pointer,
-            index == cleaned_order_book_entries.len() - 1,
-        ),
+        Order::Bid => (sell_market_pointer, index == 0),
         Order::Ask => (buy_market_pointer, index == 0),
         _ => unreachable!(), // Not handling buy and sell order types
     };

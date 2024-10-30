@@ -55,16 +55,15 @@ pub async fn open_limit_order(
         params.price,
         app_state,
     )
-    .await
-    .unwrap();
+    .await?;
 
     let ixs = build_ixs(BuildIxsParams {
         signer: params.signer,
         order_book_config: params.order_book_config,
-        token_mint_a: token_mint_a,
-        token_mint_b: token_mint_b,
-        token_program_a: token_program_a,
-        token_program_b: token_program_b,
+        token_mint_a,
+        token_mint_b,
+        token_program_a,
+        token_program_b,
 
         market_pointer_read: (!market_pointer.1).then_some(market_pointer.0),
         market_pointer_write: market_pointer.1.then_some(market_pointer.0),
@@ -74,7 +73,7 @@ pub async fn open_limit_order(
 
         next_position_pointer: params.next_position_pointer,
         is_first_interaction: position_config.is_none(),
-        is_reverse: is_reverse,
+        is_reverse,
 
         order_type: params.order_type,
         price: params.price,

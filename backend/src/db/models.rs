@@ -1825,155 +1825,151 @@ pub async fn open_limit_order(
 
     match query {
         Ok(query) => {
-            let order_book_data = if !query.try_get_raw("book_config").unwrap().is_null() {
-                let data = query.try_get_raw("book_config").unwrap().as_str().unwrap();
-                let book_config = Pubkey::from_str(data).unwrap();
+            let order_book_data =
+                (!query.try_get_raw("book_config").unwrap().is_null()).then(|| {
+                    let data = query.try_get_raw("book_config").unwrap().as_str().unwrap();
+                    let book_config = Pubkey::from_str(data).unwrap();
 
-                let data = query
-                    .try_get_raw("market_pointer")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                let market_pointer = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("token_mint_a").unwrap().as_str().unwrap();
-                let token_mint_a = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("token_mint_b").unwrap().as_str().unwrap();
-                let token_mint_b = Pubkey::from_str(data).unwrap();
-
-                let data = query
-                    .try_get_raw("token_program_a")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                let token_program_a = Pubkey::from_str(data).unwrap();
-
-                let data = query
-                    .try_get_raw("token_program_b")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                let token_program_b = Pubkey::from_str(data).unwrap();
-
-                let order_type = match query.try_get_raw("order_type").unwrap().as_str().unwrap() {
-                    "ask" => Order::Ask,
-                    "bid" => Order::Bid,
-                    _ => unreachable!(),
-                };
-
-                let is_reverse =
-                    query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[1] != 1;
-
-                Some((
-                    book_config,
-                    market_pointer,
-                    token_mint_a,
-                    token_mint_b,
-                    token_program_a,
-                    token_program_b,
-                    order_type,
-                    is_reverse,
-                ))
-            } else {
-                // should return error
-                None
-            };
-
-            let position_data = if !query.try_get_raw("position_config").unwrap().is_null() {
-                let data = query
-                    .try_get_raw("position_config")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                let position_config = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("market_maker").unwrap().as_str().unwrap();
-                let market_maker = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("capital_a").unwrap().as_str().unwrap();
-                let capital_a = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("capital_b").unwrap().as_str().unwrap();
-                let capital_b = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("vault_a").unwrap().as_str().unwrap();
-                let vault_a = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("vault_b").unwrap().as_str().unwrap();
-                let vault_b = Pubkey::from_str(data).unwrap();
-
-                let data = query.try_get_raw("nonce").unwrap().as_bytes().unwrap();
-                let nonce =
-                    u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
-
-                let data = query.try_get_raw("reference").unwrap().as_bytes().unwrap();
-                let reference =
-                    u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
-
-                Some((
-                    position_config,
-                    market_maker,
-                    capital_a,
-                    capital_b,
-                    vault_a,
-                    vault_b,
-                    nonce,
-                    reference,
-                ))
-            } else {
-                None
-            };
-
-            let prev_pubkey_id = if !query.try_get_raw("prev_pubkey_id").unwrap().is_null() {
-                let data = query
-                    .try_get_raw("prev_pubkey_id")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                Some(Pubkey::from_str(data).unwrap())
-            } else {
-                None
-            };
-
-            let next_pubkey_id = if !query.try_get_raw("prev_pubkey_id").unwrap().is_null() {
-                let data = query
-                    .try_get_raw("next_pubkey_id")
-                    .unwrap()
-                    .as_str()
-                    .unwrap();
-                Some(Pubkey::from_str(data).unwrap())
-            } else {
-                None
-            };
-
-            let head_ask_price = if !query.try_get_raw("head_ask_price").unwrap().is_null() {
-                Some(u64::from_be_bytes(
-                    query
-                        .try_get_raw("head_ask_price")
+                    let data = query
+                        .try_get_raw("market_pointer")
                         .unwrap()
-                        .as_bytes()
-                        .unwrap()[..8]
-                        .try_into()
-                        .expect("8 bytes"),
-                ))
-            } else {
-                None
-            };
+                        .as_str()
+                        .unwrap();
+                    let market_pointer = Pubkey::from_str(data).unwrap();
 
-            let head_bid_price = if !query.try_get_raw("head_bid_price").unwrap().is_null() {
-                Some(u64::from_be_bytes(
-                    query
-                        .try_get_raw("head_bid_price")
+                    let data = query.try_get_raw("token_mint_a").unwrap().as_str().unwrap();
+                    let token_mint_a = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("token_mint_b").unwrap().as_str().unwrap();
+                    let token_mint_b = Pubkey::from_str(data).unwrap();
+
+                    let data = query
+                        .try_get_raw("token_program_a")
                         .unwrap()
-                        .as_bytes()
-                        .unwrap()[..8]
-                        .try_into()
-                        .expect("8 bytes"),
-                ))
-            } else {
-                None
-            };
+                        .as_str()
+                        .unwrap();
+                    let token_program_a = Pubkey::from_str(data).unwrap();
+
+                    let data = query
+                        .try_get_raw("token_program_b")
+                        .unwrap()
+                        .as_str()
+                        .unwrap();
+                    let token_program_b = Pubkey::from_str(data).unwrap();
+
+                    let order_type =
+                        match query.try_get_raw("order_type").unwrap().as_str().unwrap() {
+                            "ask" => Order::Ask,
+                            "bid" => Order::Bid,
+                            _ => unreachable!(),
+                        };
+
+                    let is_reverse =
+                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 1;
+                    (
+                        book_config,
+                        market_pointer,
+                        token_mint_a,
+                        token_mint_b,
+                        token_program_a,
+                        token_program_b,
+                        order_type,
+                        is_reverse,
+                    )
+                });
+
+            let position_data =
+                (!query.try_get_raw("position_config").unwrap().is_null()).then(|| {
+                    let data = query
+                        .try_get_raw("position_config")
+                        .unwrap()
+                        .as_str()
+                        .unwrap();
+                    let position_config = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("market_maker").unwrap().as_str().unwrap();
+                    let market_maker = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("capital_a").unwrap().as_str().unwrap();
+                    let capital_a = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("capital_b").unwrap().as_str().unwrap();
+                    let capital_b = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("vault_a").unwrap().as_str().unwrap();
+                    let vault_a = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("vault_b").unwrap().as_str().unwrap();
+                    let vault_b = Pubkey::from_str(data).unwrap();
+
+                    let data = query.try_get_raw("nonce").unwrap().as_bytes().unwrap();
+                    let nonce =
+                        u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
+
+                    let data = query.try_get_raw("reference").unwrap().as_bytes().unwrap();
+                    let reference =
+                        u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
+                    (
+                        position_config,
+                        market_maker,
+                        capital_a,
+                        capital_b,
+                        vault_a,
+                        vault_b,
+                        nonce,
+                        reference,
+                    )
+                });
+
+            let prev_pubkey_id =
+                (!query.try_get_raw("prev_pubkey_id").unwrap().is_null()).then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("prev_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
+
+            let next_pubkey_id =
+                (!query.try_get_raw("next_pubkey_id").unwrap().is_null()).then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("next_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
+
+            let head_ask_price =
+                (!query.try_get_raw("head_ask_price").unwrap().is_null()).then(|| {
+                    u64::from_be_bytes(
+                        query
+                            .try_get_raw("head_ask_price")
+                            .unwrap()
+                            .as_bytes()
+                            .unwrap()[..8]
+                            .try_into()
+                            .expect("8 bytes"),
+                    )
+                });
+
+            let head_bid_price =
+                (!query.try_get_raw("head_bid_price").unwrap().is_null()).then(|| {
+                    u64::from_be_bytes(
+                        query
+                            .try_get_raw("head_bid_price")
+                            .unwrap()
+                            .as_bytes()
+                            .unwrap()[..8]
+                            .try_into()
+                            .expect("8 bytes"),
+                    )
+                });
 
             let data = order_book_data.unwrap();
 
@@ -1991,22 +1987,22 @@ pub async fn open_limit_order(
 
             Ok(OpenLimitOrder {
                 book_config: data.0,
-                market_pointer: market_pointer,
+                market_pointer,
                 token_mint_a: data.2,
                 token_mint_b: data.3,
                 token_program_a: data.4,
                 token_program_b: data.5,
-                position_config: position_data.is_some().then_some(position_data.unwrap().0),
-                market_maker: position_data.is_some().then_some(position_data.unwrap().1),
-                capital_a: position_data.is_some().then_some(position_data.unwrap().2),
-                capital_b: position_data.is_some().then_some(position_data.unwrap().3),
-                vault_a: position_data.is_some().then_some(position_data.unwrap().4),
-                vault_b: position_data.is_some().then_some(position_data.unwrap().5),
+                position_config: position_data.is_some().then(|| position_data.unwrap().0),
+                market_maker: position_data.is_some().then(|| position_data.unwrap().1),
+                capital_a: position_data.is_some().then(|| position_data.unwrap().2),
+                capital_b: position_data.is_some().then(|| position_data.unwrap().3),
+                vault_a: position_data.is_some().then(|| position_data.unwrap().4),
+                vault_b: position_data.is_some().then(|| position_data.unwrap().5),
                 prev_position: prev_pubkey_id,
                 next_position: next_pubkey_id,
                 order_type: data.6,
-                nonce: position_data.is_some().then_some(position_data.unwrap().6),
-                reference: position_data.is_some().then_some(position_data.unwrap().7),
+                nonce: position_data.is_some().then(|| position_data.unwrap().6),
+                reference: position_data.is_some().then(|| position_data.unwrap().7),
                 is_reverse: data.7,
             })
         }

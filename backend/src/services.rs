@@ -6,7 +6,10 @@ use {
             insert_order_position_config, insert_real_time_trade, insert_trade_pair,
             update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
         },
-        transactions::{self, open_limit_order::OpenLimitOrderParams},
+        transactions::{
+            self, cancel_limit_order::CancelLimitOrderParams,
+            open_limit_order::OpenLimitOrderParams,
+        },
         AppState, POOL,
     },
     actix_web::{get, web, HttpResponse, Responder},
@@ -36,6 +39,18 @@ use {
 //     pub next_limit_order: Option<Pubkey>,
 //     pub is_available: bool,
 // }
+
+#[derive(Debug, Deserialize)]
+pub struct LimitOrder {
+    pub pubkey_id: String,
+    pub signer: String,
+    pub order_positin: Option<String>,
+    pub next_pointer: Option<String>,
+    pub order_type: String,
+    pub price: Option<u64>,
+    pub amount: Option<u64>,
+    pub nonce: Option<u64>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
@@ -112,17 +127,6 @@ pub async fn market_list(
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct LimitOrder {
-    pub pubkey_id: String,
-    pub signer: String,
-    pub next_pointer: Option<String>,
-    pub order_type: String,
-    pub price: u64,
-    pub amount: u64,
-    pub nonce: u64,
-}
-
 #[get("/open_limit_order")]
 pub async fn open_limit_order(
     query: web::Query<LimitOrder>,
@@ -131,25 +135,54 @@ pub async fn open_limit_order(
     let order_type = match query.order_type.as_str() {
         "ask" => Order::Ask,
         "bid" => Order::Bid,
-        _ => unreachable!(),
+        _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
     };
+
+    if !(query.price.is_some() && query.amount.is_some() && query.nonce.is_some()) {
+        return HttpResponse::BadRequest().body("Missing Params");
+    }
 
     let next_position_pointer = query
         .next_pointer
         .is_some()
-        .then_some(Pubkey::from_str(&query.next_pointer.as_ref().unwrap()).unwrap());
+        .then(|| Pubkey::from_str(&query.next_pointer.as_ref().unwrap()).unwrap());
 
     let limit_order = OpenLimitOrderParams {
         order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
         signer: Pubkey::from_str(&query.signer).unwrap(),
         next_position_pointer,
         order_type,
-        price: query.price,
-        amount: query.amount,
-        nonce: query.nonce,
+        price: query.price.unwrap(),
+        amount: query.amount.unwrap(),
+        nonce: query.nonce.unwrap(),
     };
 
     match transactions::open_limit_order::open_limit_order(app_state, limit_order).await {
+        Ok(tx) => HttpResponse::Ok().json(tx),
+        Err(_) => HttpResponse::BadRequest().into(),
+    }
+}
+
+#[get("/cancel_limit_order")]
+pub async fn cancel_limit_order(
+    query: web::Query<LimitOrder>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let order_type = match query.order_type.as_str() {
+        "ask" => Order::Ask,
+        "bid" => Order::Bid,
+        // this may be invalid, need throw error or bad request
+        _ => unreachable!(),
+    };
+
+    let limit_order = CancelLimitOrderParams {
+        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        signer: Pubkey::from_str(&query.signer).unwrap(),
+        order_position: Pubkey::from_str(&query.order_positin.as_ref().unwrap()).unwrap(),
+        order_type,
+    };
+
+    match transactions::cancel_limit_order::cancel_limit_order(app_state, limit_order).await {
         Ok(_) => HttpResponse::Ok().body(""),
         Err(_) => HttpResponse::BadRequest().into(),
     }
