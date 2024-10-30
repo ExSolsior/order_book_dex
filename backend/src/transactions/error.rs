@@ -11,4 +11,7 @@ pub enum TransactionBuildError {
 
     #[error("Failed to compile versioned message: {0}")]
     VersionedMessage(#[from] CompileError),
+
+    #[error("Invalid Order Position Or Signer")]
+    InvalidOrderPositionOrSigner,
 }

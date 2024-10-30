@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use actix_web::web;
 use anchor_lang::{system_program::ID as system_program, InstructionData, ToAccountMetas};
 use order_book_dex::state::Order;
@@ -14,12 +12,7 @@ use crate::AppState;
 use super::error::TransactionBuildError;
 use super::pdas::get_order_position_config_pda;
 use super::pdas::{get_order_position_pda, get_vault_account_pda};
-use super::util::{
-    create_rpc_client,
-    create_versioned_tx,
-    // find_prev_next_entries,
-    get_market_pointer,
-};
+use super::util::{create_rpc_client, create_versioned_tx};
 
 #[derive(Debug, Clone)]
 pub struct OpenLimitOrderParams {
@@ -331,7 +324,9 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
 
 #[cfg(test)]
 mod tests {
+    use crate::transactions::util::_get_market_pointer;
     use solana_sdk::signer::Signer;
+    use std::str::FromStr;
 
     use crate::transactions::{
         create_trade_pair,
@@ -383,7 +378,7 @@ mod tests {
 
         // Test bid limit order
 
-        let market_pointer = get_market_pointer(
+        let market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Bid,
@@ -421,7 +416,7 @@ mod tests {
         // Test ask limit order
 
         let ask_price = 2;
-        let market_pointer = get_market_pointer(
+        let market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Ask,

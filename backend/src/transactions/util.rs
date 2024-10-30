@@ -32,7 +32,7 @@ pub fn create_rpc_client() -> RpcClient {
     RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed())
 }
 
-pub fn get_market_pointer(
+pub fn _get_market_pointer(
     buy_market_pointer_pubkey: Pubkey,
     sell_market_pointer_pubkey: Pubkey,
     order_type: Order,
@@ -64,7 +64,7 @@ pub fn get_market_pointer(
     }
 }
 
-pub fn find_prev_next_entries(
+pub fn _find_prev_next_entries(
     order_type: Order,
     order_price: u64,
     order_book_entries: String,

@@ -12,10 +12,7 @@ use solana_sdk::{
 };
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 
-use crate::{
-    db::models::{get_trade_pair, OrderPosition},
-    AppState,
-};
+use crate::{db::models::get_trade_pair, AppState};
 
 use super::{
     error::TransactionBuildError,
@@ -46,33 +43,53 @@ pub async fn cancel_limit_order(
     let order_book_data = get_trade_pair(&order_book_config, app_state).await?;
 
     let cleaned_order_book_entries = match order_type {
-        Order::Bid => serde_json::from_str::<Vec<OrderPosition>>(
-            order_book_data["book"]["bids"].as_str().unwrap(),
-        )
-        .unwrap(),
+        Order::Bid => {
+            let mut list = vec![];
+            if let Some(bids) = order_book_data["book"]["bids"].as_array() {
+                for bid in bids {
+                    list.push((
+                        Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap(),
+                        (!bid["nextPosition"].is_null()).then(|| {
+                            Pubkey::from_str(bid["nextPosition"].as_str().unwrap()).unwrap()
+                        }),
+                        Pubkey::from_str(bid["marketMaker"].as_str().unwrap()).unwrap(),
+                    ));
+                }
+            };
+            list
+        }
 
-        Order::Ask => serde_json::from_str::<Vec<OrderPosition>>(
-            order_book_data["book"]["asks"].as_str().unwrap(),
-        )
-        .unwrap(),
+        Order::Ask => {
+            let mut list = vec![];
+            if let Some(asks) = order_book_data["book"]["asks"].as_array() {
+                for ask in asks {
+                    list.push((
+                        Pubkey::from_str(ask["pubkeyId"].as_str().unwrap()).unwrap(),
+                        (!ask["nextPosition"].is_null()).then(|| {
+                            Pubkey::from_str(ask["nextPosition"].as_str().unwrap()).unwrap()
+                        }),
+                        Pubkey::from_str(ask["marketMaker"].as_str().unwrap()).unwrap(),
+                    ));
+                }
+            };
+            list
+        }
 
         _ => unreachable!(),
     };
 
-    let (index, order_position_data) = cleaned_order_book_entries
+    let (index, order_position_data) = match cleaned_order_book_entries
         .iter()
         .enumerate()
-        .find(|(_, op)| op.pubkey_id == order_position)
-        .unwrap();
+        .find(|(_, op)| op.0 == order_position && op.2 == signer)
+    {
+        Some(data) => data,
+        None => return Err(TransactionBuildError::InvalidOrderPositionOrSigner),
+    };
 
-    let prev_order_position_data =
-        (!(index == 0)).then_some(cleaned_order_book_entries.get(index + 1));
-
-    let prev_order_position = prev_order_position_data.map(|op| op.unwrap().pubkey_id);
-    let next_order_position = order_position_data
-        .next_position
-        .as_ref()
-        .map(|pubkey| pubkey.clone());
+    let prev_order_position =
+        (!(index == 0)).then(|| cleaned_order_book_entries.get(index - 1).unwrap().0);
+    let next_order_position = order_position_data.1;
 
     let buy_market_pointer =
         Pubkey::from_str(order_book_data["buyMarketPointer"].as_str().unwrap()).unwrap();
@@ -85,7 +102,7 @@ pub async fn cancel_limit_order(
         _ => unreachable!(), // Not handling buy and sell order types
     };
 
-    let order_position_config = order_position_data.book_config;
+    let order_position_config = order_position_data.0;
 
     let ixs = build_ixs(BuildIxParams {
         signer,
@@ -97,7 +114,7 @@ pub async fn cancel_limit_order(
         order_position_config,
         prev_order_position,
         next_order_position,
-        is_reverse: order_book_data["is_reverse"].as_bool().unwrap(),
+        is_reverse: order_book_data["isReverse"].as_bool().unwrap(),
         order_type,
 
         token_mint_a: Pubkey::from_str(order_book_data["tokenMintA"].as_str().unwrap()).unwrap(),
@@ -352,7 +369,7 @@ mod tests {
             get_order_position_pda, get_sell_market_pointer_pda,
         },
         test_util::*,
-        util::get_market_pointer,
+        util::_get_market_pointer,
     };
 
     use super::*;
@@ -396,7 +413,7 @@ mod tests {
 
         // Test bid limit order
 
-        let bid_market_pointer = get_market_pointer(
+        let bid_market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Bid,
@@ -434,7 +451,7 @@ mod tests {
         // Test ask limit order
 
         let ask_price = 2;
-        let ask_market_pointer = get_market_pointer(
+        let ask_market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Ask,
@@ -518,3 +535,18 @@ mod tests {
         banks_client.process_transaction(tx).await.unwrap();
     }
 }
+
+// 'pubkey_id', a.pubkey_id,
+// 'position_config', a.position_config,
+// 'next_position', a.next_position,
+// 'market_maker', a.market_maker,
+// 'order_type', a.order_type,
+// 'price', a.price,
+// 'size', a.size,
+// 'is_available', a.is_available,
+// 'source_capital', a.capital_source,
+// 'destination_capital', a.capital_destination,
+// 'source_vault', a.source,
+// 'destination_vault', a.destination,
+// 'slot', a.slot,
+// 'timestamp', a.timestamp

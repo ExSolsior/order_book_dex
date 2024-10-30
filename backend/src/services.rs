@@ -44,7 +44,7 @@ use {
 pub struct LimitOrder {
     pub pubkey_id: String,
     pub signer: String,
-    pub order_positin: Option<String>,
+    pub order_position: Option<String>,
     pub next_pointer: Option<String>,
     pub order_type: String,
     pub price: Option<u64>,
@@ -171,19 +171,18 @@ pub async fn cancel_limit_order(
     let order_type = match query.order_type.as_str() {
         "ask" => Order::Ask,
         "bid" => Order::Bid,
-        // this may be invalid, need throw error or bad request
-        _ => unreachable!(),
+        _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
     };
 
     let limit_order = CancelLimitOrderParams {
         order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
         signer: Pubkey::from_str(&query.signer).unwrap(),
-        order_position: Pubkey::from_str(&query.order_positin.as_ref().unwrap()).unwrap(),
+        order_position: Pubkey::from_str(&query.order_position.as_ref().unwrap()).unwrap(),
         order_type,
     };
 
     match transactions::cancel_limit_order::cancel_limit_order(app_state, limit_order).await {
-        Ok(_) => HttpResponse::Ok().body(""),
+        Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::BadRequest().into(),
     }
 }
