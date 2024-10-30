@@ -5,8 +5,8 @@ use {
     clokwerk::{AsyncScheduler, TimeUnits},
     futures_util::StreamExt,
     services::{
-        logs_handler, market_history, market_list, market_order_book, sanity_check,
-        scheduled_process,
+        cancel_limit_order, logs_handler, market_history, market_list, market_order_book,
+        open_limit_order, sanity_check, scheduled_process,
     },
     shuttle_actix_web::ShuttleActixWeb,
     shuttle_runtime::SecretStore,
@@ -22,7 +22,7 @@ use {
 
 mod db;
 mod services;
-// pub mod transactions;
+pub mod transactions;
 
 pub static POOL: OnceCell<Pool<Postgres>> = OnceCell::const_new();
 
@@ -169,6 +169,8 @@ async fn main(
                 .service(market_order_book)
                 .service(market_list)
                 .service(market_history)
+                .service(open_limit_order)
+                .service(cancel_limit_order)
                 .service(sanity_check)
                 .app_data(Data::new(AppState { pool: pool.clone() })),
         );

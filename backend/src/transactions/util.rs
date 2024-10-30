@@ -1,4 +1,4 @@
-use std::str::FromStr;
+// use std::str::FromStr;
 
 use order_book_dex::state::Order;
 use solana_client::nonblocking::rpc_client::RpcClient;
@@ -32,7 +32,7 @@ pub fn create_rpc_client() -> RpcClient {
     RpcClient::new_with_commitment(RPC_ENDPOINT.to_string(), CommitmentConfig::confirmed())
 }
 
-pub fn get_market_pointer(
+pub fn _get_market_pointer(
     buy_market_pointer_pubkey: Pubkey,
     sell_market_pointer_pubkey: Pubkey,
     order_type: Order,
@@ -64,7 +64,7 @@ pub fn get_market_pointer(
     }
 }
 
-pub fn find_prev_next_entries(
+pub fn _find_prev_next_entries(
     order_type: Order,
     order_price: u64,
     order_book_entries: String,
@@ -104,12 +104,12 @@ pub fn find_prev_next_entries(
 
     // Get the previous and next entries based on the position
     let prev = if position > 0 {
-        Some(Pubkey::from_str(&sorted_order_book[position - 1].pubkey_id).unwrap())
+        Some(sorted_order_book[position - 1].pubkey_id)
     } else {
         None
     };
     let next = if position < sorted_order_book.len() {
-        Some(Pubkey::from_str(&sorted_order_book[position].pubkey_id).unwrap())
+        Some(sorted_order_book[position].pubkey_id)
     } else {
         None
     };

@@ -4,15 +4,15 @@ use actix_web::web;
 use anchor_lang::{InstructionData, ToAccountMetas};
 use order_book_dex::{accounts, instruction, state::Order, ID as program_id};
 use solana_sdk::{
-    instruction::Instruction, pubkey::Pubkey, system_program::ID as system_program,
+    // feature_set::instructions_sysvar_owned_by_sysvar,
+    instruction::Instruction,
+    pubkey::Pubkey,
+    system_program::ID as system_program,
     transaction::VersionedTransaction,
 };
 use spl_associated_token_account::get_associated_token_address_with_program_id;
 
-use crate::{
-    db::models::{get_trade_pair, OrderPosition},
-    AppState,
-};
+use crate::{db::models::get_trade_pair, AppState};
 
 use super::{
     error::TransactionBuildError,
@@ -40,98 +40,199 @@ pub async fn cancel_limit_order(
     } = params;
 
     let rpc_client = create_rpc_client();
-    let order_book_data = get_trade_pair(order_book_config.to_string(), app_state).await?;
+    let order_book_data = get_trade_pair(&order_book_config, app_state).await?;
 
-    // TODO: Fix double parsing once backend data is changed
-    let order_book_entries =
-        serde_json::from_str::<Vec<OrderPosition>>(&order_book_data.order_book).unwrap();
-
-    // Filtered and sorted order book entries
-    let mut cleaned_order_book_entries: Vec<_> = order_book_entries
-        .into_iter()
-        .filter(|op| {
-            op.order_type
-                == if order_type == Order::Bid {
-                    "bid"
-                } else {
-                    "ask"
+    let cleaned_order_book_entries = match order_type {
+        Order::Bid => {
+            let mut list = vec![];
+            if let Some(bids) = order_book_data["book"]["bids"].as_array() {
+                for bid in bids {
+                    list.push((
+                        Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap(),
+                        (!bid["nextPosition"].is_null()).then(|| {
+                            Pubkey::from_str(bid["nextPosition"].as_str().unwrap()).unwrap()
+                        }),
+                        Pubkey::from_str(bid["marketMaker"].as_str().unwrap()).unwrap(),
+                    ));
                 }
-        })
-        .collect();
-    if order_type == Order::Bid {
-        cleaned_order_book_entries.sort_by(|a, b| a.price.cmp(&b.price));
-    } else {
-        cleaned_order_book_entries.sort_by(|a, b| b.price.cmp(&a.price));
-    }
+            };
+            list
+        }
 
-    let (index, order_position_data) = cleaned_order_book_entries
+        Order::Ask => {
+            let mut list = vec![];
+            if let Some(asks) = order_book_data["book"]["asks"].as_array() {
+                for ask in asks {
+                    list.push((
+                        Pubkey::from_str(ask["pubkeyId"].as_str().unwrap()).unwrap(),
+                        (!ask["nextPosition"].is_null()).then(|| {
+                            Pubkey::from_str(ask["nextPosition"].as_str().unwrap()).unwrap()
+                        }),
+                        Pubkey::from_str(ask["marketMaker"].as_str().unwrap()).unwrap(),
+                    ));
+                }
+            };
+            list
+        }
+
+        _ => unreachable!(),
+    };
+
+    let (index, order_position_data) = match cleaned_order_book_entries
         .iter()
         .enumerate()
-        .find(|(_, op)| op.pubkey_id == order_position.to_string())
-        .unwrap();
-
-    let prev_order_position_data = match order_type {
-        Order::Bid => {
-            if index == cleaned_order_book_entries.len() - 1 {
-                None
-            } else {
-                cleaned_order_book_entries.get(index + 1)
-            }
-        }
-        Order::Ask => {
-            if index == 0 {
-                None
-            } else {
-                cleaned_order_book_entries.get(index - 1)
-            }
-        }
-        _ => unreachable!(), // Not handling buy and sell order types
+        .find(|(_, op)| op.0 == order_position && op.2 == signer)
+    {
+        Some(data) => data,
+        None => return Err(TransactionBuildError::InvalidOrderPositionOrSigner),
     };
-    let prev_order_position =
-        prev_order_position_data.map(|op| Pubkey::from_str(&op.pubkey_id).unwrap());
-    let next_order_position = order_position_data
-        .next_order_position_pubkey
-        .as_ref()
-        .map(|pubkey_str| Pubkey::from_str(pubkey_str).unwrap());
 
-    let buy_market_pointer = Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap();
+    let prev_order_position =
+        (!(index == 0)).then(|| cleaned_order_book_entries.get(index - 1).unwrap().0);
+    let next_order_position = order_position_data.1;
+
+    let buy_market_pointer =
+        Pubkey::from_str(order_book_data["buyMarketPointer"].as_str().unwrap()).unwrap();
     let sell_market_pointer =
-        Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap();
+        Pubkey::from_str(order_book_data["sellMarketPointer"].as_str().unwrap()).unwrap();
+
     let (market_pointer, is_write) = match order_type {
-        Order::Bid => (
-            sell_market_pointer,
-            index == cleaned_order_book_entries.len() - 1,
-        ),
+        Order::Bid => (sell_market_pointer, index == 0),
         Order::Ask => (buy_market_pointer, index == 0),
         _ => unreachable!(), // Not handling buy and sell order types
     };
-    let order_position_config =
-        Pubkey::from_str(&order_position_data.order_position_config_pubkey).unwrap();
+
+    let order_position_config = order_position_data.0;
 
     let ixs = build_ixs(BuildIxParams {
         signer,
         order_book_config,
-        market_pointer_read: if !is_write {
-            Some(market_pointer)
-        } else {
-            None
-        },
-        market_pointer_write: if is_write { Some(market_pointer) } else { None },
+        market_pointer_read: (!is_write).then_some(market_pointer),
+        market_pointer_write: is_write.then_some(market_pointer),
+
         order_position,
         order_position_config,
         prev_order_position,
         next_order_position,
-        is_reverse: order_book_data.is_reverse,
+        is_reverse: order_book_data["isReverse"].as_bool().unwrap(),
         order_type,
-        token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
-        token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
-        token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
-        token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
+
+        token_mint_a: Pubkey::from_str(order_book_data["tokenMintA"].as_str().unwrap()).unwrap(),
+        token_mint_b: Pubkey::from_str(order_book_data["tokenMintB"].as_str().unwrap()).unwrap(),
+        token_program_a: Pubkey::from_str(order_book_data["tokenProgramA"].as_str().unwrap())
+            .unwrap(),
+        token_program_b: Pubkey::from_str(order_book_data["tokenProgramB"].as_str().unwrap())
+            .unwrap(),
     });
 
     let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
     Ok(tx)
 }
+
+// pub async fn cancel_limit_order(
+//     app_state: web::Data<AppState>,
+//     params: CancelLimitOrderParams,
+// ) -> Result<VersionedTransaction, TransactionBuildError> {
+//     let CancelLimitOrderParams {
+//         order_book_config,
+//         signer,
+//         order_position,
+//         order_type,
+//     } = params;
+
+//     let rpc_client = create_rpc_client();
+//     let order_book_data = get_trade_pair(order_book_config.to_string(), app_state).await?;
+
+//     // TODO: Fix double parsing once backend data is changed
+//     let order_book_entries =
+//         serde_json::from_str::<Vec<OrderPosition>>(&order_book_data.order_book).unwrap();
+
+//     // Filtered and sorted order book entries
+//     let mut cleaned_order_book_entries: Vec<_> = order_book_entries
+//         .into_iter()
+//         .filter(|op| {
+//             op.order_type
+//                 == if order_type == Order::Bid {
+//                     "bid"
+//                 } else {
+//                     "ask"
+//                 }
+//         })
+//         .collect();
+//     if order_type == Order::Bid {
+//         cleaned_order_book_entries.sort_by(|a, b| a.price.cmp(&b.price));
+//     } else {
+//         cleaned_order_book_entries.sort_by(|a, b| b.price.cmp(&a.price));
+//     }
+
+//     let (index, order_position_data) = cleaned_order_book_entries
+//         .iter()
+//         .enumerate()
+//         .find(|(_, op)| op.pubkey_id == order_position.to_string())
+//         .unwrap();
+
+//     let prev_order_position_data = match order_type {
+//         Order::Bid => {
+//             if index == cleaned_order_book_entries.len() - 1 {
+//                 None
+//             } else {
+//                 cleaned_order_book_entries.get(index + 1)
+//             }
+//         }
+//         Order::Ask => {
+//             if index == 0 {
+//                 None
+//             } else {
+//                 cleaned_order_book_entries.get(index - 1)
+//             }
+//         }
+//         _ => unreachable!(), // Not handling buy and sell order types
+//     };
+//     let prev_order_position =
+//         prev_order_position_data.map(|op| Pubkey::from_str(&op.pubkey_id).unwrap());
+//     let next_order_position = order_position_data
+//         .next_order_position_pubkey
+//         .as_ref()
+//         .map(|pubkey_str| Pubkey::from_str(pubkey_str).unwrap());
+
+//     let buy_market_pointer = Pubkey::from_str(&order_book_data.buy_market_pointer_pubkey).unwrap();
+//     let sell_market_pointer =
+//         Pubkey::from_str(&order_book_data.sell_market_pointer_pubkey).unwrap();
+//     let (market_pointer, is_write) = match order_type {
+//         Order::Bid => (
+//             sell_market_pointer,
+//             index == cleaned_order_book_entries.len() - 1,
+//         ),
+//         Order::Ask => (buy_market_pointer, index == 0),
+//         _ => unreachable!(), // Not handling buy and sell order types
+//     };
+//     let order_position_config =
+//         Pubkey::from_str(&order_position_data.order_position_config_pubkey).unwrap();
+
+//     let ixs = build_ixs(BuildIxParams {
+//         signer,
+//         order_book_config,
+//         market_pointer_read: if !is_write {
+//             Some(market_pointer)
+//         } else {
+//             None
+//         },
+//         market_pointer_write: if is_write { Some(market_pointer) } else { None },
+//         order_position,
+//         order_position_config,
+//         prev_order_position,
+//         next_order_position,
+//         is_reverse: order_book_data.is_reverse,
+//         order_type,
+//         token_mint_a: Pubkey::from_str(&order_book_data.token_mint_a).unwrap(),
+//         token_mint_b: Pubkey::from_str(&order_book_data.token_mint_b).unwrap(),
+//         token_program_a: Pubkey::from_str(&order_book_data.token_program_a).unwrap(),
+//         token_program_b: Pubkey::from_str(&order_book_data.token_program_b).unwrap(),
+//     });
+
+//     let tx = create_versioned_tx(&rpc_client, &signer, &ixs).await?;
+//     Ok(tx)
+// }
 
 #[derive(Debug, Clone)]
 pub struct BuildIxParams {
@@ -268,7 +369,7 @@ mod tests {
             get_order_position_pda, get_sell_market_pointer_pda,
         },
         test_util::*,
-        util::get_market_pointer,
+        util::_get_market_pointer,
     };
 
     use super::*;
@@ -312,7 +413,7 @@ mod tests {
 
         // Test bid limit order
 
-        let bid_market_pointer = get_market_pointer(
+        let bid_market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Bid,
@@ -350,7 +451,7 @@ mod tests {
         // Test ask limit order
 
         let ask_price = 2;
-        let ask_market_pointer = get_market_pointer(
+        let ask_market_pointer = _get_market_pointer(
             buy_market_pointer,
             sell_market_pointer,
             Order::Ask,
@@ -434,3 +535,18 @@ mod tests {
         banks_client.process_transaction(tx).await.unwrap();
     }
 }
+
+// 'pubkey_id', a.pubkey_id,
+// 'position_config', a.position_config,
+// 'next_position', a.next_position,
+// 'market_maker', a.market_maker,
+// 'order_type', a.order_type,
+// 'price', a.price,
+// 'size', a.size,
+// 'is_available', a.is_available,
+// 'source_capital', a.capital_source,
+// 'destination_capital', a.capital_destination,
+// 'source_vault', a.source,
+// 'destination_vault', a.destination,
+// 'slot', a.slot,
+// 'timestamp', a.timestamp

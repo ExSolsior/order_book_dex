@@ -6,34 +6,32 @@ use {
             insert_order_position_config, insert_real_time_trade, insert_trade_pair,
             update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
         },
+        transactions::{
+            self, cancel_limit_order::CancelLimitOrderParams,
+            open_limit_order::OpenLimitOrderParams,
+        },
         AppState, POOL,
     },
-    actix_web::{get, post, web, HttpResponse, Responder},
+    actix_web::{get, web, HttpResponse, Responder},
     base64::engine::{general_purpose, Engine},
+    order_book_dex::state::Order,
     serde::Deserialize,
     solana_rpc_client_api::response::{Response, RpcLogsResponse},
     solana_sdk::pubkey::Pubkey,
     std::str::FromStr,
 };
 
-// pub struct OrderBook {
-//     pub pubkey_id: Pubkey,
-//     pub ask: Vec<LimitOrder>,
-//     pub bid: Vec<LimitOrder>,
-// }
-
-// pub struct LimitOrder {
-//     pub price: u64,
-//     pub amount: u64,
-//     pub position: Pubkey,
-//     pub position_config: Pubkey,
-//     pub source: Pubkey,
-//     pub destination: Pubkey,
-//     pub capital_source: Pubkey,
-//     pub capital_destination: Pubkey,
-//     pub next_limit_order: Option<Pubkey>,
-//     pub is_available: bool,
-// }
+#[derive(Debug, Deserialize)]
+pub struct LimitOrder {
+    pub pubkey_id: String,
+    pub signer: String,
+    pub order_position: Option<String>,
+    pub next_pointer: Option<String>,
+    pub order_type: String,
+    pub price: Option<u64>,
+    pub amount: Option<u64>,
+    pub nonce: Option<u64>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
@@ -105,6 +103,66 @@ pub async fn market_list(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(_) => HttpResponse::BadRequest().into(),
+    }
+}
+
+#[get("/open_limit_order")]
+pub async fn open_limit_order(
+    query: web::Query<LimitOrder>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let order_type = match query.order_type.as_str() {
+        "ask" => Order::Ask,
+        "bid" => Order::Bid,
+        _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
+    };
+
+    if !(query.price.is_some() && query.amount.is_some() && query.nonce.is_some()) {
+        return HttpResponse::BadRequest().body("Missing Params");
+    }
+
+    let next_position_pointer = query
+        .next_pointer
+        .is_some()
+        .then(|| Pubkey::from_str(&query.next_pointer.as_ref().unwrap()).unwrap());
+
+    let limit_order = OpenLimitOrderParams {
+        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        signer: Pubkey::from_str(&query.signer).unwrap(),
+        next_position_pointer,
+        order_type,
+        price: query.price.unwrap(),
+        amount: query.amount.unwrap(),
+        nonce: query.nonce.unwrap(),
+    };
+
+    match transactions::open_limit_order::open_limit_order(app_state, limit_order).await {
+        Ok(tx) => HttpResponse::Ok().json(tx),
+        Err(_) => HttpResponse::BadRequest().into(),
+    }
+}
+
+#[get("/cancel_limit_order")]
+pub async fn cancel_limit_order(
+    query: web::Query<LimitOrder>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let order_type = match query.order_type.as_str() {
+        "ask" => Order::Ask,
+        "bid" => Order::Bid,
+        _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
+    };
+
+    let limit_order = CancelLimitOrderParams {
+        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        signer: Pubkey::from_str(&query.signer).unwrap(),
+        order_position: Pubkey::from_str(&query.order_position.as_ref().unwrap()).unwrap(),
+        order_type,
+    };
+
+    match transactions::cancel_limit_order::cancel_limit_order(app_state, limit_order).await {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::BadRequest().into(),
     }
@@ -493,42 +551,3 @@ pub fn get_timestamp(data: &[u8], offset: &mut u64) -> i64 {
 
     return num;
 }
-
-// WIP
-#[post("/open_limit_order")]
-pub async fn open_limit_order(
-    _info: web::Json<Info>,
-    app_state: web::Data<AppState>,
-) -> impl Responder {
-    // app_state.order_book;
-    HttpResponse::Ok().body("it works")
-}
-
-#[derive(Deserialize)]
-struct Info {
-    pub _pubkey_id: Pubkey,
-    pub _order_type: OrderType,
-    pub _price: u64,
-    pub _amount: u64,
-}
-
-#[derive(Deserialize)]
-enum OrderType {
-    Ask,
-    Bid,
-    Sell,
-    Buy,
-}
-
-// post request -> trade reponse
-// market order
-//  amount
-//  order type
-//  fill -> partial ->
-
-// limit order
-//  open
-//      order type
-//      price
-//      amount
-//  cancel

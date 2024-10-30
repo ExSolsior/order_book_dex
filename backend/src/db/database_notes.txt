@@ -27,3 +27,182 @@ postgres://postgres:somepassword@127.0.0.1:5431/
 DB password
 lnB71KGgfbtut8lR
 postgresql://postgres.qubgpepgedqbdgfvitew:lnB71KGgfbtut8lR@aws-0-us-west-1.pooler.supabase.com:6543/postgres
+
+
+
+2024-10-28T20:23:04.565-07:00 [app]  WARN sqlx::query: slow statement: execution time exceeded alert threshold summary="
+BEGIN; 
+WITH chart AS …" 
+
+db.statement=
+"\n\nBEGIN\n;
+\nWITH chart AS (\n  SELECT\n    
+*\n  FROM\n    real_time_trade_data AS td
+\n  WHERE\n    1730172180 - 60 <= td.timestamp
+\n    AND 1730172180 > td.timestamp\n),
+\nopen_time AS (\n  SELECT\n    MIN(\"timestamp\") AS \"timestamp\",
+\n    book_config\n  FROM\n    chart\n  GROUP BY\n    book_config
+\n),\nclose_time AS (\n  SELECT\n    MAX(\"timestamp\") AS \"timestamp\",
+\n    book_config\n  FROM\n    chart\n  GROUP BY\n    book_config\n),
+\nopen_price AS (\n  SELECT\n    t.book_config,\n    last_price\n  FROM\n    chart
+\n    JOIN open_time AS t ON t.book_config = chart.book_config\n    AND t.timestamp = chart.timestamp
+\n),\nclose_price AS (\n  SELECT\n    t.book_config,\n    last_price\n  FROM\n    chart
+\n    JOIN close_time AS t ON t.book_config = chart.book_config\n    AND t.timestamp = chart.timestamp\n),
+\nlow_price AS (\n  SELECT\n    book_config,\n    MIN(chart.last_price) AS last_price\n  FROM\n    chart
+\n  GROUP BY\n    book_config\n),\nhigh_price AS (\n  SELECT\n    book_config,\n    MAX(chart.last_price) AS last_price\n  FROM
+\n    chart\n  GROUP BY\n    book_config\n),\ntotal AS (\n  SELECT\n    book_config,\n    sum(chart.amount) AS \"volume\",
+\n    sum(chart.last_price) AS \"turnover\"\n  FROM\n    chart\n  GROUP BY\n    book_config\n),\nbars AS (\n  SELECT
+\n    DISTINCT chart.book_config AS \"book_config\",\n    '1m' :: interval AS interval,\n    o.last_price AS \"open\",
+\n    h.last_price as \"high\",\n    l.last_price as \"low\",\n    c.last_price AS \"close\",\n    t.volume,
+\n    t.turnover,\n    1730172180 AS \"timestamp\"\n  FROM\n    chart\n    INNER JOIN open_price AS o ON o.book_config = chart.book_config
+\n    INNER JOIN high_price AS h ON h.book_config = chart.book_config\n    INNER JOIN low_price AS l ON l.book_config = chart.book_config
+\n    INNER JOIN close_price AS c ON c.book_config = chart.book_config\n    INNER JOIN total AS t ON t.book_config = chart.book_config
+\n  UNION\n  SELECT\n    *\n  FROM\n    market_order_history AS m\n  WHERE\n    m.timestamp <= 1730172180 - (60 * 60)
+\n    AND m.interval = '1m' :: interval\n  UNION\n  SELECT\n    *\n  FROM\n    market_order_history AS m
+\n  WHERE\n    m.timestamp <= 1730172180 - (60 * 60 * 24)\n    AND m.interval = '1h' :: interval\n  UNION\n  SELECT
+\n    *\n  FROM\n    market_order_history AS m\n  WHERE\n    m.timestamp <= 1730172180 - (60 * 60 * 24 * 366)
+\n    AND m.interval = '1d' :: interval\n),\nminute_data AS (\n  SELECT\n    book_config,
+\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",
+\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE\n    m.interval = '1m' :: interval
+\n    AND m.timestamp = 1730172180\n  GROUP BY\n    m.book_config\n),\nminute_2_data AS (\n  SELECT\n    book_config,
+\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",
+\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE
+\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 2) = 0\n    AND m.timestamp >= 1730172180 - (60 * 2)
+\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config\n),\nminute_3_data AS (\n  SELECT\n    book_config,
+\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",
+\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE
+\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 3) = 0\n    AND m.timestamp >= 1730172180 - (60 * 3)
+\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config\n),\nminute_4_data AS (\n  SELECT\n    book_config,
+\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",
+\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE
+\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 4) = 0\n    AND m.timestamp >= 1730172180 - (60 * 4)
+\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config\n),\nminute_5_data AS (\n  SELECT
+\n    book_config,\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",
+\n    SUM(m.close) AS \"close\",\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"
+\n  FROM\n    bars AS m\n  WHERE\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 5) = 0
+\n    AND m.timestamp >= 1730172180 - (60 * 5)\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config
+\n),\nminute_10_data AS (\n  SELECT\n    book_config,\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",
+\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",\n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"
+\n  FROM\n    bars AS m\n  WHERE\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 10) = 0\n    AND m.timestamp >= 1730172180 - (60 * 10)
+\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config\n),\nminute_15_data AS (\n  SELECT\n    book_config,\n    SUM(m.open) AS \"open\",
+\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",\n    SUM(m.volume) AS \"volume\",
+\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE\n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 15) = 0
+\n    AND m.timestamp >= 1730172180 - (60 * 15)\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config\n),\nminute_20_data AS (
+    \n  SELECT\n    book_config,\n    SUM(m.open) AS \"open\",\n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",
+    \n    SUM(m.volume) AS \"volume\",\n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE
+    \n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 20) = 0
+    \n    AND m.timestamp >= 1730172180 - (60 * 20)\n    AND m.interval = '1m' :: interval\n  GROUP BY
+    \n    m.book_config\n),\nminute_30_data AS (\n  SELECT\n    book_config,\n    SUM(m.open) AS \"open\",
+    \n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",\n    SUM(m.volume) AS \"volume\",
+    \n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE
+    \n    (1730172180 - (1730172180 / 1440 * 1440)) % (60 * 30) = 0
+    \n    AND m.timestamp >= 1730172180 - (60 * 30)\n    AND m.interval = '1m' :: interval\n  GROUP BY
+    \n    m.book_config\n),\nhour_data AS (\n  SELECT\n    book_config,\n    SUM(m.open) AS \"open\",
+    \n    SUM(m.high) AS \"high\",\n    SUM(m.low) AS \"low\",\n    SUM(m.close) AS \"close\",\n    SUM(m.volume) AS \"volume\",
+    \n    SUM(m.turnover) AS \"turnover\"\n  FROM\n    bars AS m\n  WHERE\n    1730172180 % 1440 = 0
+    \n    AND m.timestamp >= 1730172180 - 1440\n    AND m.interval = '1m' :: interval\n  GROUP BY\n    m.book_config
+    \n),\nhour_2_data AS (\n  SELECT\n    book_config,\n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",
+    \n    SUM(h.low) AS \"low\",\n    SUM(h.close) AS \"close\",\n    SUM(h.volume) AS \"volume\",
+    \n    SUM(h.turnover) AS \"turnover\"\n  FROM\n    bars AS h\n  WHERE\n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 2) = 0
+    \n    AND h.timestamp >= 1730172180 - (1440 * 2)\n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),\nhour_3_data AS (
+        \n  SELECT\n    book_config,\n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",\n    SUM(h.close) AS \"close\",
+        \n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"
+        \n  FROM\n    bars AS h\n  WHERE\n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 3) = 0
+        \n    AND h.timestamp >= 1730172180 - (1440 * 3)\n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),
+        \nhour_4_data AS (\n  SELECT\n    book_config,\n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",
+        \n    SUM(h.close) AS \"close\",\n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"\n  FROM\n    bars AS h
+        \n  WHERE\n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 4) = 0\n    AND h.timestamp >= 1730172180 - (1440 * 4)
+        \n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),\nhour_6_data AS (\n  SELECT\n    book_config,
+        \n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",\n    SUM(h.close) AS \"close\",
+        \n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"\n  FROM\n    bars AS h\n  WHERE
+        \n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 6) = 0\n    AND h.timestamp >= 1730172180 - (1440 * 6)
+        \n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),\nhour_8_data AS (\n  SELECT\n    book_config,
+        \n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",\n    SUM(h.close) AS \"close\",
+        \n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"\n  FROM\n    bars AS h\n  WHERE
+        \n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 8) = 0\n    AND h.timestamp >= 1730172180 - (1440 * 8)
+        \n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),\nhour_12_data AS (\n  SELECT
+        \n    book_config,\n    SUM(h.open) AS \"open\",\n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",
+        \n    SUM(h.close) AS \"close\",\n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"\n  FROM
+        \n    bars AS h\n  WHERE\n    (1730172180 - (1730172180 / 86400 * 86400)) % (1440 * 12) = 0
+        \n    AND h.timestamp >= 1730172180 - (1440 * 12)\n    AND h.interval = '1h' :: interval\n  GROUP BY
+        \n    h.book_config\n),\nday_data AS (\n  SELECT\n    book_config,\n    SUM(h.open) AS \"open\",
+        \n    SUM(h.high) AS \"high\",\n    SUM(h.low) AS \"low\",\n    SUM(h.close) AS \"close\",
+        \n    SUM(h.volume) AS \"volume\",\n    SUM(h.turnover) AS \"turnover\"\n  FROM\n    bars AS h
+        \n  WHERE\n    1730172180 % 86400 = 0\n    AND h.timestamp >= 1730172180 - 86400
+        \n    AND h.interval = '1h' :: interval\n  GROUP BY\n    h.book_config\n),\nday_2_data AS (
+            \n  SELECT\n    book_config,\n    SUM(d.open) AS \"open\",\n    SUM(d.high) AS \"high\",\n    SUM(d.low) AS \"low\",
+            \n    SUM(d.close) AS \"close\",\n    SUM(d.volume) AS \"volume\",\n    SUM(d.turnover) AS \"turnover\"\n  FROM
+            \n    bars AS d\n  WHERE\n    (\n      1730172180 - (1730172180 / (86400 * 7) * (86400 * 7))\n    ) % (86400 * 2) = 0
+            \n    AND d.timestamp >= 1730172180 - (86400 * 2)\n    AND d.interval = '1d' :: interval\n  GROUP BY
+            \n    d.book_config\n),\nday_3_data AS (\n  SELECT\n    book_config,\n    SUM(d.open) AS \"open\",
+            \n    SUM(d.high) AS \"high\",\n    SUM(d.low) AS \"low\",\n    SUM(d.close) AS \"close\",\n    SUM(d.volume) AS \"volume\",
+            \n    SUM(d.turnover) AS \"turnover\"\n  FROM\n    bars AS d\n  WHERE\n    (\n      1730172180 - (1730172180 / (86400 * 7) * (86400 * 7))
+            \n    ) % (86400 * 3) = 0\n    AND d.timestamp >= 1730172180 - (86400 * 3)\n    AND d.interval = '1d' :: interval\n  GROUP BY
+            \n    d.book_config\n),\nweek_data AS (\n  SELECT\n    book_config,\n    SUM(d.open) AS \"open\",\n    SUM(d.high) AS \"high\",
+            \n    SUM(d.low) AS \"low\",\n    SUM(d.close) AS \"close\",\n    SUM(d.volume) AS \"volume\",\n    SUM(d.turnover) AS \"turnover\"\n  FROM
+            \n    bars AS d\n  WHERE\n    1730172180 % (86400 * 7) = 0\n    AND d.timestamp >= 1730172180 - (86400 * 7)\n    AND d.interval = '1d' :: interval
+            \n  GROUP BY\n    d.book_config\n),\nweek_2_data AS (\n  SELECT\n    book_config,\n    SUM(w.open) AS \"open\",\n    SUM(w.high) AS \"high\",
+            \n    SUM(w.low) AS \"low\",\n    SUM(w.close) AS \"close\",\n    SUM(w.volume) AS \"volume\",\n    SUM(w.turnover) AS \"turnover\"\n  FROM
+            \n    bars AS w\n  WHERE\n    (\n      1730172180 - (1730172180 / (86400 * 7 * 4) * (86400 * 7 * 4))\n    ) % ((86400 * 7) * 2) = 0
+            \n    AND w.timestamp >= 1730172180 - ((86400 * 7) * 2)\n    AND w.interval = '1d' :: interval\n  GROUP BY\n    w.book_config\n),\nweek_3_data AS (
+                \n  SELECT\n    book_config,\n    SUM(w.open) AS \"open\",\n    SUM(w.high) AS \"high\",\n    SUM(w.low) AS \"low\",\n    SUM(w.close) AS \"close\",
+                \n    SUM(w.volume) AS \"volume\",\n    SUM(w.turnover) AS \"turnover\"\n  FROM\n    bars AS w\n  WHERE\n    (
+                    \n      1730172180 - (1730172180 / (86400 * 7 * 4) * (86400 * 7 * 4))\n    ) % ((86400 * 7) * 3) = 0
+                    \n    AND w.timestamp >= 1730172180 - ((86400 * 7) * 3)\n    AND w.interval = '1d' :: interval
+                    \n  GROUP BY\n    w.book_config\n),\nmarket_data AS (\n  SELECT\n    *,\n    '1m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_data\n  UNION\n  SELECT\n    *,\n    '2m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_2_data\n  UNION\n  SELECT\n    *,\n    '3m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_3_data\n  UNION\n  SELECT\n    *,\n    '4m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_4_data\n  UNION\n  SELECT\n    *,\n    '5m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_5_data\n  UNION\n  SELECT\n    *,\n    '10m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_10_data\n  UNION\n  SELECT\n    *,\n    '15m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_15_data\n  UNION\n  SELECT\n    *,\n    '20m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_20_data\n  UNION\n  SELECT\n    *,\n    '30m' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    minute_30_data\n  UNION\n  SELECT\n    *,\n    '1h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_data\n  UNION\n  SELECT\n    *,\n    '2h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_2_data\n  UNION\n  SELECT\n    *,\n    '3h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_3_data\n  UNION\n  SELECT\n    *,\n    '4h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_4_data\n  UNION\n  SELECT\n    *,\n    '6h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_6_data\n  UNION\n  SELECT\n    *,\n    '8h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_8_data\n  UNION\n  SELECT\n    *,\n    '12h' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    hour_12_data\n  UNION\n  SELECT\n    *,\n    '1D' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    day_data\n  UNION\n  SELECT\n    *,\n    '2D' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    day_2_data\n  UNION\n  SELECT\n    *,\n    '3D' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    day_3_data\n  UNION\n  SELECT\n    *,\n    '1W' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    week_data\n  UNION\n  SELECT\n    *,\n    '2W' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    week_2_data\n  UNION\n  SELECT\n    *,\n    '3W' :: interval AS \"interval\",
+                    \n    1730172180 AS \"timestamp\"\n  FROM\n    week_3_data -- M, 2M, 3M, 4M, 6M, 12M | 1Y, are a bit complex to create, will do later
+                    \n    -- not important to do for MVP\n)\nINSERT INTO\n  market_order_history (\n    \"book_config\",\n    \"interval\",\n    \"open\",
+                    \n    \"high\",\n    \"low\",\n    \"close\",\n    \"volume\",\n    \"turnover\",\n    \"timestamp\"\n  )\nSELECT\n  m.book_config,
+                    \n  m.interval,\n  m.open,\n  m.high,\n  m.low,\n  m.close,\n  m.volume,\n  m.turnover,\n  m.timestamp\nFROM
+                    \n  market_data AS m;\nWITH pre_candle AS (\n  SELECT\n    m.book_config,\n    m.close,\n    m.volume,\n    m.turnover,
+                    \n    m.timestamp\n  FROM\n    market_order_history AS m\n  WHERE\n    m.interval = '1m' :: interval\n    AND (
+                        \n      m.timestamp = 1730172180\n      OR m.timestamp = (1730172180 - 86400)\n    )\n),\ncandle AS (\n  -- current
+                        \n  -- fall back if no rows exist,\n  -- but shouldn't be the case since inserts take place right before\n  SELECT
+                        \n    c.pubkey_id AS book_config,\n    0 AS \"close\",\n    0 AS \"volume\",\n    0 AS \"turnover\",
+                        \n    1730172180 AS \"timestamp\"\n  FROM\n    order_book_config AS c\n    LEFT JOIN pre_candle AS t ON t.book_config = c.pubkey_id
+                        \n    AND t.timestamp = 1730172180\n  WHERE\n    t.book_config IS NULL\n  UNION\n  -- day offset\n  -- fall back if no rows exist,
+                        \n  -- when there is no data then this should take place\n  -- necessary for initial 24 hours\n  SELECT\n    c.pubkey_id AS book_config,
+                        \n    0 AS \"close\",\n    0 AS \"volume\",\n    0 AS \"turnover\",\n    (1730172180 - 86400) AS \"timestamp\"\n  FROM
+                        \n    order_book_config AS c\n    LEFT JOIN pre_candle AS t ON t.book_config = c.pubkey_id\n    AND t.timestamp = (1730172180 - 86400)
+                        \n  WHERE\n    t.book_config IS NULL\n  UNION\n  SELECT\n    *\n  FROM\n    pre_candle\n),\npre_trade_data AS (\n  SELECT
+                        \n    td.book_config,\n    td.last_price,\n    \"24_hour_volume\",\n    \"24_hour_turnover\"\n  FROM
+                        \n    trade_data_24_hour AS td\n  WHERE\n    td.timestamp = (1730172180 - 60)\n),\ntrade_data AS (
+                            \n  SELECT\n    c.pubkey_id AS book_config,\n    (\n      SELECT\n        last_price\n      FROM
+                            \n        candle AS c\n      WHERE\n        c.timestamp = (1730172180 - 60)\n    ) AS last_price,
+                            \n    SUM(m.volume) AS \"24_hour_volume\",\n    SUM(m.turnover) AS \"24_hour_turnover\"\n  FROM
+                            \n    order_book_config AS c\n    LEFT JOIN pre_trade_data AS t ON t.book_config = c.pubkey_id
+                            \n    JOIN market_order_history AS m ON m.book_config = c.pubkey_id\n  WHERE\n    t.book_config IS NULL
+                            \n    AND m.timestamp >= (1730172180 - 86400)\n    AND m.timestamp <= 1730172180\n  GROUP BY\n    GROUPING SETS (
+                                \n      (1, 2)\n    )\n  UNION\n  SELECT\n    *\n  FROM\n    pre_trade_data\n)\nINSERT INTO\n  trade_data_24_hour
+                                \nSELECT\n  td.book_config,\n  a.close AS last_price,\n  \"24_hour_volume\" + a.volume - r.volume AS volume,
+                                \n  \"24_hour_turnover\" + a.turnover - r.turnover AS turnover,  -- im worried about interger overflow
+                                \n  -- maybe this should be handled on client?
+                                \n  -- (td.last_price - a.close) * 10000 / td.last_price AS \"24_hour_change\",
+                                \n  CASE\n    WHEN td.last_price IS NOT NULL THEN (td.last_price - a.close)\n    ELSE 0
+                                \n  END AS \"24_hour_price_change\",  -- apply to \"24_hour_price_change\" to get 24h % change\n  CASE
+                                \n    WHEN td.last_price IS NOT NULL THEN td.last_price\n    ELSE 0\n  END AS \"24_hour_prev_last_price\",
+                                \n  a.timestamp AS \"timestamp\"\nFROM\n  trade_data AS td\n  JOIN candle AS a ON a.book_config = td.book_config
+                                \n  JOIN candle AS r ON r.book_config = td.book_config\nWHERE\n  r.timestamp = (1730172180 - 86400)
+                                \n  AND a.timestamp = 1730172180;\nCOMMIT;
+                                \n" rows_affected=0 rows_returned=0 elapsed=4.200275722s elapsed_secs=4.200275722 slow_threshold=1s
