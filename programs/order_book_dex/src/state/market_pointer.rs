@@ -57,7 +57,7 @@ impl MarketPointer {
         dest: Pubkey,
         capital_source: Pubkey,
         capital_dest: Pubkey,
-        next_position_pointer: Pubkey,
+        next_position_pointer: Option<Pubkey>,
     ) -> Result<()> {
         let Clock {
             slot,
@@ -165,8 +165,20 @@ impl MarketPointer {
         self.execution_stats.as_ref().unwrap().owner == owner
     }
 
+    // is this correct?
     pub fn is_valid_order_pointer(&self, order_position: Pubkey) -> bool {
-        self.execution_stats.as_ref().unwrap().next_position_pointer == order_position
+        self.execution_stats
+            .as_ref()
+            .unwrap()
+            .next_position_pointer
+            .is_some()
+            && self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .unwrap()
+                == order_position
     }
 
     pub fn is_valid_position_add(
@@ -225,11 +237,32 @@ impl MarketPointer {
         order_position: &Account<'_, OrderPosition>,
         next_position_pointer: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
+        if self.execution_stats.is_some()
+            && self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .is_none()
+        {
+            return !self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .is_none();
+        }
+
         if self.market_order.is_some()
             && next_position_pointer.is_some()
             && self.order_type == Order::Buy
         {
-            let position_pointer = self.execution_stats.as_ref().unwrap().next_position_pointer;
+            let position_pointer = self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .unwrap();
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount < next_position_pointer.amount;
@@ -239,7 +272,12 @@ impl MarketPointer {
             && next_position_pointer.is_some()
             && self.order_type == Order::Sell
         {
-            let position_pointer = self.execution_stats.as_ref().unwrap().next_position_pointer;
+            let position_pointer = self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .unwrap();
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
                 && order_position.amount > next_position_pointer.amount;
@@ -253,8 +291,19 @@ impl MarketPointer {
         prev_order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
         if self.market_order.is_some() && prev_order_position.is_some() {
-            return self.execution_stats.as_ref().unwrap().next_position_pointer
-                != prev_order_position.unwrap().key();
+            return self
+                .execution_stats
+                .as_ref()
+                .unwrap()
+                .next_position_pointer
+                .is_some()
+                && self
+                    .execution_stats
+                    .as_ref()
+                    .unwrap()
+                    .next_position_pointer
+                    .unwrap()
+                    != prev_order_position.unwrap().key();
         }
 
         return prev_order_position.is_none();
@@ -314,7 +363,7 @@ pub struct ExecutionStats {
     pub capital_dest: Pubkey,
     pub source: Pubkey,
     pub dest: Pubkey,
-    pub next_position_pointer: Pubkey,
+    pub next_position_pointer: Option<Pubkey>,
     pub total_amount: u64,
     pub total_cost: u64,
     pub last_price: u64,

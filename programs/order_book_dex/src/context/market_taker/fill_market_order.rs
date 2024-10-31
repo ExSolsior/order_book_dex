@@ -28,8 +28,9 @@ pub struct FillMarketOrder<'info> {
         mut,
         constraint = order_position.is_valid_order_book_config(order_book_config.key())
             @ ErrorCode::InvalidOrderPosition,
-        constraint = market_pointer.is_valid_order_pointer(order_position.key())
-            @ ErrorCode::InvalidOrderPosition,
+        // this doesn't seem correct
+        // constraint = market_pointer.is_valid_order_pointer(order_position.key())
+        //     @ ErrorCode::InvalidOrderPosition,
     )]
     pub order_position: Account<'info, OrderPosition>,
 

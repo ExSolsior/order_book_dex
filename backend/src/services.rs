@@ -8,13 +8,13 @@ use {
         },
         transactions::{
             self, cancel_limit_order::CancelLimitOrderParams,
-            open_limit_order::OpenLimitOrderParams,
+            execute_market_order::MarketOrderParams, open_limit_order::OpenLimitOrderParams,
         },
         AppState, POOL,
     },
     actix_web::{get, web, HttpResponse, Responder},
     base64::engine::{general_purpose, Engine},
-    order_book_dex::state::Order,
+    order_book_dex::state::{Fill, Order},
     serde::Deserialize,
     solana_rpc_client_api::response::{Response, RpcLogsResponse},
     solana_sdk::pubkey::Pubkey,
@@ -163,6 +163,53 @@ pub async fn cancel_limit_order(
     };
 
     match transactions::cancel_limit_order::cancel_limit_order(app_state, limit_order).await {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(_) => HttpResponse::BadRequest().into(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct MarketOrder {
+    pub signer: String,
+    pub pubkey_id: String,
+    pub order_type: String,
+    pub fill_type: String,
+    pub target_price: Option<u64>,
+    pub target_amount: u64,
+}
+#[get("execute_market_order")]
+pub async fn execute_market_order(
+    query: web::Query<MarketOrder>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let order_type = match query.order_type.as_str() {
+        "sell" => Order::Sell,
+        "buy" => Order::Buy,
+        _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
+    };
+
+    let fill = match query.fill_type.as_str() {
+        "full" => Fill::Full,
+        "partial" => {
+            if query.target_price.is_none() {
+                return HttpResponse::BadRequest().body("Invalid Target Price");
+            };
+            Fill::Partial {
+                target_price: query.target_price.unwrap(),
+            }
+        }
+        _ => return HttpResponse::BadRequest().body("Invalid Fill Type"),
+    };
+
+    let market_order = MarketOrderParams {
+        signer: Pubkey::from_str(&query.signer).unwrap(),
+        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        order_type,
+        fill,
+        target_amount: query.target_amount,
+    };
+
+    match transactions::execute_market_order::execute_market_order(app_state, market_order).await {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(_) => HttpResponse::BadRequest().into(),
     }

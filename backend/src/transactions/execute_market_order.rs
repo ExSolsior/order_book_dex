@@ -1,44 +1,166 @@
-pub async fn execute_market_order(
-    //
-    app_state: web::Data<AppState>,
-    signer: Pubkey,
-    order_book_config: Pubkey,
-    order_type: Order,
-    fill_type: String,
-    target_price: u64,
-    target_amount: u64,
-) {
-    let order_book_data = get_trade_pair(&order_book_config, app_state).await?;
+use std::str::FromStr;
 
-    if order_type == Order::Sell && order_book_data["book"]["bids"].is_null()
-        || order_type == Order::Buy && order_book_data["book"]["asks"].is_null()
+use crate::{db::models::get_trade_pair, AppState};
+use actix_web::web;
+use anchor_lang::{InstructionData, ToAccountMetas};
+use order_book_dex::{accounts, instruction, state::Fill, state::Order, ID as program_id};
+use solana_sdk::{
+    // feature_set::instructions_sysvar_owned_by_sysvar,
+    instruction::Instruction,
+    message::{v0::Message, VersionedMessage},
+    pubkey::Pubkey,
+    signature::NullSigner,
+    system_program::ID as system_program,
+    transaction::VersionedTransaction,
+};
+use spl_associated_token_account::get_associated_token_address_with_program_id;
+
+use super::{error::TransactionBuildError, pdas::get_vault_account_pda, util::create_rpc_client};
+
+pub struct MarketOrderParams {
+    pub signer: Pubkey,
+    pub order_book_config: Pubkey,
+    pub order_type: Order,
+    pub fill: Fill,
+    pub target_amount: u64,
+}
+
+// need to compute vaults if first time
+pub async fn execute_market_order(
+    app_state: web::Data<AppState>,
+    market_order: MarketOrderParams,
+) -> Result<Vec<VersionedTransaction>, TransactionBuildError> {
+    let rpc_client = create_rpc_client();
+    let order_book_data = get_trade_pair(&market_order.order_book_config, app_state).await?;
+
+    let market_pointer = match market_order.order_type {
+        Order::Sell => {
+            Pubkey::from_str(order_book_data["sellMarketPointer"].as_str().unwrap()).unwrap()
+        }
+        Order::Buy => {
+            Pubkey::from_str(order_book_data["buyMarketPointer"].as_str().unwrap()).unwrap()
+        }
+        __ => unreachable!(),
+    };
+
+    let is_reverse = order_book_data["isReverse"].as_bool().unwrap();
+    let token_mint_a = Pubkey::from_str(order_book_data["tokenMintA"].as_str().unwrap()).unwrap();
+    let token_mint_b = Pubkey::from_str(order_book_data["tokenMintB"].as_str().unwrap()).unwrap();
+
+    let token_program_a =
+        Pubkey::from_str(order_book_data["tokenProgramA"].as_str().unwrap()).unwrap();
+    let token_program_b =
+        Pubkey::from_str(order_book_data["tokenProgramB"].as_str().unwrap()).unwrap();
+
+    if market_order.order_type == Order::Sell && order_book_data["book"]["bids"].is_null()
+        || market_order.order_type == Order::Buy && order_book_data["book"]["asks"].is_null()
     {
         // return error
     }
 
-    // order_position
-    // source_vault -> maker_source
-    // destionation_vault -> maker_destination
-    // market_maker
-    // source_capital
-    // destination_capital
-    // order_position_config
-    // token_mint_source
-    // token_mint_destination
+    let (
+        source_vault,
+        dest_vault,
+        source_capital,
+        dest_capital,
+        source_mint,
+        destination_mint,
+        source_program,
+        destination_program,
+    ) = if (!is_reverse && market_order.order_type == Order::Sell)
+        || (is_reverse && market_order.order_type == Order::Buy)
+    {
+        let source_vault = get_vault_account_pda(
+            market_order.order_book_config,
+            token_mint_a,
+            market_order.signer,
+        );
+        let dest_vault = get_vault_account_pda(
+            market_order.order_book_config,
+            token_mint_b,
+            market_order.signer,
+        );
 
-    // I need to figure out how to determine this
-    // source_program
-    // destination_program
+        let source_capital = get_associated_token_address_with_program_id(
+            &market_order.signer,
+            &token_mint_a,
+            &token_program_a,
+        );
+        let dest_capital = get_associated_token_address_with_program_id(
+            &market_order.signer,
+            &token_mint_b,
+            &token_program_b,
+        );
 
-    // token_mint_a
-    // toekn_mint_b
-    // token_program_a
-    // token_program_b
+        println!("");
+        println!("source_vault: {}", source_vault);
+        println!("dest_vault: {}", dest_vault);
+        println!("source_capital: {}", source_capital);
+        println!("dest_capital: {}", dest_capital);
+        println!("token_mint_b: {}", token_mint_b);
+        println!("token_mint_a: {}", token_mint_a);
+        println!("token_program_b: {}", token_program_b);
+        println!("token_program_a: {}", token_program_a);
 
-    let positions = match order_type {
+        (
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            token_mint_a,
+            token_mint_b,
+            token_program_a,
+            token_program_b,
+        )
+    } else {
+        let source_vault = get_vault_account_pda(
+            market_order.order_book_config,
+            token_mint_b,
+            market_order.signer,
+        );
+        let dest_vault = get_vault_account_pda(
+            market_order.order_book_config,
+            token_mint_a,
+            market_order.signer,
+        );
+
+        let source_capital = get_associated_token_address_with_program_id(
+            &market_order.signer,
+            &token_mint_b,
+            &token_program_b,
+        );
+        let dest_capital = get_associated_token_address_with_program_id(
+            &market_order.signer,
+            &token_mint_a,
+            &token_program_a,
+        );
+
+        println!("");
+        println!("source_vault: {}", source_vault);
+        println!("dest_vault: {}", dest_vault);
+        println!("source_capital: {}", source_capital);
+        println!("dest_capital: {}", dest_capital);
+        println!("token_mint_b: {}", token_mint_b);
+        println!("token_mint_a: {}", token_mint_a);
+        println!("token_program_b: {}", token_program_b);
+        println!("token_program_a: {}", token_program_a);
+
+        (
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            token_mint_b,
+            token_mint_a,
+            token_program_b,
+            token_program_a,
+        )
+    };
+
+    let positions = match market_order.order_type {
         Order::Sell => {
             let mut list = vec![];
-            let mut target_amount = target_amount;
+            let mut target_amount = market_order.target_amount;
             let mut next: Option<Pubkey> = Some(
                 Pubkey::from_str(
                     order_book_data["book"]["bids"][0]["pubkeyId"]
@@ -49,17 +171,8 @@ pub async fn execute_market_order(
             );
             if let Some(bids) = order_book_data["book"]["bids"].as_array() {
                 for bid in bids {
-                    let price = u64::from_be_bytes(
-                        bid["price"].as_bytes()[..8]
-                            .try_into()
-                            .expect("expected 8 bytes"),
-                    );
-
-                    let amount = u64::from_be_bytes(
-                        bid["amount"].as_bytes()[..8]
-                            .try_into()
-                            .expect("expected 8 bytes"),
-                    );
+                    let price = bid["price"].as_u64().unwrap();
+                    let amount = bid["size"].as_u64().unwrap();
 
                     let pubkey_id = Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -81,13 +194,13 @@ pub async fn execute_market_order(
                         0
                     };
 
-                    let (source_mint, source_program) = if (!is_reverse) {
+                    let (source_mint, source_program) = if !is_reverse {
                         (token_mint_b, token_program_b)
                     } else {
                         (token_mint_a, token_program_a)
                     };
 
-                    let (destination_mint, destination_program) = if (!is_reverse) {
+                    let (destination_mint, destination_program) = if !is_reverse {
                         (token_mint_a, token_program_a)
                     } else {
                         (token_mint_b, token_program_b)
@@ -95,7 +208,7 @@ pub async fn execute_market_order(
 
                     let market_maker =
                         Pubkey::from_str(bid["marketMaker"].as_str().unwrap()).unwrap();
-                    let next_postion = (!bid["nextPosition"].is_null())
+                    let next_position = (!bid["nextPosition"].is_null())
                         .then(|| Pubkey::from_str(bid["nextPosition"].as_str().unwrap()).unwrap());
                     let source_vault =
                         Pubkey::from_str(bid["sourceVault"].as_str().unwrap()).unwrap();
@@ -108,7 +221,26 @@ pub async fn execute_market_order(
                     let postion_config =
                         Pubkey::from_str(bid["positionConfig"].as_str().unwrap()).unwrap();
 
-                    let next = next_position.clone();
+                    println!("");
+                    println!("pubkey_id: {}", pubkey_id);
+                    println!("postion_config: {}", postion_config);
+                    println!("next_position: {}", next_position.is_some());
+                    println!("market_maker: {}", market_maker);
+                    println!("source_vault: {}", source_vault);
+                    println!("destination_vault: {}", destination_vault);
+                    println!("source_capital: {}", source_capital);
+                    println!("destination_capital: {}", destination_capital);
+
+                    println!("source_mint: {}", source_mint);
+                    println!("destination_mint: {}", destination_mint);
+                    println!("source_program: {}", source_program);
+                    println!("destination_program: {}", destination_program);
+
+                    println!("price: {}", price);
+                    println!("amount: {}", amount);
+                    println!("target_amount: {}", target_amount);
+
+                    next = next_position.clone();
                     list.push((
                         pubkey_id,
                         postion_config,
@@ -119,7 +251,7 @@ pub async fn execute_market_order(
                         source_capital,
                         destination_capital,
                         source_mint,
-                        destionation_mint,
+                        destination_mint,
                         source_program,
                         destination_program,
                         price,
@@ -133,7 +265,7 @@ pub async fn execute_market_order(
 
         Order::Buy => {
             let mut list = vec![];
-            let mut target_amount = target_amount;
+            let mut target_amount = market_order.target_amount;
             let mut next: Option<Pubkey> = Some(
                 Pubkey::from_str(
                     order_book_data["book"]["asks"][0]["pubkeyId"]
@@ -144,17 +276,8 @@ pub async fn execute_market_order(
             );
             if let Some(asks) = order_book_data["book"]["asks"].as_array() {
                 for ask in asks {
-                    let price = u64::from_be_bytes(
-                        ask["price"].as_bytes()[..8]
-                            .try_into()
-                            .expect("expected 8 bytes"),
-                    );
-
-                    let amount = u64::from_be_bytes(
-                        ask["amount"].as_bytes()[..8]
-                            .try_into()
-                            .expect("expected 8 bytes"),
-                    );
+                    let price = ask["price"].as_u64().unwrap();
+                    let amount = ask["size"].as_u64().unwrap();
 
                     let pubkey_id = Pubkey::from_str(ask["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -176,34 +299,34 @@ pub async fn execute_market_order(
                         0
                     };
 
-                    let (source_mint, source_program) = if (!is_reverse) {
+                    let (source_mint, source_program) = if !is_reverse {
                         (token_mint_a, token_program_a)
                     } else {
                         (token_mint_b, token_program_b)
                     };
 
-                    let (destination_mint, destination_program) = if (!is_reverse) {
+                    let (destination_mint, destination_program) = if !is_reverse {
                         (token_mint_b, token_program_b)
                     } else {
                         (token_mint_a, token_program_a)
                     };
 
                     let market_maker =
-                        Pubkey::from_str(bid["marketMaker"].as_str().unwrap()).unwrap();
-                    let next_postion = (!bid["nextPosition"].is_null())
-                        .then(|| Pubkey::from_str(bid["nextPosition"].as_str().unwrap()).unwrap());
+                        Pubkey::from_str(ask["marketMaker"].as_str().unwrap()).unwrap();
+                    let next_position = (!ask["nextPosition"].is_null())
+                        .then(|| Pubkey::from_str(ask["nextPosition"].as_str().unwrap()).unwrap());
                     let source_vault =
-                        Pubkey::from_str(bid["sourceVault"].as_str().unwrap()).unwrap();
+                        Pubkey::from_str(ask["sourceVault"].as_str().unwrap()).unwrap();
                     let destination_vault =
-                        Pubkey::from_str(bid["destinationVault"].as_str().unwrap()).unwrap();
+                        Pubkey::from_str(ask["destinationVault"].as_str().unwrap()).unwrap();
                     let source_capital =
-                        Pubkey::from_str(bid["sourceCapital"].as_str().unwrap()).unwrap();
+                        Pubkey::from_str(ask["sourceCapital"].as_str().unwrap()).unwrap();
                     let destination_capital =
-                        Pubkey::from_str(bid["destinationCapital"].as_str().unwrap()).unwrap();
+                        Pubkey::from_str(ask["destinationCapital"].as_str().unwrap()).unwrap();
                     let postion_config =
-                        Pubkey::from_str(bid["positionConfig"].as_str().unwrap()).unwrap();
+                        Pubkey::from_str(ask["positionConfig"].as_str().unwrap()).unwrap();
 
-                    let next = next_position.clone();
+                    next = next_position.clone();
                     list.push((
                         pubkey_id,           // 0
                         postion_config,      // 1
@@ -214,7 +337,7 @@ pub async fn execute_market_order(
                         source_capital,      // 6
                         destination_capital, // 7
                         source_mint,         // 8
-                        destionation_mint,   // 9
+                        destination_mint,    // 9
                         source_program,      // 10
                         destination_program, // 11
                         price,               // 12
@@ -229,127 +352,151 @@ pub async fn execute_market_order(
         _ => unreachable!(),
     };
 
-    let list: Vec<VersionedTransaction>::new();
+    let mut list: Vec<VersionedTransaction> = Vec::new();
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
+    let payer = market_order.signer;
 
     if positions.len() == 1 {
-        let ixs = vec![
-            create_market_order(
-                signer,
-                order_book_config,
-                market_pointer,
-                positions[0].0,
-                source,
-                dest,
-                capital_source,
-                capital_dest,
-                positions[0].8,
-                positions[0].9,
-                positions[0].10,
-                // is this correct?
-                positions[0].0,
-            ),
-            fill_market_order(
-                signer,
-                order_book_config,
-                market_pointer,
-                taker_source,
-                positions[0].5,
-                positions[0].4,
-                taker_destination,
-                positions[0].0,
-                token_mint_a,
-                token_mint_b,
-                token_program_a,
-                token_program_b,
-            ),
-        ];
-        (amount == 0).then(|| {
+        let mut ixs = vec![];
+        let target_amount = positions[0].13;
+        let order_position = positions[0].0;
+        let position_config = positions[0].1;
+
+        let next_position_pointer = positions[0].2;
+        let maker_source = positions[0].4;
+        let maker_destination = positions[0].5;
+        let capital_source = positions[0].6;
+        let capital_destination = positions[0].7;
+
+        ixs.push(create_market_order(
+            market_order.signer,
+            market_order.order_book_config,
+            market_pointer,
+            order_position,
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            source_mint,
+            destination_mint,
+            source_program,
+            (target_amount == 0 && next_position_pointer.is_some())
+                .then(|| next_position_pointer.unwrap()),
+            market_order.order_type,
+            market_order.fill,
+            market_order.target_amount,
+        ));
+
+        ixs.push(fill_market_order(
+            market_order.signer,
+            market_order.order_book_config,
+            market_pointer,
+            order_position,
+            source_vault,
+            maker_destination,
+            maker_source,
+            dest_vault,
+            token_mint_a,
+            token_mint_b,
+            token_program_a,
+            token_program_b,
+        ));
+
+        (target_amount == 0).then(|| {
             ixs.push(close_order_position(
-                signer,
+                market_order.signer,
                 positions[0].3,
-                order_book_config,
-                positions[0].0,
-                positions[0].1,
-                positions[0].4,
-                positions[0].5,
-                positions[0].6,
-                positions[0].7,
-                positions[0].8,
-                positions[0].9,
-                positions[0].10,
-                positions[0].11,
-                system_program,
+                market_order.order_book_config,
+                order_position,
+                position_config,
+                maker_source,
+                maker_destination,
+                capital_source,
+                capital_destination,
+                source_mint,
+                destination_mint,
+                source_program,
+                destination_program,
             ))
         });
+
         ixs.push(return_execution_market_order(
-            signer,
-            order_book_config,
+            market_order.signer,
+            market_order.order_book_config,
             market_pointer,
-            source,
-            dest,
-            capital_source,
-            capital_dest,
-            positions[0].8,
-            positions[0].9,
-            positions[0].10,
-            positions[0].11,
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            source_mint,
+            destination_mint,
+            source_program,
+            destination_program,
         ));
 
         list.push(
             VersionedTransaction::try_new(
-                VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
-                &[&NullSigner::new(payer)],
+                VersionedMessage::V0(Message::try_compile(&payer, &ixs, &[], recent_blockhash)?),
+                &[&NullSigner::new(&payer)],
             )
             .unwrap(),
         );
     } else {
+        let target_amount = positions[0].13;
+        let order_position = positions[0].0;
+        let next_position_pointer = positions[0].2;
+
         let ixs = vec![create_market_order(
-            signer,
-            order_book_config,
+            market_order.signer,
+            market_order.order_book_config,
             market_pointer,
-            positions[0].0,
-            source,
-            dest,
-            capital_source,
-            capital_dest,
-            positions[0].8,
-            positions[0].9,
-            positions[0].10,
-            // is this correct?
-            positions[positions.len() - 1].0,
+            order_position,
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            source_mint,
+            destination_mint,
+            source_program,
+            (target_amount == 0 && next_position_pointer.is_some())
+                .then(|| next_position_pointer.unwrap()),
+            market_order.order_type,
+            market_order.fill,
+            market_order.target_amount,
         )];
 
         list.push(
             VersionedTransaction::try_new(
-                VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
-                &[&NullSigner::new(payer)],
+                VersionedMessage::V0(Message::try_compile(&payer, &ixs, &[], recent_blockhash)?),
+                &[&NullSigner::new(&payer)],
             )
             .unwrap(),
         );
 
         for position in positions.iter() {
-            let ixs = vec![];
+            let mut ixs = vec![];
 
             ixs.push(fill_market_order(
-                signer,
-                order_book_config,
+                market_order.signer,
+                market_order.order_book_config,
                 market_pointer,
-                taker_source,
+                source_vault,
                 position.5,
                 position.4,
-                taker_destination,
+                dest_vault,
                 position.0,
                 token_mint_a,
                 token_mint_b,
                 token_program_a,
                 token_program_b,
             ));
+
+            let amount = position.13;
             (amount == 0).then(|| {
                 ixs.push(close_order_position(
-                    signer,
+                    market_order.signer,
                     position.3,
-                    order_book_config,
+                    market_order.order_book_config,
                     position.0,
                     position.1,
                     position.4,
@@ -360,40 +507,47 @@ pub async fn execute_market_order(
                     position.9,
                     position.10,
                     position.11,
-                    system_program,
                 ))
             });
 
             list.push(
                 VersionedTransaction::try_new(
-                    VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
-                    &[&NullSigner::new(payer)],
+                    VersionedMessage::V0(Message::try_compile(
+                        &payer,
+                        &ixs,
+                        &[],
+                        recent_blockhash,
+                    )?),
+                    &[&NullSigner::new(&payer)],
                 )
                 .unwrap(),
             );
         }
 
         let ixs = vec![return_execution_market_order(
-            signer,
-            order_book_config,
+            market_order.signer,
+            market_order.order_book_config,
             market_pointer,
-            source,
-            dest,
-            capital_source,
-            capital_dest,
-            positions[0].8,
-            positions[0].9,
-            positions[0].10,
-            positions[0].11,
+            source_vault,
+            dest_vault,
+            source_capital,
+            dest_capital,
+            source_mint,
+            destination_mint,
+            source_program,
+            destination_program,
         )];
+
         list.push(
             VersionedTransaction::try_new(
-                VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
-                &[&NullSigner::new(payer)],
+                VersionedMessage::V0(Message::try_compile(&payer, &ixs, &[], recent_blockhash)?),
+                &[&NullSigner::new(&payer)],
             )
             .unwrap(),
         );
-    }
+    };
+
+    Ok(list)
 }
 
 pub struct MarketOrderTransactions {
@@ -416,7 +570,6 @@ pub fn close_order_position(
     token_mint_dest: Pubkey,
     source_program: Pubkey,
     dest_program: Pubkey,
-    system_program: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -455,7 +608,10 @@ pub fn create_market_order(
     token_mint_source: Pubkey,
     token_mint_dest: Pubkey,
     source_program: Pubkey,
-    next_position_pointer: Pubkey,
+    next_position_pointer: Option<Pubkey>,
+    order_type: Order,
+    fill: Fill,
+    target_amount: u64,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -555,3 +711,22 @@ pub fn return_execution_market_order(
         data: InstructionData::data(&instruction::ReturnExecutionMarketOrder {}),
     }
 }
+
+// order_position
+// source_vault -> maker_source
+// destionation_vault -> maker_destination
+// market_maker
+// source_capital
+// destination_capital
+// order_position_config
+// token_mint_source
+// token_mint_destination
+
+// I need to figure out how to determine this
+// source_program
+// destination_program
+
+// token_mint_a
+// token_mint_b
+// token_program_a
+// token_program_b

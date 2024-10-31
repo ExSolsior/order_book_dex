@@ -28,6 +28,7 @@ pub struct CreateMarketOrder<'info> {
 
     #[account(
         constraint = market_pointer.order_position_pointer.unwrap() == order_position.key(),
+        constraint = next_position_pointer.is_none() && order_position.next_order_position.is_none(),
     )]
     pub order_position: Account<'info, OrderPosition>,
 
@@ -90,7 +91,7 @@ pub struct CreateMarketOrder<'info> {
         constraint = next_position_pointer.is_valid_order_type_match(&market_pointer)
             @ ErrorCode::InvalidOrderType,
     )]
-    pub next_position_pointer: Account<'info, OrderPosition>,
+    pub next_position_pointer: Option<Account<'info, OrderPosition>>,
 }
 
 impl<'info> CreateMarketOrder<'info> {
@@ -105,7 +106,9 @@ impl<'info> CreateMarketOrder<'info> {
             self.dest.key(),
             self.capital_source.key(),
             self.capital_dest.key(),
-            self.next_position_pointer.key(),
+            self.next_position_pointer
+                .is_some()
+                .then(|| self.next_position_pointer.as_ref().unwrap().key()),
         )?;
 
         let transfer_amount = match order_type {

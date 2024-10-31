@@ -5,8 +5,8 @@ use {
     clokwerk::{AsyncScheduler, TimeUnits},
     futures_util::StreamExt,
     services::{
-        cancel_limit_order, logs_handler, market_history, market_list, market_order_book,
-        open_limit_order, sanity_check, scheduled_process,
+        cancel_limit_order, execute_market_order, logs_handler, market_history, market_list,
+        market_order_book, open_limit_order, sanity_check, scheduled_process,
     },
     shuttle_actix_web::ShuttleActixWeb,
     shuttle_runtime::SecretStore,
@@ -171,6 +171,7 @@ async fn main(
                 .service(market_history)
                 .service(open_limit_order)
                 .service(cancel_limit_order)
+                .service(execute_market_order)
                 .service(sanity_check)
                 .app_data(Data::new(AppState { pool: pool.clone() })),
         );
