@@ -19,19 +19,24 @@ use super::{error::TransactionBuildError, pdas::get_vault_account_pda, util::cre
 
 pub struct MarketOrderParams {
     pub signer: Pubkey,
+    pub position_config: Pubkey,
     pub order_book_config: Pubkey,
     pub order_type: Order,
     pub fill: Fill,
     pub target_amount: u64,
 }
 
-// need to compute vaults if first time
 pub async fn execute_market_order(
     app_state: web::Data<AppState>,
     market_order: MarketOrderParams,
 ) -> Result<Vec<VersionedTransaction>, TransactionBuildError> {
     let rpc_client = create_rpc_client();
-    let order_book_data = get_trade_pair(&market_order.order_book_config, app_state).await?;
+    let order_book_data = get_trade_pair(
+        &market_order.order_book_config,
+        &Some(market_order.position_config),
+        app_state,
+    )
+    .await?;
 
     let market_pointer = match market_order.order_type {
         Order::Sell => {
@@ -55,7 +60,7 @@ pub async fn execute_market_order(
     if market_order.order_type == Order::Sell && order_book_data["book"]["bids"].is_null()
         || market_order.order_type == Order::Buy && order_book_data["book"]["asks"].is_null()
     {
-        // return error
+        return Err(TransactionBuildError::EmptyOrderBook);
     }
 
     let (
@@ -368,6 +373,64 @@ pub async fn execute_market_order(
         let capital_source = positions[0].6;
         let capital_destination = positions[0].7;
 
+        if order_book_data["position_config"].is_null() {
+            let capital_a = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_a,
+                &token_program_a,
+            );
+            let capital_b = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_b,
+                &token_program_b,
+            );
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateVaultAccounts {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        token_mint_a,
+                        token_mint_b,
+                        vault_a: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_a,
+                            market_order.signer,
+                        ),
+                        vault_b: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_b,
+                            market_order.signer,
+                        ),
+                        token_program_a,
+                        token_program_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateVaultAccounts {}),
+            });
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateOrderPositionConfig {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        order_position_config: market_order.position_config,
+                        capital_a,
+                        capital_b,
+                        token_mint_a,
+                        token_mint_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
+            });
+        }
+
         ixs.push(create_market_order(
             market_order.signer,
             market_order.order_book_config,
@@ -446,7 +509,68 @@ pub async fn execute_market_order(
         let order_position = positions[0].0;
         let next_position_pointer = positions[0].2;
 
-        let ixs = vec![create_market_order(
+        let mut ixs = vec![];
+
+        if !order_book_data["position_config"].is_null() {
+            let capital_a = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_a,
+                &token_program_a,
+            );
+
+            let capital_b = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_b,
+                &token_program_b,
+            );
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateVaultAccounts {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        token_mint_a,
+                        token_mint_b,
+                        vault_a: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_a,
+                            market_order.signer,
+                        ),
+                        vault_b: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_b,
+                            market_order.signer,
+                        ),
+                        token_program_a,
+                        token_program_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateVaultAccounts {}),
+            });
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateOrderPositionConfig {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        order_position_config: market_order.position_config,
+                        capital_a,
+                        capital_b,
+                        token_mint_a,
+                        token_mint_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
+            });
+        }
+
+        ixs.push(create_market_order(
             market_order.signer,
             market_order.order_book_config,
             market_pointer,
@@ -463,7 +587,7 @@ pub async fn execute_market_order(
             market_order.order_type,
             market_order.fill,
             market_order.target_amount,
-        )];
+        ));
 
         list.push(
             VersionedTransaction::try_new(
@@ -711,22 +835,3 @@ pub fn return_execution_market_order(
         data: InstructionData::data(&instruction::ReturnExecutionMarketOrder {}),
     }
 }
-
-// order_position
-// source_vault -> maker_source
-// destionation_vault -> maker_destination
-// market_maker
-// source_capital
-// destination_capital
-// order_position_config
-// token_mint_source
-// token_mint_destination
-
-// I need to figure out how to determine this
-// source_program
-// destination_program
-
-// token_mint_a
-// token_mint_b
-// token_program_a
-// token_program_b

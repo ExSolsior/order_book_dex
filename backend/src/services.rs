@@ -57,16 +57,23 @@ pub async fn market_order_book(
     query: web::Query<TradePair>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
-    match get_trade_pair(&Pubkey::from_str(&query.pubkey_id).unwrap(), app_state).await {
+    match get_trade_pair(
+        &Pubkey::from_str(&query.pubkey_id).unwrap(),
+        &Option::<Pubkey>::None,
+        app_state,
+    )
+    .await
+    {
         Ok(data) =>
         // should should as structured message
         {
             HttpResponse::Ok().json(data)
         }
 
-        Err(_) =>
+        Err(error) =>
         // should send as structured error message
         {
+            println!("{:?}", error);
             HttpResponse::BadRequest().into()
         }
     }
@@ -171,6 +178,7 @@ pub async fn cancel_limit_order(
 #[derive(Debug, Deserialize)]
 pub struct MarketOrder {
     pub signer: String,
+    pub position_config: String,
     pub pubkey_id: String,
     pub order_type: String,
     pub fill_type: String,
@@ -203,6 +211,7 @@ pub async fn execute_market_order(
 
     let market_order = MarketOrderParams {
         signer: Pubkey::from_str(&query.signer).unwrap(),
+        position_config: Pubkey::from_str(&query.position_config).unwrap(),
         order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
         order_type,
         fill,
@@ -210,8 +219,19 @@ pub async fn execute_market_order(
     };
 
     match transactions::execute_market_order::execute_market_order(app_state, market_order).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+        Ok(data) =>
+        // should should as structured message
+        {
+            println!("{:?}", data);
+            HttpResponse::Ok().json(data)
+        }
+
+        Err(error) =>
+        // should send as structured error message
+        {
+            println!("{:?}", error);
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 

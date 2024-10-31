@@ -974,8 +974,10 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
 
 pub async fn get_trade_pair(
     pubkey_id: &Pubkey,
+    position_config: &Option<Pubkey>,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    println!("TEST A");
     let query = sqlx::query(
         r#"
                 WITH trade_pair AS (
@@ -1140,6 +1142,13 @@ pub async fn get_trade_pair(
                         'tokenSymbolA', t.token_symbol_a,
                         'tokenSymbolB', t.token_symbol_b,
                         'isReverse', t.is_reverse,
+                        
+                        'positionConfig', (
+                            SELECT pubkey_id
+                            FROM order_position_config
+                            WHERE pubkey_id = $2
+                        ),
+
                         'book', json_build_object(
                             'asks', book_asks.asks,
                             'bids', book_bids.bids
@@ -1151,9 +1160,17 @@ pub async fn get_trade_pair(
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
     )
-    .bind(&pubkey_id.to_string())
-    .fetch_one(&app_state.pool)
-    .await?;
+    .bind(pubkey_id.to_string());
+    println!("TEST B");
+
+    let query = match position_config {
+        Some(pc) => query.bind(pc.to_string()),
+        None => query.bind(Option::<String>::None),
+    };
+    println!("TEST C");
+
+    let query = query.fetch_one(&app_state.pool).await?;
+    println!("TEST D");
 
     let mut data: Box<Value> = serde_json::from_str(
         query
@@ -1163,6 +1180,7 @@ pub async fn get_trade_pair(
             .unwrap(),
     )
     .unwrap();
+    println!("TEST E");
 
     if data["book"]["bids"] == Value::Null {
         data["book"]["bids"] = Value::Array(vec![]);
@@ -1171,6 +1189,7 @@ pub async fn get_trade_pair(
     if data["book"]["asks"] == Value::Null {
         data["book"]["asks"] = Value::Array(vec![]);
     }
+    println!("TEST F");
 
     Ok(data)
 }
