@@ -40,7 +40,8 @@ pub async fn cancel_limit_order(
     } = params;
 
     let rpc_client = create_rpc_client();
-    let order_book_data = get_trade_pair(&order_book_config, app_state).await?;
+    let order_book_data =
+        get_trade_pair(&order_book_config, &Option::<Pubkey>::None, app_state).await?;
 
     let cleaned_order_book_entries = match order_type {
         Order::Bid => {

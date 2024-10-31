@@ -14,4 +14,7 @@ pub enum TransactionBuildError {
 
     #[error("Invalid Order Position Or Signer")]
     InvalidOrderPositionOrSigner,
+
+    #[error("Empty Order Book")]
+    EmptyOrderBook,
 }
