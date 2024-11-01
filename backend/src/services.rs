@@ -22,8 +22,19 @@ use {
 };
 
 #[derive(Debug, Deserialize)]
+pub struct ExecuteMarketOrder {
+    pub signer: String,
+    pub position_config: String,
+    pub book_config: String,
+    pub order_type: String,
+    pub fill_type: String,
+    pub target_price: Option<u64>,
+    pub target_amount: u64,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct LimitOrder {
-    pub pubkey_id: String,
+    pub book_config: String,
     pub signer: String,
     pub order_position: Option<String>,
     pub next_pointer: Option<String>,
@@ -35,7 +46,7 @@ pub struct LimitOrder {
 
 #[derive(Debug, Deserialize)]
 pub struct MarketTradeQuery {
-    pub pubkey_id: String,
+    pub book_config: String,
     pub interval: String,
     pub limit: u64,
     pub offset: u64,
@@ -43,7 +54,7 @@ pub struct MarketTradeQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct TradePair {
-    pub pubkey_id: String,
+    pub book_config: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -58,7 +69,7 @@ pub async fn market_order_book(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair(
-        &Pubkey::from_str(&query.pubkey_id).unwrap(),
+        &Pubkey::from_str(&query.book_config).unwrap(),
         &Option::<Pubkey>::None,
         app_state,
     )
@@ -90,7 +101,7 @@ pub async fn market_history(
     // };
 
     match get_market_order_history(
-        Pubkey::from_str(&query.pubkey_id).unwrap(),
+        Pubkey::from_str(&query.book_config).unwrap(),
         // interval.unwrap(),
         query.interval.clone(),
         query.limit,
@@ -136,7 +147,7 @@ pub async fn open_limit_order(
         .then(|| Pubkey::from_str(&query.next_pointer.as_ref().unwrap()).unwrap());
 
     let limit_order = OpenLimitOrderParams {
-        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        order_book_config: Pubkey::from_str(&query.book_config).unwrap(),
         signer: Pubkey::from_str(&query.signer).unwrap(),
         next_position_pointer,
         order_type,
@@ -163,7 +174,7 @@ pub async fn cancel_limit_order(
     };
 
     let limit_order = CancelLimitOrderParams {
-        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        order_book_config: Pubkey::from_str(&query.book_config).unwrap(),
         signer: Pubkey::from_str(&query.signer).unwrap(),
         order_position: Pubkey::from_str(&query.order_position.as_ref().unwrap()).unwrap(),
         order_type,
@@ -175,19 +186,9 @@ pub async fn cancel_limit_order(
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct MarketOrder {
-    pub signer: String,
-    pub position_config: String,
-    pub pubkey_id: String,
-    pub order_type: String,
-    pub fill_type: String,
-    pub target_price: Option<u64>,
-    pub target_amount: u64,
-}
 #[get("execute_market_order")]
 pub async fn execute_market_order(
-    query: web::Query<MarketOrder>,
+    query: web::Query<ExecuteMarketOrder>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     let order_type = match query.order_type.as_str() {
@@ -212,7 +213,7 @@ pub async fn execute_market_order(
     let market_order = MarketOrderParams {
         signer: Pubkey::from_str(&query.signer).unwrap(),
         position_config: Pubkey::from_str(&query.position_config).unwrap(),
-        order_book_config: Pubkey::from_str(&query.pubkey_id).unwrap(),
+        order_book_config: Pubkey::from_str(&query.book_config).unwrap(),
         order_type,
         fill,
         target_amount: query.target_amount,
