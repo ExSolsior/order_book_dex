@@ -2,67 +2,129 @@ import { useContext, useState } from "react";
 import { createContext } from "vm";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
+import {
+    eventListner,
+    OPEN_LIMIT_ORDER_EVENT,
+    CANCEL_LIMIT_ORDER_EVENT,
+    MARKET_ORDER_FILL_EVENT,
+} from "./events"
+import BN from "bn.js";
 
 // const transactionContext = createContext();
 
-const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
-    const [data, setData] = useState<any>();
-    // const {wallet} = useWallet();
-    // load listener
-    // should wait at least a second before loading data from backend
-    // fetch book config data
+interface Payload {
+    method: string;
+    order: string;
+    price: bigint,
+    size: bigint,
+}
 
-    const load = async (url: URL) => {
+interface Order {
+    price: bigint;
+    size: bigint;
+    depth: bigint;
+}
+
+class Queue {
+    current: string;
+    listA: Payload[];
+    listB: Payload[];
+
+    constructor() {
+        this.current = "init";
+        this.listA = [];
+        this.listB = [];
+    }
+
+    push(data: Payload) {
+
+        if (this.current === "init" || this.current === "a") {
+            this.listA.push(data);
+        }
+
+        if (this.current === "b") {
+            this.listB.push(data);
+        }
+    }
+
+    get() {
+        if (this.current === "init") {
+            // set schedular
+            this.current = "a";
+        }
+
+        if (this.current === "a") {
+            this.current = "b";
+            const list = this.listA;
+            this.listA = [];
+            return list;
+        }
+
+        if (this.current === "b") {
+            this.current = "a";
+            const list = this.listA;
+            this.listA = [];
+            return list;
+        }
+
+        return this.listA;
+    }
+}
+
+const useTransactions = async (wallet: PublicKey, bookConfigId: PublicKey, programId: PublicKey) => {
+    const [data, setData] = useState<any>(null);
+
+    // const {wallet} = useWallet();
+
+    const load = async (bookConfigId: PublicKey, queue: Queue) => {
+        // http://127.0.0.1:8000/api/market_order_book?pubkey_id=BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK
+        // http://127.0.0.1:8000/api/market_history?pubkey_id=BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK&interval=1m&limit=20&offset=0
+        const base = new URL("http://127.0.0.1:8000/api")
+        const orderBook = new URL(`/market_order_book?pubkey=${bookConfigId.toString()}`, base);
+        const marketData = new URL(`/market_history?${bookConfigId.toString()}&interval=1m&limit=1000&offset=0`, base);
+
         try {
             const response = await Promise.all([
-                fetch(url),
-                fetch(url)
+                fetch(orderBook),
+                fetch(marketData)
             ]);
 
             let data = await response[0].json();
             // let data = await response[1].json();
 
-            let asks = new Map();
-            let bids = new Map();
+            let asks = new Map<bigint, Order>();
+            let bids = new Map<bigint, Order>();
 
-            // using Number but need to look into using BigInt or BN
             // also need display format and real format
             data.book.asks.forEach((element: any) => {
-                asks.set(element.price, {
-                    price: element.price,
-                    size: asks.has(element.price)
-                        ? asks.get(element.price).size + element.size
-                        : element.size,
-                    depth: 0,
+
+                const price = BigInt(element.price);
+                asks.set(price, {
+                    price: price,
+                    size: asks.has(price)
+                        ? asks.get(price)!.size + BigInt(element.size)
+                        : BigInt(element.size),
+                    depth: BigInt(0),
                 });
             });
 
             data.book.bids.forEach((element: any) => {
+
+                const price = BigInt(element.price);
                 bids.set(element.price, {
-                    price: element.price,
-                    size: bids.has(element.price)
-                        ? bids.get(element.price).size + element.size
-                        : element.size,
-                    depth: 0,
+                    price: price,
+                    size: bids.has(price)
+                        ? bids.get(price)!.size + BigInt(element.size)
+                        : BigInt(element.size),
+                    depth: BigInt(0),
                 });
             });
 
-            // websocket data
-            let queue = [
-                { method: 'add', order: 'bid', price: 0, size: 0 },
-                { method: 'sub', order: 'bid', price: 0, size: 0 },
-                { method: 'add', order: 'ask', price: 0, size: 0 },
-                { method: 'sub', order: 'ask', price: 0, size: 0 },
-
-                { method: 'sub', order: 'buy', price: 0, size: 0 },
-                { method: 'sub', order: 'sell', price: 0, size: 0 },
-            ];
-
-            queue.forEach(data => {
+            queue.get().forEach(data => {
 
                 if (data.order === 'ask' && asks.has(data.price)) {
 
-                    const ask = asks.get(data.price);
+                    const ask = asks.get(data.price)!;
 
                     asks.set(data.price, {
                         ...ask,
@@ -71,9 +133,9 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                             : ask.size - data.size,
                     });
 
-                    if (ask.size === 0) {
+                    if (ask.size === BigInt(0)) {
                         asks.delete(data.price);
-                    } else if (ask.size < 0) {
+                    } else if (ask.size < BigInt(0)) {
                         // data out of sync, need to resync
                     }
 
@@ -82,12 +144,12 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                     asks.set(data.price, {
                         price: data.price,
                         size: data.size,
-                        depth: 0,
+                        depth: BigInt(0),
                     });
 
                 } else if (data.order === 'bid' && bids.has(data.price)) {
 
-                    const bid = bids.get(data.price);
+                    const bid = bids.get(data.price)!;
 
                     bids.set(data.price, {
                         ...bid,
@@ -96,9 +158,9 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                             : bid.size - data.size,
                     });
 
-                    if (bid.size === 0) {
+                    if (bid.size === BigInt(0)) {
                         bids.delete(data.price);
-                    } else if (bid.size < 0) {
+                    } else if (bid.size < BigInt(0)) {
                         // data out of sync, need to resync
                     }
 
@@ -108,11 +170,11 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                     bids.set(data.price, {
                         price: data.price,
                         size: data.size,
-                        depth: 0,
+                        depth: BigInt(0),
                     });
 
                 } else if (data.order === 'sell' && bids.has(data.price)) {
-                    const bid = bids.get(data.price);
+                    const bid = bids.get(data.price)!;
 
                     if (bid.size === data.size) {
                         bids.delete(data.price);
@@ -124,7 +186,7 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                     }
 
                 } else if (data.order === 'buy' && asks.has(data.price)) {
-                    const ask = asks.get(data.price);
+                    const ask = asks.get(data.price)!;
 
                     if (ask.size === data.size) {
                         asks.delete(data.price);
@@ -141,10 +203,10 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
             })
 
             let askDepth = 0;
-            asks = new Map(asks
+            asks = new Map<bigint, Order>(asks
                 .entries()
                 .toArray()
-                .sort((a, b) => a[1].price - b[1].price));
+                .sort((a: any, b: any) => a[1].price - b[1].price));
 
             asks
                 .values()
@@ -158,10 +220,10 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                 });
 
             let bidDepth = 0;
-            bids = new Map(bids
+            bids = new Map<bigint, Order>(bids
                 .entries()
                 .toArray()
-                .sort((a, b) => a[1].price - b[1].price)
+                .sort((a: any, b: any) => a[1].price - b[1].price)
                 .reverse());
 
             bids
@@ -216,7 +278,12 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                             Buffer.from("vault-account"),
                         ], programId),
                     },
-                    marketDetails: {},
+                    marketDetails: {
+                        isReverse: data.isReverse,
+                        ticker: data.ticker,
+                        symbolA: data.symbolA,
+                        symbolB: data.symbolB,
+                    },
                     marketData: {},
                     asks: {
                         feedData: asks,
@@ -224,17 +291,14 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                     bids: {
                         feedData: bids,
                     },
-
                 }
-
-
             }
 
+            console.log(store);
 
-            // process response
             setData(store);
         } catch (err) {
-
+            console.log(err)
         }
     }
 
@@ -250,6 +314,70 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
 
         }
     }
+
+    const run = () => {
+        if (data !== null) {
+            // need to cache and return id
+            return
+        }
+
+        const queue = new Queue()
+        const id = eventListner(
+            bookConfigId,
+            [
+                OPEN_LIMIT_ORDER_EVENT,
+                CANCEL_LIMIT_ORDER_EVENT,
+                MARKET_ORDER_FILL_EVENT,
+            ],
+            (method, payload) => {
+
+                switch (method) {
+                    case "open-limit-order": {
+                        let data = {
+                            method: "add",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price!.toString()),
+                            size: BigInt(payload.size!.toString()),
+                        }
+
+                        queue.push(data);
+                        break;
+                    }
+
+                    case "cancel-limit-order": {
+                        let data = {
+                            method: "sub",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price!.toString()),
+                            size: BigInt(payload.size!.toString()),
+                        }
+
+                        queue.push(data);
+                        break;
+                    }
+
+                    case "fill-market-order": {
+                        let data = {
+                            method: "sub",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price!.toString()),
+                            size: BigInt(payload.size!.toString()),
+                        }
+
+                        queue.push(data);
+                        break;
+                    }
+                }
+            });
+
+        // wait 5 seconds?
+
+        load(bookConfigId, queue);
+
+        return id;
+    }
+
+    const id = run();
 
     return {
         data,

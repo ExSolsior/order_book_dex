@@ -1,5 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
+import { OrderType } from "../ProgramProvider";
 
 const CANCEL_LIMIT_ORDER_EVENT = Buffer.from([216, 16, 162, 254, 206, 149, 207, 36]);
 const CLOSE_LIMIT_ORDER_EVENT = Buffer.from([37, 48, 113, 193, 242, 130, 158, 58]);
@@ -30,6 +31,7 @@ interface ResponseData {
     vaultBPubkey: PublicKey | undefined,
 
     nextPointerPubkey: PublicKey | undefined | null,
+    orderType: string | undefined,
     price: BN | undefined,
     size: BN | undefined,
     totalCost: BN | undefined,
@@ -43,7 +45,7 @@ interface ResponseData {
 
 }
 
-const eventListner = (address: PublicKey, listen: Buffer[], callback: (data: ResponseData) => void) => {
+const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: string, data: ResponseData) => void) => {
     const conn = new Connection("https://rpc.devnet.soo.network/rpc");
     const subscriptionId = conn.onLogs(address, (logs) => {
 
@@ -96,7 +98,7 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (data: Res
     return subscriptionId
 }
 
-const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -135,10 +137,10 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         isExecution: undefined,
     }
 
-    callback(data)
+    callback("open-limit-order", data)
 }
 
-const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -163,6 +165,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
+        orderType: undefined,
         orderPositionPubkey: undefined,
         sourcePubkey: undefined,
         destinationPubkey: undefined,
@@ -180,10 +183,10 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         isExecution: undefined,
     }
 
-    callback(data);
+    callback("new-order-book", data);
 }
 
-const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -201,6 +204,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
+        orderType: undefined,
         orderPositionPubkey: undefined,
         sourcePubkey: undefined,
         destinationPubkey: undefined,
@@ -210,9 +214,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
-
         nextPointerPubkey: undefined,
         price: undefined,
         size: undefined,
@@ -223,10 +225,10 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         isExecution: undefined,
     }
 
-    callback(data);
+    callback("new-position-config", data);
 }
 
-const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -249,12 +251,10 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         nextPointerPubkey: undefined,
         price: undefined,
         size: undefined,
@@ -267,10 +267,10 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         timestamp: undefined,
     }
 
-    callback(data);
+    callback("create-order-position", data);
 }
 
-const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -286,6 +286,7 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         amount: getBN(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
 
+        orderType: undefined,
         sourcePubkey: undefined,
         destinationPubkey: undefined,
         nextPositionPubkey: undefined,
@@ -294,12 +295,10 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         nextPointerPubkey: undefined,
         price: undefined,
         size: undefined,
@@ -312,10 +311,10 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
 
     }
 
-    callback(data);
+    callback("cancel-limit-order", data);
 }
 
-const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -329,6 +328,7 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         orderBookConfigPubkey: getPubkey(decoded, offset),
         orderPositionConfigPubkey: getPubkey(decoded, offset),
 
+        orderType: undefined,
         sourcePubkey: undefined,
         destinationPubkey: undefined,
         nextPositionPubkey: undefined,
@@ -337,12 +337,10 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         nextPointerPubkey: undefined,
         price: undefined,
         size: undefined,
@@ -355,10 +353,10 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         timestamp: undefined,
     }
 
-    callback(data);
+    callback("close-limit-order", data);
 }
 
-const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -386,13 +384,11 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -401,10 +397,10 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         isAvailable: undefined,
     }
 
-    callback(data);
+    callback("trigger-market-order", data);
 }
 
-const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -435,13 +431,11 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         nextPointerPubkey: undefined,
         size: undefined,
         totalCost: undefined,
@@ -450,10 +444,10 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         isAvailable: undefined,
     }
 
-    callback(data);
+    callback("fill-market-order", data);
 }
 
-const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (data: ResponseData) => void) => {
+const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
         return
     }
@@ -485,20 +479,18 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         tokenProgramAPubkey: undefined,
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
-
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
         marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
-
         price: undefined,
         size: undefined,
         isReverse: undefined,
         isAvailable: undefined,
     }
 
-    callback(data);
+    callback("complete-market-order", data);
 }
 
 const getPubkey = (data: Buffer, offset: { value: number }) => {
@@ -581,7 +573,23 @@ const updateOffset = (offset: { value: number }, inc: number) => {
     return { start, end }
 }
 
-const listener = {
+// const listener = {
+//     eventListner,
+//     CANCEL_LIMIT_ORDER_EVENT,
+//     CLOSE_LIMIT_ORDER_EVENT,
+//     CREATE_ORDER_POSITION_EVENT,
+//     MARKET_ORDER_COMPLETE_EVENT,
+//     MARKET_ORDER_FILL_EVENT,
+//     MARKET_ORDER_TRIGGER_EVENT,
+//     NEW_ORDER_BOOK_CONFIG_EVENT,
+//     NEW_ORDER_POSITION_CONFIG_EVENT,
+//     OPEN_LIMIT_ORDER_EVENT,
+// }
+
+
+// export default listener;
+
+export {
     eventListner,
     CANCEL_LIMIT_ORDER_EVENT,
     CLOSE_LIMIT_ORDER_EVENT,
@@ -592,7 +600,4 @@ const listener = {
     NEW_ORDER_BOOK_CONFIG_EVENT,
     NEW_ORDER_POSITION_CONFIG_EVENT,
     OPEN_LIMIT_ORDER_EVENT,
-}
-
-
-export default listener;
+};
