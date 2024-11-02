@@ -2,14 +2,14 @@ import { useContext, useState } from "react";
 import { createContext } from "vm";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
-import { addAbortListener } from "events";
 
-const transactionContext = createContext();
+// const transactionContext = createContext();
 
 const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
     const [data, setData] = useState<any>();
     // const {wallet} = useWallet();
     // load listener
+    // should wait at least a second before loading data from backend
     // fetch book config data
 
     const load = async (url: URL) => {
@@ -19,17 +19,16 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                 fetch(url)
             ]);
 
-            let data = await (response[0].json());
-            // let data = await response[0].json();
+            let data = await response[0].json();
+            // let data = await response[1].json();
 
-            const asks = new Map();
-            const bids = new Map();
+            let asks = new Map();
+            let bids = new Map();
 
             // using Number but need to look into using BigInt or BN
             // also need display format and real format
             data.book.asks.forEach((element: any) => {
                 asks.set(element.price, {
-                    index: asks.values().reduce((acc) => acc + 1, 0),
                     price: element.price,
                     size: asks.has(element.price)
                         ? asks.get(element.price).size + element.size
@@ -40,7 +39,6 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
 
             data.book.bids.forEach((element: any) => {
                 bids.set(element.price, {
-                    index: bids.values().reduce((acc) => acc + 1, 0),
                     price: element.price,
                     size: bids.has(element.price)
                         ? bids.get(element.price).size + element.size
@@ -65,55 +63,53 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                 if (data.order === 'ask' && asks.has(data.price)) {
 
                     const ask = asks.get(data.price);
-                    if (data.method === 'sub') {
 
-                        ask.size -= data.size;
-                    } else {
-
-                        ask.size += data.size;
-                    }
+                    asks.set(data.price, {
+                        ...ask,
+                        size: data.method === 'add'
+                            ? ask.size + data.size
+                            : ask.size - data.size,
+                    });
 
                     if (ask.size === 0) {
-
                         asks.delete(data.price);
-                    } else {
-
-                        asks.set(data.price, {
-                            ...ask,
-                        });
+                    } else if (ask.size < 0) {
+                        // data out of sync, need to resync
                     }
-
 
 
                 } else if (data.order === 'ask') {
-                    // binary search
-                    Array.from(asks.values());
+                    asks.set(data.price, {
+                        price: data.price,
+                        size: data.size,
+                        depth: 0,
+                    });
 
                 } else if (data.order === 'bid' && bids.has(data.price)) {
 
                     const bid = bids.get(data.price);
-                    if (data.method === 'sub') {
 
-                        bid.size -= data.size;
-                    } else {
-
-                        bid.size += data.size;
-                    }
+                    bids.set(data.price, {
+                        ...bid,
+                        size: data.method === 'add'
+                            ? bid.size + data.size
+                            : bid.size - data.size,
+                    });
 
                     if (bid.size === 0) {
-
                         bids.delete(data.price);
-                    } else {
-
-                        bids.set(data.price, {
-                            ...bid,
-                        });
+                    } else if (bid.size < 0) {
+                        // data out of sync, need to resync
                     }
 
-                } else if (data.order === 'bid') {
 
-                    // binary search
-                    Array.from(asks.values());
+
+                } else if (data.order === 'bid') {
+                    bids.set(data.price, {
+                        price: data.price,
+                        size: data.size,
+                        depth: 0,
+                    });
 
                 } else if (data.order === 'sell' && bids.has(data.price)) {
                     const bid = bids.get(data.price);
@@ -139,30 +135,45 @@ const useTransactions = async (wallet: PublicKey, programId: PublicKey) => {
                         });
                     }
 
+                } else {
+                    // data is out of sync and need to resolve it some how
                 }
             })
 
             let askDepth = 0;
-            asks.values().forEach((data: any) => {
+            asks = new Map(asks
+                .entries()
+                .toArray()
+                .sort((a, b) => a[1].price - b[1].price));
 
-                askDepth += data.size;
-                data.depth = askDepth;
+            asks
+                .values()
+                .forEach((data: any) => {
+                    askDepth += data.size;
+                    data.depth = askDepth;
 
-                asks.set(data.price, {
-                    ...data,
-                })
-
-            });
+                    asks.set(data.price, {
+                        ...data,
+                    });
+                });
 
             let bidDepth = 0;
-            bids.values().forEach((data: any) => {
-                bidDepth += data.size;
-                data.depth = bidDepth;
+            bids = new Map(bids
+                .entries()
+                .toArray()
+                .sort((a, b) => a[1].price - b[1].price)
+                .reverse());
 
-                bids.set(data.price, {
-                    ...data,
-                })
-            });
+            bids
+                .values()
+                .forEach((data: any) => {
+                    bidDepth += data.size;
+                    data.depth = bidDepth;
+
+                    bids.set(data.price, {
+                        ...data,
+                    });
+                });
 
             let store = {
                 orderBook: {
