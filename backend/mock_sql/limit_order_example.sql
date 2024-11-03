@@ -2,9 +2,9 @@ WITH input AS (
     SELECT * FROM (
     VALUES  (
         'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK',
-        '49wBdBzzw9eMre1wT27TD1b8hgW9x9tCWFtvAUmLohtp',
-        24, 
-        'ask'::order_type
+        'CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ',
+        10, 
+        'bid'::order_type
     )) AS t ("book_config", "position_config", "price", "order_type")
 
 ), trade_pair AS (

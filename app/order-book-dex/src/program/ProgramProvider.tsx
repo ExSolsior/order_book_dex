@@ -35,9 +35,7 @@ type Fill = {
   partial: { partial: { targetPrice: BN } };
 };
 
-// export const ProgramContext = createContext<Value | null>(null);
-export const ProgramContext = createContext<{ programId: PublicKey | undefined }>({ programId: undefined });
-
+export const ProgramContext = createContext<Value | null>(null);
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // Get provider
@@ -54,15 +52,13 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
         return provider;
       };
 
-      return new Program(CHRONO_IDL, getProvider());
+      return new Program<typeof CHRONO_IDL>(CHRONO_IDL, getProvider());
     }
   }, [connection, userWallet]);
 
   if (!program || !userWallet)
     return (
-      <ProgramContext.Provider value={{
-        programId: undefined,
-      }}>{children}</ProgramContext.Provider>
+      <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
     );
 
 
@@ -381,19 +377,18 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-
-
   return (
     <ProgramContext.Provider
       value={{
+        program,
         programId: program.programId,
-        // createTradePair,
-        // createMarketOrder,
-        // fillMarketOrder,
-        // cancelOrderPosition,
-        // closeOrderPosition,
-        // returnExecutionMarketOrder,
-        // openLimitOrder
+        createTradePair,
+        createMarketOrder,
+        fillMarketOrder,
+        cancelOrderPosition,
+        closeOrderPosition,
+        returnExecutionMarketOrder,
+        openLimitOrder
       }}
     >
       {children}
@@ -402,13 +397,14 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
-  programId: PublicKey | undefined,
-  createTradePair: (
+  program: Program<typeof CHRONO_IDL> | undefined,
+  programId: PublicKey,
+  createTradePair: ((
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,
     isReverse: boolean
-  ) => Promise<void>;
-  createMarketOrder: (
+  ) => Promise<void>);
+  createMarketOrder: ((
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey,
     tokenMintSource: web3.PublicKey,
@@ -418,8 +414,8 @@ interface Value {
     fill: Fill,
     targetAmount: BN,
     isReverse: boolean
-  ) => Promise<void>;
-  fillMarketOrder: (
+  ) => Promise<void>);
+  fillMarketOrder: ((
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey,
     orderPosition: web3.PublicKey,
@@ -433,8 +429,8 @@ interface Value {
     vaultB: web3.PublicKey | null,
     isReverse: boolean,
     orderType: OrderType
-  ) => Promise<void>;
-  cancelOrderPosition: (
+  ) => Promise<void>);
+  cancelOrderPosition: ((
     orderBookConfig: web3.PublicKey,
     marketPointerRead: web3.PublicKey,
     marketPointerWrite: web3.PublicKey,
@@ -445,17 +441,17 @@ interface Value {
     capitalDestination: web3.PublicKey,
     source: web3.PublicKey,
     tokenMint: web3.PublicKey
-  ) => Promise<void>;
-  closeOrderPosition: (
+  ) => Promise<void>);
+  closeOrderPosition: ((
     orderBookConfig: web3.PublicKey,
     orderPosition: web3.PublicKey,
     orderPositionConfig: web3.PublicKey
-  ) => Promise<void>;
-  returnExecutionMarketOrder: (
+  ) => Promise<void>);
+  returnExecutionMarketOrder: ((
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey
-  ) => Promise<void>;
-  openLimitOrder: ({
+  ) => Promise<void>);
+  openLimitOrder: (({
     marketOrderBook,
     nextPositionPointer,
     orderType,
@@ -469,7 +465,7 @@ interface Value {
     price: BN;
     amount: BN;
     nonce: BN;
-  }) => Promise<void>;
+  }) => Promise<void>);
 }
 
 export const useProgramContext = () => {

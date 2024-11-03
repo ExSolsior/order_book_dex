@@ -100,6 +100,8 @@ pub async fn market_history(
     //     _ => PgInterval::try_from(Duration::from_secs(60)),
     // };
 
+    println!("{:?}", query);
+
     match get_market_order_history(
         Pubkey::from_str(&query.book_config).unwrap(),
         // interval.unwrap(),
@@ -111,7 +113,10 @@ pub async fn market_history(
     .await
     {
         Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+        Err(error) => {
+            println!("{}", error);
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 
