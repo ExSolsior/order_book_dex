@@ -9,7 +9,7 @@ import {
   FormLabel,
   FormMessage
 } from "@/components/ui/form";
-import { Market } from "@/lib/markets";
+import { Market } from "../../program/utils/useTransaction";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +23,7 @@ export default function LimitOrder({
   market: Market;
   type: "buy" | "sell";
 }) {
+  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
   // Dummy log to prevent lint error for `type` until functionality is implemented
   console.log(`Trade type: ${type}`);
 
@@ -35,7 +36,7 @@ export default function LimitOrder({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      price: market.price,
+      price: Number(market.orderBook.marketData.lastPrice.toString()),
       quantity: 0,
       orderValue: 0
     }
@@ -47,6 +48,7 @@ export default function LimitOrder({
       /* TODO: Implement functionality */
     }
   }
+
 
   return (
     <Form {...form}>
@@ -69,7 +71,7 @@ export default function LimitOrder({
                   <Avatar>
                     <AvatarImage
                       src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
-                      alt={market.tokenB}
+                      alt={isReverse ? symbolA : symbolB}
                       className="rounded-full w-6 h-6 self-center"
                     />
                   </Avatar>
@@ -95,7 +97,7 @@ export default function LimitOrder({
                   <Avatar>
                     <AvatarImage
                       src={market.image}
-                      alt={market.tokenA}
+                      alt={isReverse ? symbolB : symbolA}
                       className="rounded-full w-6 h-6 self-center"
                     />
                   </Avatar>
@@ -121,7 +123,7 @@ export default function LimitOrder({
                   <Avatar>
                     <AvatarImage
                       src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
-                      alt={market.tokenB}
+                      alt={isReverse ? symbolA : symbolB}
                       className="rounded-full w-6 h-6 self-center"
                     />
                   </Avatar>

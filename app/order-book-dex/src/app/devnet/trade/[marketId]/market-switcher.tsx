@@ -6,16 +6,22 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Market, newMarkets, popular, topGainers } from "@/lib/markets";
+import { Market } from "../../../../program/utils/useTransaction";
+
+import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { CaretDownIcon } from "@radix-ui/react-icons";
 import { columns } from "@/components/markets-table/columns";
 import { MarketsTable } from "@/components/markets-table/data-table";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
+// need update MarketsTable :: colums, markets -> not handling right now
 export function MarketSwitcher({ market }: { market: Market }) {
   const markets = newMarkets
     .concat(topGainers, popular)
     .sort((a, b) => b.volume - a.volume);
+
+  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { image } = market;
 
   return (
     <DropdownMenu>
@@ -26,12 +32,12 @@ export function MarketSwitcher({ market }: { market: Market }) {
         >
           <Avatar className="h-5 w-5">
             <AvatarImage
-              src={market.image}
-              alt={market.tokenA}
+              src={image}
+              alt={isReverse ? symbolB : symbolA}
             />
           </Avatar>
           <span className="font-semibold">
-            {market.tokenA} / {market.tokenB}
+            {isReverse ? symbolB : symbolA} / {isReverse ? symbolA : symbolB}
           </span>
 
           <CaretDownIcon className="h-[1.2rem] w-[1.2rem] scale-100" />

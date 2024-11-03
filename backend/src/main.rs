@@ -1,4 +1,5 @@
 use {
+    actix_cors::Cors,
     actix_web::web::{self, Data, ServiceConfig},
     anyhow::Context,
     chrono::{DateTime, Utc},
@@ -166,6 +167,7 @@ async fn main(
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
             web::scope("/api")
+                .wrap(Cors::permissive())
                 .service(market_order_book)
                 .service(market_list)
                 .service(market_history)

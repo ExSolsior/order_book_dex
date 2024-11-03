@@ -1191,6 +1191,8 @@ pub async fn get_trade_pair(
     }
     println!("TEST F");
 
+    println!("{}", data);
+
     Ok(data)
 }
 

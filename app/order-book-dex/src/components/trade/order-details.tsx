@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { Market } from "@/lib/markets";
+import { Market } from "../../program/utils/useTransaction";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { WalletPrompt } from "../wallet-prompt";
 import Balance from "./balance";
@@ -14,6 +14,8 @@ export default function OrderDetails({
   market: Market;
   type: "buy" | "sell";
 }) {
+
+  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
   const userWallet = useAnchorWallet();
 
   if (!userWallet) {
@@ -33,7 +35,7 @@ export default function OrderDetails({
         value="limit"
         className="space-y-3 px-2 pt-2"
       >
-        <Balance token={type === "buy" ? market.tokenB : market.tokenA} />
+        <Balance token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB} />
         <LimitOrder
           market={market}
           type={type}
@@ -43,7 +45,7 @@ export default function OrderDetails({
         value="market"
         className="space-y-3 px-2 pt-2"
       >
-        <Balance token={type === "buy" ? market.tokenB : market.tokenA} />
+        <Balance token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB} />
         <MarketOrder
           market={market}
           type={type}

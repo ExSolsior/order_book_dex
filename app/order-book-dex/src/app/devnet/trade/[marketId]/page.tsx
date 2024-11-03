@@ -3,24 +3,34 @@
 import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
-import { candles } from "@/lib/candles";
 import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { useEffect } from "react";
 import { Header } from "./header";
 import OrderBook from "./order-book";
 import Trade from "./trade";
+import { PublicKey } from "@solana/web3.js";
+import { useTransaction } from "@/program/utils/useTransaction";
 
 export default function Page({ params }: { params: { marketId: string } }) {
   const allMarkets = newMarkets.concat(topGainers, popular);
-  const market =
-    allMarkets.find((market) => market.marketId === params.marketId) ||
-    allMarkets[0];
+  // const market =
+  //   allMarkets.find((market) => market.marketId === params.marketId) ||
+  //   allMarkets[0];
 
-  useEffect(() => {
-    if (market.marketId) {
-      document.title = `${market.tokenA}/${market.tokenB} - ${siteConfig.name}`;
-    }
-  }, [market]);
+  const { data: market } = useTransaction(
+    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
+    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
+    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK")
+  );
+
+  // useEffect(() => {
+  //   if (market !== null && market.marketId) {
+  //     document.title = `${market.tokenA}/${market.tokenB} - ${siteConfig.name}`;
+  //   }
+  // }, [market]);
+
+  if (market === null) return;
+  const { candles } = market;
 
   return (
     <div className="h-full">

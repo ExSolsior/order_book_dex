@@ -8,39 +8,44 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Market } from "@/lib/markets";
-import { orders } from "@/lib/orders";
+import { Market, Order } from "../../program/utils/useTransaction";
 
+// need to set to correct locale string for bids and asks
+// last price needs to be updated to reflect token currency correctly
+// decimlas need to correctly factored based on reverse and other conditions
+// need to implement better number formatting with the most cost effective way.
 export default function Book({ market }: { market: Market }) {
-  const sells = orders
-    .filter((order) => order.action === "sell")
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 5);
-  const buys = orders
-    .filter((order) => order.action === "buy")
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 5);
+
+  const { decimalsA, decimalsB } = market.orderBook.marketDetails;
+  const { lastPrice } = market.orderBook.marketData;
+  const { feedData: asks } = market.orderBook.asks;
+  const { feedData: bids } = market.orderBook.bids;
 
   return (
     <>
       <Table>
         <BookHeader market={market} />
         <TableBody>
-          {sells.map((sell) => (
+          {asks.values().toArray().reverse().map((ask: Order) => (
             <TableRow
-              key={sell.price}
+              key={ask.price}
               className="text-xs"
             >
               <TableCell className="text-red-500 font-mono">
-                {sell.price}
+                {/* {ask.price.toLocaleString()} */}
+                {(Number(ask.price.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+
               </TableCell>
               <TableCell className="text-right font-mono">
-                {sell.size}
+                {/* {ask.size.toLocaleString()} */}
+                {(Number(ask.size.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+
               </TableCell>
               <TableCell className="text-right font-mono">
-                {sells
-                  .slice(sells.indexOf(sell), sells.length)
-                  .reduce((acc, curr) => acc + curr.size, 0)}
+                {/* {ask.depth.toLocaleString()} */}
+                {/* {(ask.depth * ask.price).toLocaleString()} */}
+                {(Number((ask.depth * ask.price).toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+
               </TableCell>
             </TableRow>
           ))}
@@ -48,26 +53,35 @@ export default function Book({ market }: { market: Market }) {
       </Table>
 
       <div className="font-mono font-semibold px-2 py-1 border-t-2 border-b-2 text-green-500">
-        {market.price}
+        {lastPrice.toLocaleString('en-US', {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 10
+        })}
       </div>
 
       <Table>
         <BookHeader market={market} />
         <TableBody>
-          {buys.map((buy) => (
+          {bids.values().toArray().map((bid: Order) => (
             <TableRow
-              key={buy.price}
+              key={bid.price.toLocaleString()}
               className="text-xs"
             >
               <TableCell className="text-green-500 font-mono">
-                {buy.price}
+                {/* {bid.price.toLocaleString()} */}
+                {(Number(bid.price.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
               </TableCell>
-              <TableCell className="text-right font-mono">{buy.size}</TableCell>
               <TableCell className="text-right font-mono">
-                {buys
-                  .slice(0, buys.indexOf(buy) + 1)
-                  .reduce((acc, curr) => acc + curr.size, 0)
-                  .toFixed(4)}
+                {/* {bid.size.toLocaleString()} */}
+                {(Number(bid.size.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {/* {bid.depth.toLocaleString()} */}
+                {/* {(bid.depth * bid.price).toLocaleString()} */}
+                {(Number((bid.depth * bid.price).toString()) / 10 ** decimalsA).toFixed(decimalsA)}
               </TableCell>
             </TableRow>
           ))}
@@ -78,15 +92,17 @@ export default function Book({ market }: { market: Market }) {
 }
 
 function BookHeader({ market }: { market: Market }) {
+  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className="text-xs">Price ({market.tokenB})</TableHead>
+        <TableHead className="text-xs">Price ({isReverse ? symbolA : symbolB})</TableHead>
         <TableHead className="text-xs text-right">
-          Size ({market.tokenA})
+          Size ({isReverse ? symbolB : symbolA})
         </TableHead>
         <TableHead className="text-xs text-right">
-          Total ({market.tokenA})
+          Total ({isReverse ? symbolA : symbolB})
         </TableHead>
       </TableRow>
     </TableHeader>
