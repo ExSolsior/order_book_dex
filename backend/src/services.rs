@@ -262,9 +262,10 @@ pub async fn logs_handler(logs_info: Response<RpcLogsResponse>, app_state: AppSt
     // const PROGRAM_DATA_START_INDEX = PROGRAM_DATA.length;
 
     // Program data:
+    let start = String::from("Program data: ").len();
     match logs.iter().find(|log| log.starts_with("Program data: ")) {
-        Some(data) => decode(data, app_state).await,
-        _ => print!("error"),
+        Some(data) => decode(&data[start..].to_string(), app_state).await,
+        _ => println!("error"),
     }
 }
 
@@ -282,6 +283,9 @@ pub async fn decode(data: &String, app_state: AppState) {
     let decoded = general_purpose::STANDARD.decode(data).unwrap();
     let discriminator = decoded[..8].try_into().expect("u8 array size 8");
 
+    println!("{}", data);
+    println!("{:?}, {}", decoded, decoded.len());
+
     match discriminator {
         NEW_ORDER_BOOK_CONFIG_EVENT => parse_order_book_event(&decoded, app_state).await,
         NEW_ORDER_POSITION_CONFIG_EVENT => {
@@ -298,9 +302,6 @@ pub async fn decode(data: &String, app_state: AppState) {
         MARKET_ORDER_COMPLETE_EVENT => parse_market_order_complete_event(&decoded, app_state).await,
         _ => println!("Invalid Event, log invalid event?"),
     };
-
-    println!("{}", data);
-    println!("{:?}, {}", decoded, decoded.len());
 }
 
 // insert

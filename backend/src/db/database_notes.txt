@@ -206,3 +206,17 @@ db.statement=
                                 \n  JOIN candle AS r ON r.book_config = td.book_config\nWHERE\n  r.timestamp = (1730172180 - 86400)
                                 \n  AND a.timestamp = 1730172180;\nCOMMIT;
                                 \n" rows_affected=0 rows_returned=0 elapsed=4.200275722s elapsed_secs=4.200275722 slow_threshold=1s
+
+
+
+
+
+
+
+solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.json ./target/deploy/order_book_dex.so
+solana airdrop 1000 --url localhost CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
+
+spl-token create-token --url localhost
+
+spl-token create-account <TOKEN_MINT_ADDRESS> --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
+spl-token mint <TOKEN_MINT_ADDRESS> 100 <RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --url localhost
