@@ -19,8 +19,6 @@ export default function Page({ params }: { params: { marketId: string } }) {
 
   const { data: market } = useTransaction(
     new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
-    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
-    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK")
   );
 
   // useEffect(() => {

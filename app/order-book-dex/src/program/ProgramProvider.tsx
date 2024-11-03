@@ -21,6 +21,7 @@ import {
 import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
 import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
+import { PublicKey } from "@solana/web3.js";
 
 export enum OrderType {
   Buy = "Buy",
@@ -34,7 +35,9 @@ type Fill = {
   partial: { partial: { targetPrice: BN } };
 };
 
-export const ProgramContext = createContext<Value | null>(null);
+// export const ProgramContext = createContext<Value | null>(null);
+export const ProgramContext = createContext<{ programId: PublicKey | undefined }>({ programId: undefined });
+
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // Get provider
@@ -57,8 +60,11 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 
   if (!program || !userWallet)
     return (
-      <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
+      <ProgramContext.Provider value={{
+        programId: undefined,
+      }}>{children}</ProgramContext.Provider>
     );
+
 
   // Tx: Open Limit Order
   const openLimitOrder = async ({
@@ -375,16 +381,19 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+
+
   return (
     <ProgramContext.Provider
       value={{
-        createTradePair,
-        createMarketOrder,
-        fillMarketOrder,
-        cancelOrderPosition,
-        closeOrderPosition,
-        returnExecutionMarketOrder,
-        openLimitOrder
+        programId: program.programId,
+        // createTradePair,
+        // createMarketOrder,
+        // fillMarketOrder,
+        // cancelOrderPosition,
+        // closeOrderPosition,
+        // returnExecutionMarketOrder,
+        // openLimitOrder
       }}
     >
       {children}
@@ -393,6 +402,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
+  programId: PublicKey | undefined,
   createTradePair: (
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,

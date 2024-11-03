@@ -12,21 +12,13 @@ import {
 } from "./events"
 import BN from "bn.js";
 import { string } from "zod";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { ProgramContext } from "../ProgramProvider";
 
 // const transactionContext = createContext();
+// useMarket
+// useEvents
 
-interface Payload {
-    method: string;
-    order: string;
-    price: bigint,
-    size: bigint,
-}
-
-export interface Order {
-    price: bigint;
-    size: bigint;
-    depth: bigint;
-}
 
 class Queue {
     current: string;
@@ -74,10 +66,13 @@ class Queue {
     }
 }
 
-export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId: PublicKey) => {
+// how I can think about preventing double rendering is add a loading state,
+// when is fully loaded, then fetch data
+// rename to useMarket
+export const useTransaction = (marketId: PublicKey,) => {
     const [data, setData] = useState<Market | null>(null);
-
-    // const {wallet} = useWallet();
+    const userWallet = useAnchorWallet();
+    const { programId } = useContext(ProgramContext)!;
 
     const load = async (marketId: PublicKey, queue: Queue) => {
 
@@ -90,12 +85,12 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
 
             const response = await Promise.all([
                 fetch(orderBook),
-                // fetch(marketData)
+                fetch(marketData)
             ]);
 
             console.log("response:", response);
             let data = await response[0].json();
-            // let data = await response[1].json();
+            let market = await response[1].json();
 
 
             let asks = new Map<bigint, Order>();
@@ -646,36 +641,36 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
                         tokenMintB: new PublicKey(data.tokenMintB),
                         tokenProgramA: new PublicKey(data.tokenProgramA),
                         tokenProgramB: new PublicKey(data.tokenProgramB),
-                        userAddress: new PublicKey(wallet),
+                        userAddress: userWallet!.publicKey,
                         userPositionConfig: PublicKey.findProgramAddressSync([
-                            wallet.toBuffer(),
+                            userWallet!.publicKey!.toBuffer(),
                             new PublicKey(data.pubkeyId).toBuffer(),
                             Buffer.from("order-position-config"),
-                        ], programId)[0],
+                        ], programId!)[0],
                         userCapitalA: await getAssociatedTokenAddress(
                             new PublicKey(data.tokenMintA),
-                            wallet,
+                            userWallet!.publicKey!,
                             true,
                             programId,
                         ),
                         userCapitalB: await getAssociatedTokenAddress(
                             new PublicKey(data.tokenMintB),
-                            wallet,
+                            userWallet!.publicKey!,
                             true,
                             programId,
                         ),
                         userVaultA: PublicKey.findProgramAddressSync([
                             new PublicKey(data.pubkeyId).toBuffer(),
                             new PublicKey(data.tokenMintA).toBuffer(),
-                            wallet.toBuffer(),
+                            userWallet!.publicKey!.toBuffer(),
                             Buffer.from("vault-account"),
-                        ], programId)[0],
+                        ], programId!)[0],
                         userVaultB: PublicKey.findProgramAddressSync([
                             new PublicKey(data.pubkeyId).toBuffer(),
                             new PublicKey(data.tokenMintB).toBuffer(),
-                            wallet.toBuffer(),
+                            userWallet!.publicKey!.toBuffer(),
                             Buffer.from("vault-account"),
-                        ], programId)[0],
+                        ], programId!)[0],
                     },
                     marketDetails: {
                         isReverse: data.isReverse as boolean,
@@ -693,26 +688,26 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
                         change: BigInt(-10),
                     },
                     trades: [
-                        { price: 2558.08, qty: 0.039, time: 1728929558, action: "buy" },
-                        { price: 2556.16, qty: 0.2767, time: 1728929548, action: "buy" },
-                        { price: 2556.16, qty: 0.0438, time: 1728929548, action: "buy" },
-                        { price: 2556.16, qty: 0.0221, time: 1728929548, action: "buy" },
-                        { price: 2555.32, qty: 0.3423, time: 1728929548, action: "buy" },
-                        { price: 2555.15, qty: 3.5, time: 1728929548, action: "buy" },
-                        { price: 2554.62, qty: 0.6, time: 1728929548, action: "buy" },
-                        { price: 2554.62, qty: 0.3644, time: 1728929548, action: "buy" },
-                        { price: 2554.62, qty: 0.0438, time: 1728929548, action: "buy" },
-                        { price: 2554.61, qty: 0.6, time: 1728929548, action: "buy" },
-                        { price: 2552.63, qty: 0.0009, time: 1728929521, action: "sell" },
-                        { price: 2555.95, qty: 0.0054, time: 1728929413, action: "sell" },
-                        { price: 2560.07, qty: 0.0054, time: 1728929245, action: "buy" },
-                        { price: 2560.0, qty: 0.0117, time: 1728929245, action: "buy" },
-                        { price: 2559.57, qty: 0.0106, time: 1728929245, action: "buy" },
-                        { price: 2559.04, qty: 0.0118, time: 1728929244, action: "buy" },
-                        { price: 2556.57, qty: 0.3989, time: 1728929216, action: "buy" },
-                        { price: 2555.95, qty: 0.0054, time: 1728929216, action: "buy" },
-                        { price: 2555.16, qty: 0.0013, time: 1728929216, action: "buy" },
-                        { price: 2554.88, qty: 0.3994, time: 1728929216, action: "buy" }
+                        { price: 2558.08, qty: 0.039, time: 1728929558, action: "buy" } as Trade,
+                        { price: 2556.16, qty: 0.2767, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2556.16, qty: 0.0438, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2556.16, qty: 0.0221, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2555.32, qty: 0.3423, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2555.15, qty: 3.5, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2554.62, qty: 0.6, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2554.62, qty: 0.3644, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2554.62, qty: 0.0438, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2554.61, qty: 0.6, time: 1728929548, action: "buy" } as Trade,
+                        { price: 2552.63, qty: 0.0009, time: 1728929521, action: "sell" } as Trade,
+                        { price: 2555.95, qty: 0.0054, time: 1728929413, action: "sell" } as Trade,
+                        { price: 2560.07, qty: 0.0054, time: 1728929245, action: "buy" } as Trade,
+                        { price: 2560.0, qty: 0.0117, time: 1728929245, action: "buy" } as Trade,
+                        { price: 2559.57, qty: 0.0106, time: 1728929245, action: "buy" } as Trade,
+                        { price: 2559.04, qty: 0.0118, time: 1728929244, action: "buy" } as Trade,
+                        { price: 2556.57, qty: 0.3989, time: 1728929216, action: "buy" } as Trade,
+                        { price: 2555.95, qty: 0.0054, time: 1728929216, action: "buy" } as Trade,
+                        { price: 2555.16, qty: 0.0013, time: 1728929216, action: "buy" } as Trade,
+                        { price: 2554.88, qty: 0.3994, time: 1728929216, action: "buy" } as Trade
                     ],
                     asks: {
                         feedData: asks,
@@ -723,7 +718,7 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
                 }
             }
 
-            console.log(store);
+            console.log(store, data);
 
             setData(store);
         } catch (err) {
@@ -740,17 +735,19 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
             // set state
 
         } catch (err) {
-
+            console.log(err)
         }
     }
 
-    const queue = new Queue()
     const run = () => {
 
-        if (data !== null) {
+
+        if (programId === undefined || userWallet === undefined || data !== null) {
             // need to cache and return id
             return
         }
+
+        console.log("WALLET:", userWallet, data)
 
 
         const queue = new Queue()
@@ -819,6 +816,19 @@ export const useTransaction = (wallet: PublicKey, marketId: PublicKey, programId
     }
 }
 
+interface Payload {
+    method: string;
+    order: string;
+    price: bigint,
+    size: bigint,
+};
+
+export interface Order {
+    price: bigint;
+    size: bigint;
+    depth: bigint;
+};
+
 export type Candle = {
     time: number;
     open: number;
@@ -832,7 +842,7 @@ export type Trade = {
     qty: number;
     time: number;
     action: "buy" | "sell";
-}
+};
 
 export type Market = {
     image: string,
@@ -873,7 +883,7 @@ export type Market = {
         bids: {
             feedData: Map<bigint, Order>,
         }
-    };
+    }
 }
 
 
