@@ -1237,30 +1237,31 @@ pub async fn get_trade_pair_list(
                             'tokenSymbolA', "token_symbol_a",
                             'tokenSymbolB', "token_symbol_b",
                             'ticker', "ticker",
-                            'isReversal', "is_reverse",
+                            'isReverse', "is_reverse",
 
+                            -- need to fix some of these names
                             'marketData', json_build_object(
                                 'lastPrice',
                                     CASE WHEN m.last_price IS NOT NULL
                                         THEN m.last_price
                                         ELSE 0
                                     END,
-                                '24hVolume',
+                                'volume',
                                     CASE WHEN "24_hour_volume" IS NOT NULL
                                         THEN "24_hour_volume"
                                         ELSE 0
                                     END,
-                                '24hTurnover',
+                                'turnover',
                                     CASE WHEN "24_hour_turnover" IS NOT NULL
                                         THEN "24_hour_turnover"
                                         ELSE 0
                                     END,
-                                '24hPriceChange',
+                                'changeDelta',
                                     CASE WHEN "24_hour_price_change" IS NOT NULL
                                         THEN "24_hour_price_change"
                                         ELSE 0
                                     END,
-                                '24hPrevLastPrice',
+                                'prevLastPrice',
                                     CASE WHEN "24_hour_prev_last_price" IS NOT NULL
                                         THEN "24_hour_prev_last_price"
                                         ELSE 0
@@ -1272,7 +1273,7 @@ pub async fn get_trade_pair_list(
                                     END
                             )
                         )
-                    )
+                    ) as data
 
                 From config
                 LEFT JOIN market_data AS m ON m.book_config = config.pubkey_id;
@@ -1284,14 +1285,8 @@ pub async fn get_trade_pair_list(
     .fetch_one(&app_state.pool)
     .await?;
 
-    let data: Box<Value> = serde_json::from_str(
-        query
-            .try_get_raw("json_build_object")
-            .unwrap()
-            .as_str()
-            .unwrap(),
-    )
-    .unwrap();
+    let data: Box<Value> =
+        serde_json::from_str(query.try_get_raw("data").unwrap().as_str().unwrap()).unwrap();
 
     Ok(data)
 }
