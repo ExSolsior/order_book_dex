@@ -38,17 +38,23 @@ export default function LimitOrder({
   console.log(`Trade type: ${type}`);
 
   const formSchema = z.object({
-    price: z.number(),
-    quantity: z.number(),
-    orderValue: z.number()
+    price: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    }),
+    quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    }),
+    orderValue: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    })
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      price: Number(market.orderBook.marketData.lastPrice.toString()),
-      quantity: 0,
-      orderValue: 0
+      price: market.orderBook.marketData.lastPrice.toString(),
+      quantity: '0',
+      orderValue: '0'
     }
   });
 
