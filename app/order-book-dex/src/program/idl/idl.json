@@ -1,243 +1,1787 @@
 {
-    "address": "Ho5fe2xYQX84C5kXTSB34hZCudUB4Z1KDhFViPFtGoP",
-    "metadata": {
-      "name": "order_book_dex",
-      "version": "0.1.0",
-      "spec": "0.1.0",
-      "description": "Created with Anchor"
+  "address": "4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9",
+  "metadata": {
+    "name": "order_book_dex",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "cancel_order_position",
+      "discriminator": [
+        102,
+        12,
+        70,
+        112,
+        234,
+        101,
+        27,
+        124
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "market_pointer_read",
+          "optional": true
+        },
+        {
+          "name": "market_pointer_write",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order_position",
+          "writable": true
+        },
+        {
+          "name": "order_position_config",
+          "writable": true
+        },
+        {
+          "name": "prev_order_position",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "next_order_position",
+          "writable": true,
+          "optional": true
+        }
+      ],
+      "args": []
     },
-    "instructions": [
-      {
-        "name": "cancel_order_position",
-        "discriminator": [
-          102,
-          12,
-          70,
-          112,
-          234,
-          101,
-          27,
-          124
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "market_pointer_read",
-            "optional": true
-          },
-          {
-            "name": "market_pointer_write",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "order_position",
-            "writable": true
-          },
-          {
-            "name": "order_position_config",
-            "writable": true
-          },
-          {
-            "name": "prev_order_position",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "next_order_position",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "capital_destination",
-            "writable": true
-          },
-          {
-            "name": "source",
-            "writable": true
-          },
-          {
-            "name": "token_mint"
-          },
-          {
-            "name": "token_program"
-          },
-          {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
+    {
+      "name": "close_order_position",
+      "discriminator": [
+        231,
+        120,
+        43,
+        118,
+        219,
+        136,
+        196,
+        213
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner",
+          "writable": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "order_position",
+          "writable": true
+        },
+        {
+          "name": "order_position_config",
+          "writable": true
+        },
+        {
+          "name": "source",
+          "writable": true
+        },
+        {
+          "name": "dest",
+          "writable": true
+        },
+        {
+          "name": "capital_source",
+          "docs": [
+            "CHECKED: Don't need the data, only pubkey"
+          ],
+          "writable": true
+        },
+        {
+          "name": "capital_dest",
+          "docs": [
+            "CHECKED: Don't need the data, only pubkey"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_mint_source"
+        },
+        {
+          "name": "token_mint_dest"
+        },
+        {
+          "name": "source_program",
+          "docs": [
+            "CHECKED: validate owner of token mint source"
+          ]
+        },
+        {
+          "name": "dest_program",
+          "docs": [
+            "CHECKED: validate owner of token mint source"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_market_order",
+      "discriminator": [
+        55,
+        79,
+        206,
+        81,
+        231,
+        152,
+        195,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "market_pointer",
+          "writable": true
+        },
+        {
+          "name": "order_position"
+        },
+        {
+          "name": "source",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_source"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              }
+            ]
           }
-        ],
-        "args": []
-      },
-      {
-        "name": "close_order_position",
-        "discriminator": [
-          231,
-          120,
-          43,
-          118,
-          219,
-          136,
-          196,
-          213
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "owner",
-            "writable": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "order_position",
-            "writable": true
-          },
-          {
-            "name": "order_position_config",
-            "writable": true
-          },
-          {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "dest",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_dest"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              }
+            ]
           }
-        ],
-        "args": []
-      },
-      {
-        "name": "create_market_order",
-        "discriminator": [
-          55,
-          79,
-          206,
-          81,
-          231,
-          152,
-          195,
-          125
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "market_pointer",
-            "writable": true
-          },
-          {
-            "name": "source",
-            "docs": [
-              "CHECKED: just need to validate using seeds"
+        },
+        {
+          "name": "capital_source",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_source"
+              }
             ],
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "account",
-                  "path": "token_mint_source"
-                },
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    118,
-                    97,
-                    117,
-                    108,
-                    116,
-                    45,
-                    97,
-                    99,
-                    99,
-                    111,
-                    117,
-                    110,
-                    116
-                  ]
-                }
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
               ]
             }
+          }
+        },
+        {
+          "name": "capital_dest",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_dest"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_mint_source"
+        },
+        {
+          "name": "token_mint_dest",
+          "docs": [
+            "CHECKED: validate mint pubkey agaist order book config and market pointer order type"
+          ]
+        },
+        {
+          "name": "source_program",
+          "docs": [
+            "CHECKED: validate owner of token mint source"
+          ]
+        },
+        {
+          "name": "next_position_pointer",
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "order_type",
+          "type": {
+            "defined": {
+              "name": "Order"
+            }
+          }
+        },
+        {
+          "name": "fill",
+          "type": {
+            "defined": {
+              "name": "Fill"
+            }
+          }
+        },
+        {
+          "name": "target_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_order_position",
+      "discriminator": [
+        233,
+        99,
+        216,
+        251,
+        189,
+        20,
+        39,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "order_position_config",
+          "writable": true
+        },
+        {
+          "name": "order_position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "order_position_config.nonce",
+                "account": "OrderPositionConfig"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint_a"
+        },
+        {
+          "name": "token_mint_b"
+        },
+        {
+          "name": "capital_source",
+          "writable": true
+        },
+        {
+          "name": "source",
+          "writable": true
+        },
+        {
+          "name": "destination"
+        },
+        {
+          "name": "token_program_a"
+        },
+        {
+          "name": "token_program_b"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "order_type",
+          "type": {
+            "defined": {
+              "name": "Order"
+            }
+          }
+        },
+        {
+          "name": "price",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "create_order_position_config",
+      "discriminator": [
+        28,
+        93,
+        39,
+        27,
+        202,
+        20,
+        1,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "order_position_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "capital_a",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_a"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "capital_b",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_b"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_mint_a"
+        },
+        {
+          "name": "token_mint_b"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_trade_pair",
+      "discriminator": [
+        59,
+        81,
+        38,
+        96,
+        40,
+        231,
+        8,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "token_mint_a"
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_b"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  45,
+                  98,
+                  111,
+                  111,
+                  107,
+                  45,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buy_market_pointer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  121,
+                  45,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  112,
+                  111,
+                  105,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  112,
+                  111,
+                  105,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "sell_market_pointer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  108,
+                  108,
+                  45,
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  112,
+                  111,
+                  105,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  112,
+                  111,
+                  105,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint_a"
+        },
+        {
+          "name": "token_mint_b"
+        },
+        {
+          "name": "token_program_a"
+        },
+        {
+          "name": "token_program_b"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "token_symbol_a",
+          "type": "string"
+        },
+        {
+          "name": "token_symbol_b",
+          "type": "string"
+        },
+        {
+          "name": "is_reverse",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "create_vault_accounts",
+      "discriminator": [
+        3,
+        37,
+        192,
+        207,
+        94,
+        0,
+        220,
+        63
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "token_mint_a"
+        },
+        {
+          "name": "token_mint_b"
+        },
+        {
+          "name": "vault_a",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_a"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault_b",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "order_book_config"
+              },
+              {
+                "kind": "account",
+                "path": "token_mint_b"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  45,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program_a"
+        },
+        {
+          "name": "token_program_b"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fill_market_order",
+      "discriminator": [
+        166,
+        245,
+        22,
+        221,
+        108,
+        30,
+        58,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "market_pointer",
+          "writable": true
+        },
+        {
+          "name": "order_position",
+          "writable": true
+        },
+        {
+          "name": "taker_source",
+          "writable": true
+        },
+        {
+          "name": "maker_destination",
+          "writable": true
+        },
+        {
+          "name": "maker_source",
+          "writable": true
+        },
+        {
+          "name": "taker_destination",
+          "writable": true
+        },
+        {
+          "name": "token_mint_a"
+        },
+        {
+          "name": "token_mint_b"
+        },
+        {
+          "name": "token_program_a"
+        },
+        {
+          "name": "token_program_b"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "open_order_position",
+      "discriminator": [
+        184,
+        65,
+        216,
+        220,
+        255,
+        252,
+        171,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "market_pointer_read",
+          "optional": true
+        },
+        {
+          "name": "market_pointer_write",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "order_position",
+          "writable": true
+        },
+        {
+          "name": "order_position_config",
+          "writable": true
+        },
+        {
+          "name": "prev_order_position",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "next_order_position",
+          "writable": true,
+          "optional": true
+        },
+        {
+          "name": "next_position_pointer",
+          "optional": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "return_execution_market_order",
+      "discriminator": [
+        64,
+        69,
+        92,
+        169,
+        102,
+        215,
+        1,
+        213
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "order_book_config"
+        },
+        {
+          "name": "market_pointer",
+          "writable": true
+        },
+        {
+          "name": "source",
+          "writable": true
+        },
+        {
+          "name": "dest",
+          "writable": true
+        },
+        {
+          "name": "capital_source",
+          "docs": [
+            "CHECKED: Don't need the data, only pubkey"
+          ],
+          "writable": true
+        },
+        {
+          "name": "capital_dest",
+          "docs": [
+            "CHECKED: Don't need the data, only pubkey"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_mint_source"
+        },
+        {
+          "name": "token_mint_dest"
+        },
+        {
+          "name": "source_program",
+          "docs": [
+            "CHECKED: validate owner of token mint source"
+          ]
+        },
+        {
+          "name": "dest_program",
+          "docs": [
+            "CHECKED: validate owner of token mint source"
+          ]
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "MarketPointer",
+      "discriminator": [
+        180,
+        26,
+        245,
+        83,
+        151,
+        42,
+        14,
+        209
+      ]
+    },
+    {
+      "name": "OrderBookConfig",
+      "discriminator": [
+        192,
+        0,
+        207,
+        171,
+        10,
+        224,
+        249,
+        145
+      ]
+    },
+    {
+      "name": "OrderPosition",
+      "discriminator": [
+        42,
+        148,
+        177,
+        109,
+        255,
+        221,
+        218,
+        156
+      ]
+    },
+    {
+      "name": "OrderPositionConfig",
+      "discriminator": [
+        184,
+        103,
+        139,
+        69,
+        199,
+        52,
+        35,
+        243
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CancelLimitOrderEvent",
+      "discriminator": [
+        216,
+        16,
+        162,
+        254,
+        206,
+        149,
+        207,
+        36
+      ]
+    },
+    {
+      "name": "CloseLimitOrderEvent",
+      "discriminator": [
+        37,
+        48,
+        113,
+        193,
+        242,
+        130,
+        158,
+        58
+      ]
+    },
+    {
+      "name": "CreateOrderPositionEvent",
+      "discriminator": [
+        172,
+        251,
+        54,
+        147,
+        127,
+        165,
+        156,
+        166
+      ]
+    },
+    {
+      "name": "MarketOrderCompleteEvent",
+      "discriminator": [
+        117,
+        159,
+        39,
+        123,
+        213,
+        191,
+        30,
+        5
+      ]
+    },
+    {
+      "name": "MarketOrderFillEvent",
+      "discriminator": [
+        154,
+        188,
+        223,
+        75,
+        178,
+        109,
+        84,
+        46
+      ]
+    },
+    {
+      "name": "MarketOrderTriggerEvent",
+      "discriminator": [
+        72,
+        184,
+        141,
+        82,
+        42,
+        180,
+        101,
+        73
+      ]
+    },
+    {
+      "name": "NewOrderBookConfigEvent",
+      "discriminator": [
+        212,
+        127,
+        42,
+        69,
+        195,
+        133,
+        17,
+        145
+      ]
+    },
+    {
+      "name": "NewOrderPositionConfigEvent",
+      "discriminator": [
+        135,
+        248,
+        180,
+        220,
+        179,
+        224,
+        202,
+        103
+      ]
+    },
+    {
+      "name": "OpenLimitOrderEvent",
+      "discriminator": [
+        106,
+        24,
+        71,
+        85,
+        57,
+        169,
+        158,
+        216
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidOrderBookConfig",
+      "msg": "Invalid Order Book Config"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidOrderPositionOwner",
+      "msg": "Invalid Order Position Owner"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidMint",
+      "msg": "Invalid Mint"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidSource",
+      "msg": "Invalid Token Account Source"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidDestination",
+      "msg": "Invalid Token Account Destination"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidTokenProgram",
+      "msg": "Invalid Token Program"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidOrderType",
+      "msg": "Invalid Order Type"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidLedgerSection",
+      "msg": "Invalid Ledger Section"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidOrderPosition",
+      "msg": "Invalid Order Position"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidMarketPointer",
+      "msg": "Invalid Market Pointer"
+    },
+    {
+      "code": 6010,
+      "name": "OrderPositionIsNotAvailable",
+      "msg": "Order Position Is Not Available"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidProcessReturnExecutionStatus",
+      "msg": "Invalid Process Return Execution Status"
+    },
+    {
+      "code": 6012,
+      "name": "MarketOrderAlreadyInProgress",
+      "msg": "Market Order Already In Progress"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidTakerDestination",
+      "msg": "Invalid Taker Destination"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidMakerSource",
+      "msg": "Invalid Maker Source"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidMakerDestination",
+      "msg": "Invalid Maker Destination"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidTakerSource",
+      "msg": "Invalid Taker Source"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidVaultAccount",
+      "msg": "Invalid Vault Account"
+    },
+    {
+      "code": 6018,
+      "name": "MarketOrderNotInProgress",
+      "msg": "Market Order Not In Progress"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidMarketOrderOwner",
+      "msg": "Invalid Market Order Owner"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidFillOfMarketOrder",
+      "msg": "Invalid Fill Of Market Order"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidAvailableStatus",
+      "msg": "Invalid Available Status"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidOrderPositionAdd",
+      "msg": "Invalid Order Position Add"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidOrderPositionRemove",
+      "msg": "Invalid Order Position Remove"
+    },
+    {
+      "code": 6024,
+      "name": "InvalidSymbolLength",
+      "msg": "Invalid Symbol Length"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidOrderPositionConfig",
+      "msg": "Invalid Order Position Config"
+    },
+    {
+      "code": 6026,
+      "name": "InvalidMarketOrder",
+      "msg": "Invalid Market Order"
+    }
+  ],
+  "types": [
+    {
+      "name": "CancelLimitOrderEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pos_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "is_available",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseLimitOrderEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pos_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_config",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateOrderPositionEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pos_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExecutionStats",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_source",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_dest",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "type": "pubkey"
           },
           {
             "name": "dest",
-            "docs": [
-              "CHECKED: just need to validate using seeds"
-            ],
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "account",
-                  "path": "token_mint_dest"
-                },
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    118,
-                    97,
-                    117,
-                    108,
-                    116,
-                    45,
-                    97,
-                    99,
-                    99,
-                    111,
-                    117,
-                    110,
-                    116
-                  ]
-                }
-              ]
+            "type": "pubkey"
+          },
+          {
+            "name": "next_position_pointer",
+            "type": {
+              "option": "pubkey"
             }
           },
           {
-            "name": "token_mint_source",
-            "docs": [
-              "CHECKED: validate mint pubkey agaist order book config and market pointer order type"
-            ]
+            "name": "total_amount",
+            "type": "u64"
           },
           {
-            "name": "token_mint_dest",
-            "docs": [
-              "CHECKED: validate mint pubkey agaist order book config and market pointer order type"
-            ]
+            "name": "total_cost",
+            "type": "u64"
           },
           {
-            "name": "next_position_pointer"
+            "name": "last_price",
+            "type": "u64"
           }
-        ],
-        "args": [
+        ]
+      }
+    },
+    {
+      "name": "Fill",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Partial",
+            "fields": [
+              {
+                "name": "target_price",
+                "type": "u64"
+              }
+            ]
+          },
+          {
+            "name": "Full"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
             "name": "order_type",
             "type": {
@@ -259,97 +1803,487 @@
             "type": "u64"
           }
         ]
-      },
-      {
-        "name": "create_order_position",
-        "discriminator": [
-          233,
-          99,
-          216,
-          251,
-          189,
-          20,
-          39,
-          171
-        ],
-        "accounts": [
+      }
+    },
+    {
+      "name": "MarketOrderCompleteEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
           {
-            "name": "signer",
-            "writable": true,
-            "signer": true
+            "name": "market_pointer",
+            "type": "pubkey"
           },
           {
-            "name": "order_book_config"
+            "name": "book_config",
+            "type": "pubkey"
           },
           {
-            "name": "order_position_config",
-            "writable": true
-          },
-          {
-            "name": "order_position",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "order_position_config.nonce",
-                  "account": "OrderPositionConfig"
-                },
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    111,
-                    114,
-                    100,
-                    101,
-                    114,
-                    45,
-                    112,
-                    111,
-                    115,
-                    105,
-                    116,
-                    105,
-                    111,
-                    110
-                  ]
-                }
-              ]
+            "name": "new_pointer",
+            "type": {
+              "option": "pubkey"
             }
           },
           {
-            "name": "token_mint_a"
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
           },
           {
-            "name": "token_mint_b"
+            "name": "total_cost",
+            "type": "u64"
+          },
+          {
+            "name": "total_amount",
+            "type": "u64"
+          },
+          {
+            "name": "last_price",
+            "type": "u64"
+          },
+          {
+            "name": "is_available",
+            "type": "bool"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketOrderFillEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_pointer",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "total",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_size",
+            "type": "u64"
+          },
+          {
+            "name": "is_available",
+            "type": "bool"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketOrderTriggerEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market_pointer",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
           },
           {
             "name": "capital_source",
-            "writable": true
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_dest",
+            "type": "pubkey"
           },
           {
             "name": "source",
-            "writable": true
+            "type": "pubkey"
           },
           {
-            "name": "destination"
+            "name": "dest",
+            "type": "pubkey"
           },
           {
-            "name": "token_program_a"
+            "name": "pointer",
+            "type": {
+              "option": "pubkey"
+            }
           },
           {
-            "name": "token_program_b"
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
           },
           {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
+            "name": "is_available",
+            "type": "bool"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
-        ],
-        "args": [
+        ]
+      }
+    },
+    {
+      "name": "MarketPointer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
+          },
+          {
+            "name": "order_book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_position_pointer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "market_order",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "MarketOrder"
+                }
+              }
+            }
+          },
+          {
+            "name": "execution_stats",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "ExecutionStats"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "NewOrderBookConfigEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "sell_market_pointer",
+            "type": "pubkey"
+          },
+          {
+            "name": "buy_market_pointer",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_symbol_a",
+            "type": "string"
+          },
+          {
+            "name": "token_symbol_b",
+            "type": "string"
+          },
+          {
+            "name": "token_decimals_a",
+            "type": "u8"
+          },
+          {
+            "name": "token_decimals_b",
+            "type": "u8"
+          },
+          {
+            "name": "is_reverse",
+            "type": "bool"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NewOrderPositionConfigEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "market_maker",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OpenLimitOrderEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pos_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "pos_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "type": "pubkey"
+          },
+          {
+            "name": "destination",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_pos_pubkey",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "order_type",
+            "type": {
+              "defined": {
+                "name": "Order"
+              }
+            }
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size",
+            "type": "u64"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "is_available",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Order",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Buy"
+          },
+          {
+            "name": "Sell"
+          },
+          {
+            "name": "Bid"
+          },
+          {
+            "name": "Ask"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderBookConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "token_program_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_program_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_symbol_a",
+            "type": "string"
+          },
+          {
+            "name": "token_symbol_b",
+            "type": "string"
+          },
+          {
+            "name": "is_reverse",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_position_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "source",
+            "type": "pubkey"
+          },
+          {
+            "name": "destination",
+            "type": "pubkey"
+          },
+          {
+            "name": "next_order_position",
+            "type": {
+              "option": "pubkey"
+            }
+          },
           {
             "name": "order_type",
             "type": {
@@ -365,973 +2299,53 @@
           {
             "name": "amount",
             "type": "u64"
-          }
-        ]
-      },
-      {
-        "name": "create_order_position_config",
-        "discriminator": [
-          28,
-          93,
-          39,
-          27,
-          202,
-          20,
-          1,
-          22
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
           },
           {
-            "name": "order_book_config"
+            "name": "received_amount",
+            "type": "u64"
           },
           {
-            "name": "order_position_config",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    111,
-                    114,
-                    100,
-                    101,
-                    114,
-                    45,
-                    112,
-                    111,
-                    115,
-                    105,
-                    116,
-                    105,
-                    111,
-                    110,
-                    45,
-                    99,
-                    111,
-                    110,
-                    102,
-                    105,
-                    103
-                  ]
-                }
-              ]
-            }
+            "name": "slot",
+            "type": "u64"
           },
           {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
-          }
-        ],
-        "args": []
-      },
-      {
-        "name": "create_trade_pair",
-        "discriminator": [
-          59,
-          81,
-          38,
-          96,
-          40,
-          231,
-          8,
-          42
-        ],
-        "accounts": [
-          {
-            "name": "authority",
-            "writable": true,
-            "signer": true
+            "name": "timestamp",
+            "type": "i64"
           },
           {
-            "name": "order_book_config",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "token_mint_a"
-                },
-                {
-                  "kind": "account",
-                  "path": "token_mint_b"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    111,
-                    114,
-                    100,
-                    101,
-                    114,
-                    45,
-                    98,
-                    111,
-                    111,
-                    107,
-                    45,
-                    99,
-                    111,
-                    110,
-                    102,
-                    105,
-                    103
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "name": "buy_market_pointer",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "const",
-                  "value": [
-                    98,
-                    117,
-                    121,
-                    45,
-                    109,
-                    97,
-                    114,
-                    107,
-                    101,
-                    116,
-                    45,
-                    112,
-                    111,
-                    105,
-                    110,
-                    116,
-                    101,
-                    114
-                  ]
-                },
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    109,
-                    97,
-                    114,
-                    107,
-                    101,
-                    116,
-                    45,
-                    112,
-                    111,
-                    105,
-                    110,
-                    116,
-                    101,
-                    114
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "name": "sell_market_pointer",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "const",
-                  "value": [
-                    115,
-                    101,
-                    108,
-                    108,
-                    45,
-                    109,
-                    97,
-                    114,
-                    107,
-                    101,
-                    116,
-                    45,
-                    112,
-                    111,
-                    105,
-                    110,
-                    116,
-                    101,
-                    114
-                  ]
-                },
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    109,
-                    97,
-                    114,
-                    107,
-                    101,
-                    116,
-                    45,
-                    112,
-                    111,
-                    105,
-                    110,
-                    116,
-                    101,
-                    114
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "name": "token_mint_a"
-          },
-          {
-            "name": "token_mint_b"
-          },
-          {
-            "name": "token_program_a"
-          },
-          {
-            "name": "token_program_b"
-          },
-          {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
-          }
-        ],
-        "args": [
-          {
-            "name": "is_reverse",
+            "name": "is_available",
             "type": "bool"
           }
         ]
-      },
-      {
-        "name": "create_vault_accounts",
-        "discriminator": [
-          3,
-          37,
-          192,
-          207,
-          94,
-          0,
-          220,
-          63
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "token_mint_a"
-          },
-          {
-            "name": "token_mint_b"
-          },
-          {
-            "name": "vault_a",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "account",
-                  "path": "token_mint_a"
-                },
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    118,
-                    97,
-                    117,
-                    108,
-                    116,
-                    45,
-                    97,
-                    99,
-                    99,
-                    111,
-                    117,
-                    110,
-                    116
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "name": "vault_b",
-            "writable": true,
-            "pda": {
-              "seeds": [
-                {
-                  "kind": "account",
-                  "path": "order_book_config"
-                },
-                {
-                  "kind": "account",
-                  "path": "token_mint_b"
-                },
-                {
-                  "kind": "account",
-                  "path": "signer"
-                },
-                {
-                  "kind": "const",
-                  "value": [
-                    118,
-                    97,
-                    117,
-                    108,
-                    116,
-                    45,
-                    97,
-                    99,
-                    99,
-                    111,
-                    117,
-                    110,
-                    116
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "name": "token_program_a"
-          },
-          {
-            "name": "token_program_b"
-          },
-          {
-            "name": "system_program",
-            "address": "11111111111111111111111111111111"
-          }
-        ],
-        "args": []
-      },
-      {
-        "name": "fill_market_order",
-        "discriminator": [
-          166,
-          245,
-          22,
-          221,
-          108,
-          30,
-          58,
-          253
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "market_pointer",
-            "writable": true
-          },
-          {
-            "name": "order_position",
-            "writable": true
-          },
-          {
-            "name": "taker_source",
-            "writable": true
-          },
-          {
-            "name": "maker_destination",
-            "writable": true
-          },
-          {
-            "name": "maker_source",
-            "writable": true
-          },
-          {
-            "name": "taker_destination",
-            "writable": true
-          },
-          {
-            "name": "token_mint_a"
-          },
-          {
-            "name": "token_mint_b"
-          },
-          {
-            "name": "token_program_a"
-          },
-          {
-            "name": "token_program_b"
-          }
-        ],
-        "args": []
-      },
-      {
-        "name": "open_order_position",
-        "discriminator": [
-          184,
-          65,
-          216,
-          220,
-          255,
-          252,
-          171,
-          46
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "market_pointer_read",
-            "optional": true
-          },
-          {
-            "name": "market_pointer_write",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "order_position",
-            "writable": true
-          },
-          {
-            "name": "order_position_config",
-            "writable": true
-          },
-          {
-            "name": "prev_order_position",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "next_order_position",
-            "writable": true,
-            "optional": true
-          },
-          {
-            "name": "next_position_pointer",
-            "optional": true
-          }
-        ],
-        "args": []
-      },
-      {
-        "name": "return_execution_market_order",
-        "discriminator": [
-          64,
-          69,
-          92,
-          169,
-          102,
-          215,
-          1,
-          213
-        ],
-        "accounts": [
-          {
-            "name": "signer",
-            "writable": true,
-            "signer": true
-          },
-          {
-            "name": "order_book_config"
-          },
-          {
-            "name": "market_pointer",
-            "writable": true
-          }
-        ],
-        "args": []
       }
-    ],
-    "accounts": [
-      {
-        "name": "MarketPointer",
-        "discriminator": [
-          180,
-          26,
-          245,
-          83,
-          151,
-          42,
-          14,
-          209
-        ]
-      },
-      {
-        "name": "OrderBookConfig",
-        "discriminator": [
-          192,
-          0,
-          207,
-          171,
-          10,
-          224,
-          249,
-          145
-        ]
-      },
-      {
-        "name": "OrderPosition",
-        "discriminator": [
-          42,
-          148,
-          177,
-          109,
-          255,
-          221,
-          218,
-          156
-        ]
-      },
-      {
-        "name": "OrderPositionConfig",
-        "discriminator": [
-          184,
-          103,
-          139,
-          69,
-          199,
-          52,
-          35,
-          243
+    },
+    {
+      "name": "OrderPositionConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_book_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "capital_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          }
         ]
       }
-    ],
-    "errors": [
-      {
-        "code": 6000,
-        "name": "InvalidOrderBookConfig",
-        "msg": "Invalid Order Book Config"
-      },
-      {
-        "code": 6001,
-        "name": "InvalidOrderPositionOwner",
-        "msg": "Invalid Order Position Owner"
-      },
-      {
-        "code": 6002,
-        "name": "InvalidMint",
-        "msg": "Invalid Mint"
-      },
-      {
-        "code": 6003,
-        "name": "InvalidSource",
-        "msg": "Invalid Token Account Source"
-      },
-      {
-        "code": 6004,
-        "name": "InvalidDestination",
-        "msg": "Invalid Token Account Destination"
-      },
-      {
-        "code": 6005,
-        "name": "InvalidTokenProgram",
-        "msg": "Invalid Token Program"
-      },
-      {
-        "code": 6006,
-        "name": "InvalidOrderType",
-        "msg": "Invalid Order Type"
-      },
-      {
-        "code": 6007,
-        "name": "InvalidLedgerSection",
-        "msg": "Invalid Ledger Section"
-      },
-      {
-        "code": 6008,
-        "name": "InvalidOrderPosition",
-        "msg": "Invalid Order Position"
-      },
-      {
-        "code": 6009,
-        "name": "InvalidMarketPointer",
-        "msg": "Invalid Market Pointer"
-      },
-      {
-        "code": 6010,
-        "name": "OrderPositionIsNotAvailable",
-        "msg": "Order Position Is Not Available"
-      },
-      {
-        "code": 6011,
-        "name": "InvalidProcessReturnExecutionStatus",
-        "msg": "Invalid Process Return Execution Status"
-      },
-      {
-        "code": 6012,
-        "name": "MarketOrderAlreadyInProgress",
-        "msg": "Market Order Already In Progress"
-      },
-      {
-        "code": 6013,
-        "name": "InvalidTakerDestination",
-        "msg": "Invalid Taker Destination"
-      },
-      {
-        "code": 6014,
-        "name": "InvalidMakerSource",
-        "msg": "Invalid Maker Source"
-      },
-      {
-        "code": 6015,
-        "name": "InvalidMakerDestination",
-        "msg": "Invalid Maker Destination"
-      },
-      {
-        "code": 6016,
-        "name": "InvalidTakerSource",
-        "msg": "Invalid Taker Source"
-      },
-      {
-        "code": 6017,
-        "name": "InvalidVaultAccount",
-        "msg": "Invalid Vault Account"
-      },
-      {
-        "code": 6018,
-        "name": "MarketOrderNotInProgress",
-        "msg": "Market Order Not In Progress"
-      },
-      {
-        "code": 6019,
-        "name": "InvalidMarketOrderOwner",
-        "msg": "Invalid Market Order Owner"
-      },
-      {
-        "code": 6020,
-        "name": "InvalidFillOfMarketOrder",
-        "msg": "Invalid Fill Of Market Order"
-      },
-      {
-        "code": 6021,
-        "name": "InvalidAvailableStatus",
-        "msg": "Invalid Available Status"
-      },
-      {
-        "code": 6022,
-        "name": "InvalidOrderPositionAdd",
-        "msg": "Invalid Order Position Add"
-      },
-      {
-        "code": 6023,
-        "name": "InvalidOrderPositionRemove",
-        "msg": "Invalid Order Position Remove"
-      },
-      {
-        "code": 6024,
-        "name": "InvalidOrderPositionConfig",
-        "msg": "Invalid Order Position Config"
-      }
-    ],
-    "types": [
-      {
-        "name": "ExecutionStats",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "owner",
-              "type": "pubkey"
-            },
-            {
-              "name": "source",
-              "type": "pubkey"
-            },
-            {
-              "name": "dest",
-              "type": "pubkey"
-            },
-            {
-              "name": "next_position_pointer",
-              "type": "pubkey"
-            },
-            {
-              "name": "total_amount",
-              "type": "u64"
-            },
-            {
-              "name": "total_paid",
-              "type": "u64"
-            }
-          ]
-        }
-      },
-      {
-        "name": "Fill",
-        "type": {
-          "kind": "enum",
-          "variants": [
-            {
-              "name": "Partial",
-              "fields": [
-                {
-                  "name": "target_price",
-                  "type": "u64"
-                }
-              ]
-            },
-            {
-              "name": "Full"
-            }
-          ]
-        }
-      },
-      {
-        "name": "MarketOrder",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "order_type",
-              "type": {
-                "defined": {
-                  "name": "Order"
-                }
-              }
-            },
-            {
-              "name": "fill",
-              "type": {
-                "defined": {
-                  "name": "Fill"
-                }
-              }
-            },
-            {
-              "name": "target_amount",
-              "type": "u64"
-            }
-          ]
-        }
-      },
-      {
-        "name": "MarketPointer",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "order_type",
-              "type": {
-                "defined": {
-                  "name": "Order"
-                }
-              }
-            },
-            {
-              "name": "order_book_config",
-              "type": "pubkey"
-            },
-            {
-              "name": "order_position_pointer",
-              "type": {
-                "option": "pubkey"
-              }
-            },
-            {
-              "name": "timestamp",
-              "type": "i64"
-            },
-            {
-              "name": "slot",
-              "type": "u64"
-            },
-            {
-              "name": "market_order",
-              "type": {
-                "option": {
-                  "defined": {
-                    "name": "MarketOrder"
-                  }
-                }
-              }
-            },
-            {
-              "name": "execution_stats",
-              "type": {
-                "option": {
-                  "defined": {
-                    "name": "ExecutionStats"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        "name": "Order",
-        "type": {
-          "kind": "enum",
-          "variants": [
-            {
-              "name": "Buy"
-            },
-            {
-              "name": "Sell"
-            },
-            {
-              "name": "Bid"
-            },
-            {
-              "name": "Ask"
-            }
-          ]
-        }
-      },
-      {
-        "name": "OrderBookConfig",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "token_program_a",
-              "type": "pubkey"
-            },
-            {
-              "name": "token_program_b",
-              "type": "pubkey"
-            },
-            {
-              "name": "token_mint_a",
-              "type": "pubkey"
-            },
-            {
-              "name": "token_mint_b",
-              "type": "pubkey"
-            },
-            {
-              "name": "is_reverse",
-              "type": "bool"
-            },
-            {
-              "name": "bump",
-              "type": "u8"
-            }
-          ]
-        }
-      },
-      {
-        "name": "OrderPosition",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "order_book_config",
-              "type": "pubkey"
-            },
-            {
-              "name": "order_position_config",
-              "type": "pubkey"
-            },
-            {
-              "name": "source",
-              "type": "pubkey"
-            },
-            {
-              "name": "destination",
-              "type": "pubkey"
-            },
-            {
-              "name": "next_order_position",
-              "type": {
-                "option": "pubkey"
-              }
-            },
-            {
-              "name": "order_type",
-              "type": {
-                "defined": {
-                  "name": "Order"
-                }
-              }
-            },
-            {
-              "name": "price",
-              "type": "u64"
-            },
-            {
-              "name": "amount",
-              "type": "u64"
-            },
-            {
-              "name": "slot",
-              "type": "u64"
-            },
-            {
-              "name": "timestamp",
-              "type": "i64"
-            },
-            {
-              "name": "is_available",
-              "type": "bool"
-            }
-          ]
-        }
-      },
-      {
-        "name": "OrderPositionConfig",
-        "type": {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "order_book_config",
-              "type": "pubkey"
-            },
-            {
-              "name": "owner",
-              "type": "pubkey"
-            },
-            {
-              "name": "nonce",
-              "type": "u64"
-            }
-          ]
-        }
-      }
-    ]
-  }
+    }
+  ]
+}

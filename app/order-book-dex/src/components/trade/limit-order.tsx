@@ -67,7 +67,8 @@ export default function LimitOrder({
     }
 
     const params = new URLSearchParams({
-      "book_config": marketId.toString(),
+      "book_config": new PublicKey("DqLsxqNjX3Zs8V5xGPBJi4GkggUypnWMoRkS43VSjQa7").toString(),
+      // "book_config": marketId.toString(),
       signer: userWallet!.publicKey.toString(),
       "order_type": "bid",
       // next_position_pointer: optional value?
