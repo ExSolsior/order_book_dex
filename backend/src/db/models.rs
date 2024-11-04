@@ -4,7 +4,7 @@ use {
     chrono::prelude::*,
     order_book_dex::state::Order,
     serde::{Deserialize, Serialize},
-    serde_json::value::Value,
+    serde_json::{value::Value, Number},
     solana_sdk::pubkey::Pubkey,
     sqlx::{prelude::FromRow, Pool, Postgres, Row, ValueRef},
     std::str::FromStr,
@@ -977,7 +977,6 @@ pub async fn get_trade_pair(
     position_config: &Option<Pubkey>,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    println!("TEST A");
     let query = sqlx::query(
         r#"
                 WITH trade_pair AS (
@@ -1126,6 +1125,70 @@ pub async fn get_trade_pair(
                         ) AS asks
                     FROM asks AS a
 
+                ), trade_history AS (
+                    SELECT 
+                        order_type,
+                        last_price,
+                        amount,
+                        "timestamp"
+                        
+                    FROM real_time_trade_data
+                    WHERE book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                    ORDER BY slot DESC
+                    LIMIT 200
+
+                ), trade_history_agg AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        json_agg(
+                            json_build_object(
+                                'action', h.order_type,
+                                'price', h.last_price,
+                                'qty', h.amount,
+                                'time', h.timestamp
+                            )
+                        ) as trades
+                    FROM trade_history AS h
+                    GROUP BY book_config
+
+                ), market_data AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        CASE WHEN t.last_price IS NOT NULL 
+                            THEN t.last_price
+                            ELSE 0 
+                        END AS last_price,
+
+                        CASE WHEN "24_hour_volume" IS NOT NULL 
+                            THEN "24_hour_volume"
+                            ELSE 0 
+                        END AS volume,
+
+                        CASE WHEN "24_hour_turnover" IS NOT NULL 
+                            THEN "24_hour_turnover"
+                            ELSE 0 
+                        END AS turnover,
+
+                        CASE WHEN "24_hour_price_change" IS NOT NULL 
+                            THEN "24_hour_price_change"
+                            ELSE 0 
+                        END AS change_delta,
+
+                        CASE WHEN "24_hour_prev_last_price" IS NOT NULL 
+                            THEN "24_hour_prev_last_price"
+                            ELSE 0 
+                        END AS prev_last_price,
+
+                        CASE WHEN t.timestamp IS NOT NULL 
+                            THEN t.timestamp
+                            ELSE 0 
+                        END AS "timestamp"
+
+                    FROM trade_data_24_hour AS t 
+                    WHERE book_config = $1
+                    ORDER BY t.timestamp DESC 
+                    LIMIT 1
+                    
                 )
 
                 SELECT
@@ -1152,25 +1215,35 @@ pub async fn get_trade_pair(
                         'book', json_build_object(
                             'asks', book_asks.asks,
                             'bids', book_bids.bids
+                        ),
+
+                        'trades', h.trades,
+
+                        'marketData', json_build_object(
+                            'lastPrice', md.last_price,
+                            'volume', md.volume,
+                            'turnover', md.turnover,
+                            'changeDelta', md.change_delta,
+                            'prevLastPrice', md.prev_last_price,
+                            'time', md.timestamp
                         )
                     )
 
                 FROM trade_pair AS t
+                FULL JOIN trade_history_agg AS h ON h.book_config = t.pubkey_id
+                FULL JOIN market_data AS md ON md.book_config = t.pubkey_id
                 FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
     )
     .bind(pubkey_id.to_string());
-    println!("TEST B");
 
     let query = match position_config {
         Some(pc) => query.bind(pc.to_string()),
         None => query.bind(Option::<String>::None),
     };
-    println!("TEST C");
 
     let query = query.fetch_one(&app_state.pool).await?;
-    println!("TEST D");
 
     let mut data: Box<Value> = serde_json::from_str(
         query
@@ -1180,7 +1253,6 @@ pub async fn get_trade_pair(
             .unwrap(),
     )
     .unwrap();
-    println!("TEST E");
 
     if data["book"]["bids"] == Value::Null {
         data["book"]["bids"] = Value::Array(vec![]);
@@ -1189,7 +1261,19 @@ pub async fn get_trade_pair(
     if data["book"]["asks"] == Value::Null {
         data["book"]["asks"] = Value::Array(vec![]);
     }
-    println!("TEST F");
+
+    if data["trades"] == Value::Null {
+        data["trades"] = Value::Array(vec![]);
+    }
+
+    if data["marketData"]["lastPrice"] == Value::Null {
+        data["marketData"]["lastPrice"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["volume"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["turnover"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["changeDelta"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["prevLastPrice"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["time"] = Value::Number(Number::from_i128(0).unwrap());
+    }
 
     println!("{}", data);
 
