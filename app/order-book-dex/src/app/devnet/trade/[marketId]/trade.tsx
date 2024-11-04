@@ -26,6 +26,7 @@ export default function Trade({ market }: { market: Market }) {
 
       <Tabs defaultValue="buy">
         <TabsList className="bg-transparent w-full py-9 px-0">
+
           <TabsTrigger
             value="buy"
             className="rounded-none grow data-[state=active]:bg-green-950 border-b-2 data-[state=active]:border-b-green-700 py-5"
@@ -34,6 +35,7 @@ export default function Trade({ market }: { market: Market }) {
               Buy
             </span>
           </TabsTrigger>
+
           <TabsTrigger
             value="sell"
             className="rounded-none grow data-[state=active]:bg-red-950 border-b-2 data-[state=active]:border-b-red-700 py-5"
@@ -42,19 +44,23 @@ export default function Trade({ market }: { market: Market }) {
               Sell
             </span>
           </TabsTrigger>
+
         </TabsList>
+
         <TabsContent value="buy">
           <OrderDetails
             market={market}
             type="buy"
           />
         </TabsContent>
+
         <TabsContent value="sell">
           <OrderDetails
             market={market}
             type="sell"
           />
         </TabsContent>
+
       </Tabs>
     </div>
   );

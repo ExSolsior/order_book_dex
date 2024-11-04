@@ -27,16 +27,14 @@ export default function LimitOrder({
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
   const { marketId } = market.orderBook.accounts;
   const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
   const userWallet = useAnchorWallet();
   const { program } = useContext(ProgramContext)!;
 
-  // Dummy log to prevent lint error for `type` until functionality is implemented
-  console.log(`Trade type: ${type}`);
-
+  // need to add better validations
   const formSchema = z.object({
     price: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
       message: "Expected number, received a string"
@@ -60,34 +58,21 @@ export default function LimitOrder({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
 
-    console.log("LOG::", values);
-    {
-      /* TODO: Implement functionality */
-      // book config
-      // signer address
-      // next position pointer = null
-      // order type
-      // price
-      // amount
-      // nonce
-    }
-
     const params = new URLSearchParams({
-      "book_config": new PublicKey("DqLsxqNjX3Zs8V5xGPBJi4GkggUypnWMoRkS43VSjQa7").toString(),
-      // "book_config": marketId.toString(),
+      "book_config": marketId.toString(),
       signer: userWallet!.publicKey.toString(),
-      "order_type": "bid",
+      "order_type": type,
       // next_position_pointer: optional value?
       // this will come from market pointer state
       // which is currently not implemented yet
-      price: (10).toString(),
-      amount: (1).toString(),
+      price: values.price,
+      amount: values.quantity,
       nonce: (0).toString(),
     });
 
     // url should come from a config file
-    const base = new URL("http://127.0.0.1:8000");
-    const path = new URL("/api/open_limit_order?" + params.toString(), base.toString());
+    const base = new URL("http://127.0.0.1:8000/api/");
+    const path = new URL("./open_limit_order?" + params.toString(), base.toString());
 
 
     fetch(path)

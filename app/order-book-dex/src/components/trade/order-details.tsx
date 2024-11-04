@@ -12,7 +12,7 @@ export default function OrderDetails({
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
 
   const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
@@ -38,7 +38,7 @@ export default function OrderDetails({
         <Balance token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB} />
         <LimitOrder
           market={market}
-          type={type}
+          type={type === "buy" ? "bid" : "ask"}
         />
       </TabsContent>
       <TabsContent

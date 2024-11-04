@@ -21,7 +21,7 @@ export default function MarketOrder({
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
   const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
   const formSchema = z.object({
