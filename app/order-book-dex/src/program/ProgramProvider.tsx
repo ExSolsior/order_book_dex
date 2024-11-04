@@ -62,9 +62,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
     );
 
-
-  console.log(connection.rpcEndpoint)
-
   // Tx: Open Limit Order
   const openLimitOrder = async ({
     marketOrderBook,
@@ -466,7 +463,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
-  program: Program<typeof CHRONO_IDL> | undefined,
+  program: Program<typeof CHRONO_IDL>,
   programId: PublicKey,
   createTradePair: ((
     tokenMintA: web3.PublicKey,

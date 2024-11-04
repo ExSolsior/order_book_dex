@@ -19,20 +19,18 @@ export default function Page({ params }: { params: { marketId: string } }) {
     return <>{"loading"}</>
   }
 
-  const allMarkets = newMarkets.concat(topGainers, popular);
-  // const market =
-  //   allMarkets.find((market) => market.marketId === params.marketId) ||
-  //   allMarkets[0];
+  console.log(params)
 
   const { data: market } = useTransaction(
-    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
+    new PublicKey(params.marketId),
   );
 
-  // useEffect(() => {
-  //   if (market !== null && market.marketId) {
-  //     document.title = `${market.tokenA}/${market.tokenB} - ${siteConfig.name}`;
-  //   }
-  // }, [market]);
+  useEffect(() => {
+    if (market !== null && market.orderBook.accounts.marketId) {
+
+      document.title = `${market.orderBook.marketDetails.ticker} - ${siteConfig.name}`;
+    }
+  }, [market]);
 
   if (market === null) return;
   const { candles } = market;

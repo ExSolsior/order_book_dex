@@ -1,3 +1,5 @@
+"use client"
+
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react"
 
@@ -11,8 +13,6 @@ export const useMarkets = () => {
 
         const base = new URL("http://127.0.0.1:8000/api/");
         const marketListURL = new URL("./market_list?offset=0&limit=10", base);
-
-        console.log(marketListURL);
 
         try {
             const response = await fetch(marketListURL);
@@ -79,6 +79,7 @@ export const useMarkets = () => {
 export type Markets = {
     accounts: {
         marketId: PublicKey,
+        // maybe I don't need this data?
         tokenMintA: PublicKey,
         tokenMintB: PublicKey,
         tokenProgramA: PublicKey,
