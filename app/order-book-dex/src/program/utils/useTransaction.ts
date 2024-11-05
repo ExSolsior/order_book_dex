@@ -164,7 +164,7 @@ export const useTransaction = (marketId: PublicKey) => {
             })()
 
             const data = {
-                market: [{
+                markets: [{
                     marketId: marketId.toString(),
                     positionConfigId: positionConfigId.toString(),
                     positionConfigNonce: positionConfigNonce.toString(),
@@ -180,7 +180,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
         if (!JSON.parse(localStorage
             .getItem(userWallet!.publicKey.toString())!)
-            .market.find((item: any) => marketId.toString() === item.marketId)) {
+            .markets.find((item: any) => marketId.toString() === item.marketId)) {
 
             const user = JSON.parse(localStorage
                 .getItem(userWallet!.publicKey.toString())!);
@@ -203,7 +203,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
             let data = {
                 ...user,
-                market: [
+                markets: [
                     ...user.market.filter((list: any) => list.positionConfigId !== positionConfigId),
                     {
                         marketId: marketId.toString(),
@@ -225,7 +225,7 @@ export const useTransaction = (marketId: PublicKey) => {
         try {
 
             const { positionConfigNonce } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                .market.find((item: any) => marketId.toString() === item.marketId);
+                .markets.find((item: any) => marketId.toString() === item.marketId);
 
             const response = await Promise.all([
                 fetch(orderBookURL),
@@ -558,34 +558,38 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "create-limit-order": {
-                        // apparently I am not getting nonce from event
-                        // for now just increment
-                        // need get market maker id
-                        // and compare to client user
-                        // if valid then update
 
-                        // if (payload.marketMaker !== userWallet.publicKey) {
-                        //     break;
-                        // }
+                        if (payload.marketMakerPubkey !== userWallet.publicKey) {
+                            break;
+                        }
 
                         const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-                        let positionConfigNonce = (() => {
+                        let { positionConfigNonce, market } = (() => {
                             const data = user!.markets
                                 .find((id: string) => marketId.toString() === id);
 
-                            return BigInt(data.positionConfig);
+                            return {
+                                positionConfigNonce: BigInt(data.positionConfig),
+                                market: data,
+                            }
                         })();
 
                         positionConfigNonce += BigInt(1);
 
-                        localStorage.set(
-                            userWallet!.publicKey.toString(),
-                            {
-                                ...user,
-                                markets: {
-                                    positionConfigNonce,
+                        const data = {
+                            ...user,
+                            markets: [
+                                ...user.markets.filter((item: any) => item.marketId !== marketId),
+                                {
+                                    ...market,
+                                    positionConfigNonce: payload.nonce!.toString(),
                                 }
-                            }
+                            ]
+                        }
+
+                        localStorage.setItem(
+                            userWallet!.publicKey.toString(),
+                            JSON.parse(data),
                         );
 
                         setData({
