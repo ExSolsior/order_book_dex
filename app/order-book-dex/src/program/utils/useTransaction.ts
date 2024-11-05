@@ -697,7 +697,7 @@ export type Trade = {
     action: "buy" | "sell";
 };
 
-export type Market = {
+export interface Market {
     image: string,
     candles: Candle[],
     page: number,
