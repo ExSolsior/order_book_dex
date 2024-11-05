@@ -21,7 +21,7 @@ export default function Page({ params }: { params: { marketId: string } }) {
 
   console.log(params)
 
-  const { data: market } = useTransaction(
+  const { data: market, marketOrder } = useTransaction(
     new PublicKey(params.marketId),
   );
 
@@ -44,7 +44,10 @@ export default function Page({ params }: { params: { marketId: string } }) {
       <div className="flex">
         <CandlestickChart data={candles} />
         <OrderBook market={market} />
-        <Trade market={market} />
+        <Trade
+          market={market}
+          marketOrder={marketOrder}
+        />
       </div>
     </div>
   );

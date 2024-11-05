@@ -1,12 +1,12 @@
 import OpenNewWindowButton from "@/components/open-new-window-button";
 import OrderDetails from "@/components/trade/order-details";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Market } from "../../../../program/utils/useTransaction";
+import { Market, MarketOrderState } from "../../../../program/utils/useTransaction";
 
 const SOON_EXPLORER_URL = "https://explorer.devnet.soo.network";
 
 // need to hande link for OpenNewWindowButton
-export default function Trade({ market }: { market: Market }) {
+export default function Trade({ market, marketOrder }: { market: Market, marketOrder: MarketOrderState }) {
   const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
 
   return (
@@ -50,6 +50,8 @@ export default function Trade({ market }: { market: Market }) {
         <TabsContent value="buy">
           <OrderDetails
             market={market}
+            marketOrder={marketOrder}
+
             type="buy"
           />
         </TabsContent>
@@ -57,6 +59,8 @@ export default function Trade({ market }: { market: Market }) {
         <TabsContent value="sell">
           <OrderDetails
             market={market}
+            marketOrder={marketOrder}
+
             type="sell"
           />
         </TabsContent>
