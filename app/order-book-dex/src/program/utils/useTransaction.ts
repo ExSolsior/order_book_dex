@@ -1,7 +1,6 @@
 "use client"
 
-import { useContext, useEffect, useState } from "react";
-import { createContext } from "vm";
+import { useContext, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import {
@@ -12,6 +11,7 @@ import {
 } from "./events"
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { ProgramContext } from "../ProgramProvider";
+import { CachedMarket } from "./types";
 
 // const transactionContext = createContext();
 // useMarket
@@ -146,10 +146,9 @@ export const useTransaction = (marketId: PublicKey) => {
             )
         }
 
-
         if (!JSON.parse(localStorage
             .getItem(userWallet!.publicKey.toString())!)
-            .markets.find((item: any) => marketId.toString() === item.marketId)) {
+            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
 
             const user = JSON.parse(localStorage
                 .getItem(userWallet!.publicKey.toString())!);
@@ -170,10 +169,10 @@ export const useTransaction = (marketId: PublicKey) => {
                 return BigInt(0);
             })()
 
-            let data = {
+            const data = {
                 ...user,
                 markets: [
-                    ...user.market.filter((list: any) => list.positionConfigId !== positionConfigId),
+                    ...user.market.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
                     {
                         marketId: marketId.toString(),
                         positionConfigId: positionConfigId.toString(),
@@ -194,14 +193,14 @@ export const useTransaction = (marketId: PublicKey) => {
         try {
 
             const { positionConfigNonce } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                .markets.find((item: any) => marketId.toString() === item.marketId);
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId);
 
             const response = await Promise.all([
                 fetch(orderBookURL),
                 fetch(candleDataURL)
             ]);
 
-            let book = await (async () => {
+            const book = await (async () => {
                 if (response[0].status === 200) {
                     return await response[0].json();
                 }
@@ -212,7 +211,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 return
             }
 
-            let candles = await (async () => {
+            const candles = await (async () => {
                 if (response[1].status === 200) {
                     return await response[1].json();
                 }
@@ -222,8 +221,14 @@ export const useTransaction = (marketId: PublicKey) => {
             let asks = new Map<bigint, Order>();
             let bids = new Map<bigint, Order>();
 
+            // interface Order {
+            //     price: string,
+            //     size: string,
+
+            // };
+
             // also need display format and real format
-            book.book.asks.forEach((element: any) => {
+            book.book.asks.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
                 asks.set(price, {
@@ -235,7 +240,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
             });
 
-            book.book.bids.forEach((element: any) => {
+            book.book.bids.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
                 bids.set(price, {
@@ -339,7 +344,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
             asks
                 .values()
-                .forEach((data: any) => {
+                .forEach((data: Order) => {
                     askDepth += data.size;
                     data.depth = askDepth;
 
@@ -358,7 +363,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
             bids
                 .values()
-                .forEach((data: any) => {
+                .forEach((data: Order) => {
                     bidDepth += data.size;
                     data.depth = bidDepth;
 
@@ -368,7 +373,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
 
 
-            let store = {
+            const store = {
                 // how to handle including image?
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
                 image: "",
@@ -439,7 +444,7 @@ export const useTransaction = (marketId: PublicKey) => {
                         ),
                     },
 
-                    trades: book.trades.map((data: any) => {
+                    trades: book.trades.map((data: Trade) => {
                         return {
                             price: Number(data.price),
                             qty: Number(data.qty),
@@ -464,7 +469,7 @@ export const useTransaction = (marketId: PublicKey) => {
     }
 
     const getCandleData = async () => {
-        let offset = data!.page * 1000;
+        const offset = data!.page * 1000;
 
         const params = new URLSearchParams();
         params.append("book_config", marketId.toString());
@@ -476,7 +481,7 @@ export const useTransaction = (marketId: PublicKey) => {
         try {
 
             const response = await fetch(candleDataURL);
-            let candles = await response.json();
+            const candles = await response.json();
 
             setData({
                 ...data!,
@@ -522,7 +527,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "fill-market-order": {
-                        let data = {
+                        const data = {
                             method: "sub",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
@@ -545,22 +550,20 @@ export const useTransaction = (marketId: PublicKey) => {
                         }
 
                         const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-                        let { positionConfigNonce, market } = (() => {
+                        const { positionConfigNonce, market } = (() => {
                             const data = user!.markets
                                 .find((id: string) => marketId.toString() === id);
 
                             return {
-                                positionConfigNonce: BigInt(data.positionConfig),
+                                positionConfigNonce: BigInt(data.positionConfigNonce),
                                 market: data,
                             }
                         })();
 
-                        positionConfigNonce += BigInt(1);
-
                         const data = {
                             ...user,
                             markets: [
-                                ...user.markets.filter((item: any) => item.marketId !== marketId),
+                                ...user.markets.filter((item: CachedMarket) => item.marketId !== marketId.toString()),
                                 {
                                     ...market,
                                     positionConfigNonce: payload.nonce!.toString(),
@@ -577,7 +580,7 @@ export const useTransaction = (marketId: PublicKey) => {
                             ...data!,
                             user: {
                                 ...data!.user,
-                                positionConfigNonce,
+                                positionConfigNonce: positionConfigNonce + BigInt(1),
                             }
                         })
 
@@ -585,7 +588,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "open-limit-order": {
-                        let data = {
+                        const data = {
                             method: "add",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
@@ -597,7 +600,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "cancel-limit-order": {
-                        let data = {
+                        const data = {
                             method: "sub",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),

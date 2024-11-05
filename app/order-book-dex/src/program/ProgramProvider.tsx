@@ -6,7 +6,6 @@ import {
   BN,
   Program,
   setProvider,
-  Wallet,
   web3
 } from "@coral-xyz/anchor";
 import { getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -424,6 +423,9 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
         systemProgram: SystemProgram.programId,
       })
       .prepare()
+      // causes vercel issue, because of any...
+      // though doesn't matter this code is just here
+      // for testing purposes and will be removed soon
       .then(async (data: any) => {
         const recentBlockhash = await conn.getLatestBlockhash();
         const transaction = new Transaction(recentBlockhash)

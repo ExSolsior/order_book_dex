@@ -16,7 +16,10 @@ import { Market, Order } from "../../program/utils/useTransaction";
 // need to implement better number formatting with the most cost effective way.
 export default function Book({ market }: { market: Market }) {
 
-  const { decimalsA, decimalsB } = market.orderBook.marketDetails;
+  const {
+    decimalsA,
+    // decimalsB 
+  } = market.orderBook.marketDetails;
   const { lastPrice } = market.orderBook.marketData;
   const { feedData: asks } = market.orderBook.asks;
   const { feedData: bids } = market.orderBook.bids;

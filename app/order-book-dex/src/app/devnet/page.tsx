@@ -4,9 +4,8 @@ import { MainCarousel } from "@/components/home/main-carousel";
 import { Markets } from "@/components/home/markets";
 import { columns } from "@/components/markets-table/columns";
 import { MarketsTable } from "@/components/markets-table/data-table";
-import { Market, newMarkets, popular, topGainers } from "@/lib/markets";
+import { Market } from "@/lib/markets";
 import { useMarkets } from "@/program/utils/useMarkets";
-import { string } from "zod";
 
 export default function Home() {
   let { data: allMarkets } = useMarkets()

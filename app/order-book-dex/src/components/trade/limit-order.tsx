@@ -16,10 +16,9 @@ import { z } from "zod";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageV0, PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
+import { MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
-import MarketOrder from "./market-order";
 
 // need to add better validations
 const formSchema = z.object({
@@ -99,9 +98,18 @@ export default function LimitOrder({
       })
       .then((data) => {
 
-        let vMessage = new MessageV0({
+        interface LimitOrderTransaction {
+          accountKey: number,
+          readonlyIndexes: number,
+          writeableIndexes: number,
+          accounts: number[],
+          data: number[],
+          programIdIndex: number,
+        }
 
-          addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: any) => {
+        const vMessage = new MessageV0({
+
+          addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: LimitOrderTransaction) => {
             return {
               accountKey: data.accountKey,
               readonlyIndexes: data.readonlyIndexes,
@@ -109,7 +117,7 @@ export default function LimitOrder({
             }
           }),
 
-          compiledInstructions: data.message[1].instructions.slice(1).map((data: any) => {
+          compiledInstructions: data.message[1].instructions.slice(1).map((data: LimitOrderTransaction) => {
             return {
               accountKeyIndexes: data.accounts.slice(1),
               data: new Uint8Array(data.data.slice(1)),
@@ -119,12 +127,12 @@ export default function LimitOrder({
 
           header: data.message[1].header,
           recentBlockhash: new PublicKey(Buffer.from(data.message[1].recentBlockhash)).toString(),
-          staticAccountKeys: data.message[1].accountKeys.slice(1).map((data: any) => {
+          staticAccountKeys: data.message[1].accountKeys.slice(1).map((data: number[]) => {
             return new PublicKey(Buffer.from(data));
           }),
         })
 
-        let vTransaction = new VersionedTransaction(vMessage);
+        const vTransaction = new VersionedTransaction(vMessage);
         return userWallet?.signTransaction(vTransaction);
       })
       .then((signedTransaction) => {

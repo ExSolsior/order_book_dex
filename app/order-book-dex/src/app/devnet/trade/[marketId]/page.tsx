@@ -3,7 +3,6 @@
 import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
-import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { useContext, useEffect } from "react";
 import { Header } from "./header";
 import OrderBook from "./order-book";
@@ -15,11 +14,13 @@ import { ProgramContext } from "@/program/ProgramProvider";
 export default function Page({ params }: { params: { marketId: string } }) {
 
   let programContext = useContext(ProgramContext)
+
+  // how to resove this?
+  // programContext will be null
+  // but can't be null when using useTransaction...
   if (!programContext) {
     return <>{"loading"}</>
   }
-
-  console.log(params)
 
   const { data: market, marketOrder } = useTransaction(
     new PublicKey(params.marketId),

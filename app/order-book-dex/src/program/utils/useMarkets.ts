@@ -16,8 +16,9 @@ export const useMarkets = () => {
 
         try {
             const response = await fetch(marketListURL);
-            let data = await response.json();
+            const data = await response.json();
 
+            // update to fetched market: WIP
             const list = data.map((el: any) => {
                 return {
                     accounts: {
@@ -120,3 +121,7 @@ export type Markets = {
         changePercent: bigint,
     },
 };
+
+export interface FetchedMarket {
+
+}
