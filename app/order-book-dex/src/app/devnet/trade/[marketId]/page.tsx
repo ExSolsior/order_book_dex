@@ -13,15 +13,6 @@ import { ProgramContext } from "@/program/ProgramProvider";
 
 export default function Page({ params }: { params: { marketId: string } }) {
 
-  let programContext = useContext(ProgramContext)
-
-  // how to resove this?
-  // programContext will be null
-  // but can't be null when using useTransaction...
-  if (!programContext) {
-    return <>{"loading"}</>
-  }
-
   const { data: market, marketOrder } = useTransaction(
     new PublicKey(params.marketId),
   );

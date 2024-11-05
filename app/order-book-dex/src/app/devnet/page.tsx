@@ -8,7 +8,7 @@ import { Market } from "@/lib/markets";
 import { useMarkets } from "@/program/utils/useMarkets";
 
 export default function Home() {
-  let { data: allMarkets } = useMarkets()
+  const { data: allMarkets } = useMarkets()
 
   if (!allMarkets) return <>{"LOADING..."}</>
 

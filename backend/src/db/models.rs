@@ -1205,6 +1205,7 @@ pub async fn get_trade_pair(
                         'tokenSymbolA', t.token_symbol_a,
                         'tokenSymbolB', t.token_symbol_b,
                         'isReverse', t.is_reverse,
+                        'ticker', t.ticker,
                         
                         'positionConfig', (
                             SELECT pubkey_id

@@ -95,7 +95,17 @@ export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
 
     const userWallet = useAnchorWallet();
-    const { programId, program } = useContext(ProgramContext)!;
+    const { programId, program } = (() => {
+        if (useContext(ProgramContext) === null) {
+            return {
+                programId: undefined,
+                program: undefined,
+            }
+        }
+
+        const { programId, program } = useContext(ProgramContext)!;
+        return { programId, program }
+    })();
 
     const base = new URL("http://127.0.0.1:8000/api/")
 
@@ -120,10 +130,10 @@ export const useTransaction = (marketId: PublicKey) => {
                 userWallet!.publicKey.toBuffer(),
                 marketId.toBuffer(),
                 Buffer.from("order-position-config"),
-            ], programId)
+            ], programId!)
 
             const positionConfigNonce = await (async () => {
-                const account = await program.provider.connection.getAccountInfo(positionConfigId)
+                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
                 if (account !== null) {
                     const offset = 32 * 4;
                     return account.data.readBigInt64BE(offset);
@@ -157,10 +167,10 @@ export const useTransaction = (marketId: PublicKey) => {
                 userWallet!.publicKey.toBuffer(),
                 marketId.toBuffer(),
                 Buffer.from("order-position-config"),
-            ], programId)
+            ], programId!)
 
             const positionConfigNonce = await (async () => {
-                const account = await program.provider.connection.getAccountInfo(positionConfigId)
+                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
                 if (account !== null) {
                     const offset = 32 * 4;
                     return account.data.readBigInt64BE(offset);
@@ -620,10 +630,18 @@ export const useTransaction = (marketId: PublicKey) => {
         // need to store the id in state
         // on first render data is valid
         // on all subsequent renders data is null
-        return id;
+        // return id;
     }
 
-    const id = run();
+    if (programId === undefined) {
+        return {
+            data,
+            marketOrder,
+            getCandleData,
+        }
+    }
+
+    run();
 
     return {
         data,
@@ -633,8 +651,8 @@ export const useTransaction = (marketId: PublicKey) => {
 }
 
 const updateCandles = (candles: Candle[]) => {
-    return candles.map((data: any) => ({
-        time: Number(data.timestamp),
+    return candles.map((data: Candle) => ({
+        time: Number(data.time),
         open: Number(data.open),
         high: Number(data.high),
         low: Number(data.low),
@@ -646,7 +664,6 @@ const updateCandles = (candles: Candle[]) => {
         // close: BigInt(data.close),
     }));
 }
-
 
 interface Payload {
     method: string;
