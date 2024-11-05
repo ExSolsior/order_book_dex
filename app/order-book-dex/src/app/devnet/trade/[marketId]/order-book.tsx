@@ -16,10 +16,10 @@ export default function OrderBook({ market }: { market: Market }) {
         <CustomTabsTrigger value="trades">Trades</CustomTabsTrigger>
       </TabsList>
       <TabsContent value="book">
-        <Book market={market} />
+        <Book market={market!} />
       </TabsContent>
       <TabsContent value="trades">
-        <Trades market={market} />
+        <Trades market={market!} />
       </TabsContent>
     </Tabs>
   );
