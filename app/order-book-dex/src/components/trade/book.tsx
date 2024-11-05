@@ -14,7 +14,11 @@ import { Market, Order } from "../../program/utils/useTransaction";
 // last price needs to be updated to reflect token currency correctly
 // decimlas need to correctly factored based on reverse and other conditions
 // need to implement better number formatting with the most cost effective way.
-export default function Book({ market }: { market: Market }) {
+export default function Book({ market }: { market: Market | null }) {
+
+  if (market === null) {
+    return <>{"LOADING"}</>
+  }
 
   const {
     decimalsA,

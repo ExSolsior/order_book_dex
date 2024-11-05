@@ -23,7 +23,7 @@ export default function Page({ params }: { params: { marketId: string } }) {
     }
   }, [market]);
 
-  if (market === null) return;
+  if (market === null) return <>{"LOADING"}</>;
   const { candles } = market;
 
   return (
