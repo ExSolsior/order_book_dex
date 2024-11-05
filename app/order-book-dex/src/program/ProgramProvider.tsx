@@ -8,7 +8,12 @@ import {
   setProvider,
   web3
 } from "@coral-xyz/anchor";
-import { getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getAccount,
+  // getAssociatedTokenAddressSync, 
+  // TOKEN_PROGRAM_ID 
+}
+  from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { createContext, ReactNode, useContext, useMemo } from "react";
 import toast from "react-hot-toast";
@@ -21,7 +26,11 @@ import {
 import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
 import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  // SystemProgram, 
+  // Transaction
+} from "@solana/web3.js";
 
 export enum OrderType {
   Buy = "Buy",

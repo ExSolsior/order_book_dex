@@ -3,13 +3,12 @@
 import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { Header } from "./header";
 import OrderBook from "./order-book";
 import Trade from "./trade";
 import { PublicKey } from "@solana/web3.js";
 import { useTransaction } from "@/program/utils/useTransaction";
-import { ProgramContext } from "@/program/ProgramProvider";
 
 export default function Page({ params }: { params: { marketId: string } }) {
 

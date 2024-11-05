@@ -95,17 +95,20 @@ export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
 
     const userWallet = useAnchorWallet();
+    const context = useContext(ProgramContext);
+
     const { programId, program } = (() => {
-        if (useContext(ProgramContext) === null) {
+        if (context === null) {
             return {
                 programId: undefined,
                 program: undefined,
             }
         }
 
-        const { programId, program } = useContext(ProgramContext)!;
+        const { programId, program } = context;
         return { programId, program }
     })();
+
 
     const base = new URL("http://127.0.0.1:8000/api/")
 
@@ -521,7 +524,8 @@ export const useTransaction = (marketId: PublicKey) => {
 
         const queue = new Queue();
 
-        const id = eventListner(
+        // returns id but for now not handling it
+        eventListner(
             marketId,
             [
                 OPEN_LIMIT_ORDER_EVENT,
