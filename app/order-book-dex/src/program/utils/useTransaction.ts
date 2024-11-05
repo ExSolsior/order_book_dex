@@ -86,40 +86,9 @@ export class MarketOrderState {
 
 }
 
-type OO = {
-    "name": "orderPositionConfig",
-    "type": {
-        "kind": "struct",
-        "fields": [
-            {
-                "name": "orderBookConfig",
-                "type": "pubkey"
-            },
-            {
-                "name": "owner",
-                "type": "pubkey"
-            },
-            {
-                "name": "capitalA",
-                "type": "pubkey"
-            },
-            {
-                "name": "capitalB",
-                "type": "pubkey"
-            },
-            {
-                "name": "nonce",
-                "type": "u64"
-            }
-        ]
-    }
-}
-
 // I wonder if this could cause some issues
 const marketOrder = new MarketOrderState();
 
-// how I can think about preventing double rendering is add a loading state,
-// when is fully loaded, then fetch data
 // rename to useMarket
 // need to handle if get no data, could use default empty state instead of null
 export const useTransaction = (marketId: PublicKey) => {
@@ -552,6 +521,18 @@ export const useTransaction = (marketId: PublicKey) => {
                         break;
                     }
 
+                    case "fill-market-order": {
+                        let data = {
+                            method: "sub",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price!.toString()),
+                            size: BigInt(payload.size!.toString()),
+                        }
+
+                        queue.push(data);
+                        break;
+                    }
+
                     case "complete-market-order": {
                         marketOrder.update(payload.orderType, null);
                         break;
@@ -616,18 +597,6 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "cancel-limit-order": {
-                        let data = {
-                            method: "sub",
-                            order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
-                        }
-
-                        queue.push(data);
-                        break;
-                    }
-
-                    case "fill-market-order": {
                         let data = {
                             method: "sub",
                             order: payload.orderType!,
