@@ -64,24 +64,168 @@ class Queue {
     }
 }
 
+export class MarketOrderState {
+    bidNextPointer: PublicKey | undefined | null;
+    askNextPointer: PublicKey | undefined | null;
+    constructor() {
+        // sell side market pointer
+        this.bidNextPointer = null;
+        // buy side market pointer
+        this.askNextPointer = null;
+    }
+
+    update(side: string | undefined, value: PublicKey | undefined | null) {
+        if (side === "buy") {
+            this.askNextPointer = value;
+        }
+
+        if (side === "sell") {
+            this.bidNextPointer = value;
+        }
+    }
+
+}
+
+type OO = {
+    "name": "orderPositionConfig",
+    "type": {
+        "kind": "struct",
+        "fields": [
+            {
+                "name": "orderBookConfig",
+                "type": "pubkey"
+            },
+            {
+                "name": "owner",
+                "type": "pubkey"
+            },
+            {
+                "name": "capitalA",
+                "type": "pubkey"
+            },
+            {
+                "name": "capitalB",
+                "type": "pubkey"
+            },
+            {
+                "name": "nonce",
+                "type": "u64"
+            }
+        ]
+    }
+}
+
+// I wonder if this could cause some issues
+const marketOrder = new MarketOrderState();
+
 // how I can think about preventing double rendering is add a loading state,
 // when is fully loaded, then fetch data
 // rename to useMarket
 // need to handle if get no data, could use default empty state instead of null
 export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
+
     const userWallet = useAnchorWallet();
-    const { programId } = useContext(ProgramContext)!;
+    const { programId, program } = useContext(ProgramContext)!;
 
     const base = new URL("http://127.0.0.1:8000/api/")
 
-
     const load = async (marketId: PublicKey, queue: Queue) => {
+
+
+        /*
+        
+            checking if user is cached
+            if not the create cache state
+            using local storage for now but should use indexedDB
+            should derive user data
+            state: 
+                markets
+                    marketId
+                    positionConfig
+        */
+
+        if (!localStorage.getItem(userWallet!.publicKey.toString())) {
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], programId)
+
+            const positionConfigNonce = await (async () => {
+                const account = await program.provider.connection.getAccountInfo(positionConfigId)
+                if (account !== null) {
+                    const offset = 32 * 4;
+                    return account.data.readBigInt64BE(offset);
+                }
+
+                return BigInt(0);
+            })()
+
+            const data = {
+                market: [{
+                    marketId: marketId.toString(),
+                    positionConfigId: positionConfigId.toString(),
+                    positionConfigNonce: positionConfigNonce.toString(),
+                }]
+            }
+
+            localStorage.setItem(
+                userWallet!.publicKey.toString(),
+                JSON.stringify(data),
+            )
+        }
+
+
+        if (!JSON.parse(localStorage
+            .getItem(userWallet!.publicKey.toString())!)
+            .market.find((item: any) => marketId.toString() === item.marketId)) {
+
+            const user = JSON.parse(localStorage
+                .getItem(userWallet!.publicKey.toString())!);
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], programId)
+
+            const positionConfigNonce = await (async () => {
+                const account = await program.provider.connection.getAccountInfo(positionConfigId)
+                if (account !== null) {
+                    const offset = 32 * 4;
+                    return account.data.readBigInt64BE(offset);
+                }
+
+                return BigInt(0);
+            })()
+
+            let data = {
+                ...user,
+                market: [
+                    ...user.market.filter((list: any) => list.positionConfigId !== positionConfigId),
+                    {
+                        marketId: marketId.toString(),
+                        positionConfigId: positionConfigId.toString(),
+                        positionConfigNonce: positionConfigNonce.toString(),
+                    }
+                ]
+            }
+
+            localStorage.setItem(
+                userWallet!.publicKey.toString(),
+                JSON.stringify(data),
+            )
+        }
 
         const orderBookURL = new URL(`./market_order_book?book_config=${marketId.toString()}`, base);
         const candleDataURL = new URL(`./market_history?book_config=${marketId.toString()}&interval=1m&limit=1000&offset=0`, base);
 
         try {
+
+            const { positionConfigNonce } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
+                .market.find((item: any) => marketId.toString() === item.marketId);
 
             const response = await Promise.all([
                 fetch(orderBookURL),
@@ -254,6 +398,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     });
                 });
 
+
             let store = {
                 // how to handle including image?
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
@@ -261,6 +406,10 @@ export const useTransaction = (marketId: PublicKey) => {
                 page: 0,
                 candles: updateCandles(candles.market)
                     .sort((a: Candle, b: Candle) => a.time - b.time),
+
+                user: {
+                    positionConfigNonce,
+                },
 
                 orderBook: {
                     accounts: {
@@ -380,7 +529,14 @@ export const useTransaction = (marketId: PublicKey) => {
             return
         }
 
-        const queue = new Queue()
+        // edge case: as this data is initialize on first render
+        // the actual market order data may not be null
+        // so need to come back to this to handle better
+        marketOrder.update("buy", null);
+        marketOrder.update("sell", null);
+
+        const queue = new Queue();
+
         const id = eventListner(
             marketId,
             [
@@ -391,6 +547,58 @@ export const useTransaction = (marketId: PublicKey) => {
             (method, payload) => {
 
                 switch (method) {
+                    case "create-market-order": {
+                        marketOrder.update(payload.orderType, payload.nextPointerPubkey);
+                        break;
+                    }
+
+                    case "complete-market-order": {
+                        marketOrder.update(payload.orderType, null);
+                        break;
+                    }
+
+                    case "create-limit-order": {
+                        // apparently I am not getting nonce from event
+                        // for now just increment
+                        // need get market maker id
+                        // and compare to client user
+                        // if valid then update
+
+                        // if (payload.marketMaker !== userWallet.publicKey) {
+                        //     break;
+                        // }
+
+                        const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
+                        let positionConfigNonce = (() => {
+                            const data = user!.markets
+                                .find((id: string) => marketId.toString() === id);
+
+                            return BigInt(data.positionConfig);
+                        })();
+
+                        positionConfigNonce += BigInt(1);
+
+                        localStorage.set(
+                            userWallet!.publicKey.toString(),
+                            {
+                                ...user,
+                                markets: {
+                                    positionConfigNonce,
+                                }
+                            }
+                        );
+
+                        setData({
+                            ...data!,
+                            user: {
+                                ...data!.user,
+                                positionConfigNonce,
+                            }
+                        })
+
+                        break;
+                    }
+
                     case "open-limit-order": {
                         let data = {
                             method: "add",
@@ -433,6 +641,9 @@ export const useTransaction = (marketId: PublicKey) => {
 
         load(marketId, queue);
 
+        // need to store the id in state
+        // on first render data is valid
+        // on all subsequent renders data is null
         return id;
     }
 
@@ -440,6 +651,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
     return {
         data,
+        marketOrder,
         getCandleData,
     }
 }
@@ -492,6 +704,9 @@ export type Market = {
     image: string,
     candles: Candle[],
     page: number,
+    user: {
+        positionConfigNonce: bigint,
+    },
     orderBook: {
         accounts: {
             marketId: PublicKey,
