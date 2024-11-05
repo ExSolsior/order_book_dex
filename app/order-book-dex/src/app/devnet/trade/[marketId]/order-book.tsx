@@ -6,6 +6,10 @@ import { Market } from "../../../../program/utils/useTransaction";
 
 
 export default function OrderBook({ market }: { market: Market | null }) {
+  if (market === null) {
+    return <>{"LOADING"}</>
+  }
+
   return (
     <Tabs
       defaultValue="book"
@@ -16,10 +20,10 @@ export default function OrderBook({ market }: { market: Market | null }) {
         <CustomTabsTrigger value="trades">Trades</CustomTabsTrigger>
       </TabsList>
       <TabsContent value="book">
-        <Book market={market!} />
+        <Book market={market} />
       </TabsContent>
       <TabsContent value="trades">
-        <Trades market={market!} />
+        <Trades market={market} />
       </TabsContent>
     </Tabs>
   );

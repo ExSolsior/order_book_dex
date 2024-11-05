@@ -23,7 +23,7 @@ export default function MarketOrder({
   market: Market;
   type: "buy" | "sell" | "ask" | "bid";
 }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const formSchema = z.object({
     quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
       message: "Expected number, received a string"

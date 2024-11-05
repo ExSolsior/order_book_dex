@@ -17,9 +17,9 @@ export default function Page({ params }: { params: { marketId: string } }) {
   );
 
   useEffect(() => {
-    if (market !== null && market.orderBook.accounts.marketId) {
+    if (market !== null && market!.orderBook!.accounts.marketId) {
 
-      document.title = `${market.orderBook.marketDetails.ticker} - ${siteConfig.name}`;
+      document.title = `${market!.orderBook!.marketDetails.ticker} - ${siteConfig.name}`;
     }
   }, [market]);
 
@@ -33,7 +33,7 @@ export default function Page({ params }: { params: { marketId: string } }) {
       </div>
       <Separator />
       <div className="flex">
-        <CandlestickChart data={candles} />
+        <CandlestickChart data={candles!} />
         <OrderBook market={market} />
         <Trade
           market={market}

@@ -482,7 +482,7 @@ export const useTransaction = (marketId: PublicKey) => {
     }
 
     const getCandleData = async () => {
-        const offset = data!.page * 1000;
+        const offset = data!.page! * 1000;
 
         const params = new URLSearchParams();
         params.append("book_config", marketId.toString());
@@ -498,9 +498,9 @@ export const useTransaction = (marketId: PublicKey) => {
 
             setData({
                 ...data!,
-                page: data!.page + 1,
+                page: data!.page! + 1,
                 candles: updateCandles(candles.market)
-                    .concat(data!.candles)
+                    .concat(data!.candles!)
                     .sort((a: Candle, b: Candle) => a.time - b.time)
             });
 
@@ -639,7 +639,13 @@ export const useTransaction = (marketId: PublicKey) => {
 
     if (programId === undefined) {
         return {
-            data,
+            data: {
+                image: undefined,
+                candles: undefined,
+                page: undefined,
+                user: undefined,
+                orderBook: undefined,
+            },
             marketOrder,
             getCandleData,
         }
@@ -698,12 +704,12 @@ export type Trade = {
 };
 
 export interface Market {
-    image: string,
-    candles: Candle[],
-    page: number,
+    image: string | undefined,
+    candles: Candle[] | undefined,
+    page: number | undefined,
     user: {
         positionConfigNonce: bigint,
-    },
+    } | undefined,
     orderBook: {
         accounts: {
             marketId: PublicKey,
@@ -741,7 +747,7 @@ export interface Market {
         bids: {
             feedData: Map<bigint, Order>,
         }
-    }
+    } | undefined,
 }
 
 

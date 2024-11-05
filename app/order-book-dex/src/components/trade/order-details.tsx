@@ -17,7 +17,7 @@ export default function OrderDetails({
   type: "buy" | "sell" | "ask" | "bid";
 }) {
 
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const userWallet = useAnchorWallet();
 
   if (!userWallet) {

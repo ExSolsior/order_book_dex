@@ -23,10 +23,10 @@ export default function Book({ market }: { market: Market | null }) {
   const {
     decimalsA,
     // decimalsB 
-  } = market.orderBook.marketDetails;
-  const { lastPrice } = market.orderBook.marketData;
-  const { feedData: asks } = market.orderBook.asks;
-  const { feedData: bids } = market.orderBook.bids;
+  } = market!.orderBook!.marketDetails;
+  const { lastPrice } = market!.orderBook!.marketData;
+  const { feedData: asks } = market!.orderBook!.asks;
+  const { feedData: bids } = market!.orderBook!.bids;
 
   return (
     <>
@@ -99,7 +99,7 @@ export default function Book({ market }: { market: Market | null }) {
 }
 
 function BookHeader({ market }: { market: Market }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
 
   return (
     <TableHeader>

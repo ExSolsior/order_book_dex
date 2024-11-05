@@ -47,15 +47,15 @@ export default function LimitOrder({
   marketOrder: MarketOrderState,
   type: "buy" | "sell" | "ask" | "bid";
 }) {
-  const { marketId } = market.orderBook.accounts;
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { marketId } = market!.orderBook!.accounts;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const userWallet = useAnchorWallet();
   const { program } = useContext(ProgramContext)!;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      price: market.orderBook.marketData.lastPrice.toString(),
+      price: market!.orderBook!.marketData.lastPrice.toString(),
       quantity: '0',
       orderValue: '0'
     }
@@ -72,7 +72,7 @@ export default function LimitOrder({
 
       // need to send correct nonce
       // because is not being handled on backend atm
-      "nonce": market.user.positionConfigNonce.toString(),
+      "nonce": market!.user!.positionConfigNonce.toString(),
     });
 
     if (type === "bid" && marketOrder.bidNextPointer !== null && marketOrder.bidNextPointer !== undefined) {
