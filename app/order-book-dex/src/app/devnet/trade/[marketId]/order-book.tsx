@@ -2,9 +2,14 @@ import Book from "@/components/trade/book";
 import CustomTabsTrigger from "@/components/trade/custom-tabs-trigger";
 import Trades from "@/components/trade/trades";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { Market } from "@/lib/markets";
+import { Market } from "../../../../program/utils/useTransaction";
 
-export default function OrderBook({ market }: { market: Market }) {
+
+export default function OrderBook({ market }: { market: Market | null }) {
+  if (market === null) {
+    return <>{"LOADING"}</>
+  }
+
   return (
     <Tabs
       defaultValue="book"

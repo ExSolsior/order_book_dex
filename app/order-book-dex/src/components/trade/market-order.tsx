@@ -8,7 +8,7 @@ import {
   FormLabel,
   FormMessage
 } from "@/components/ui/form";
-import { Market } from "@/lib/markets";
+import { Market } from "../../program/utils/useTransaction";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,16 +21,19 @@ export default function MarketOrder({
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const formSchema = z.object({
-    quantity: z.number()
+    quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    })
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quantity: 0
+      quantity: '0'
     }
   });
 
@@ -52,7 +55,7 @@ export default function MarketOrder({
             Average Price
           </span>
           <span className="text-sm font-semibold text-right">
-            0.00 {market.tokenB}
+            0.00 {isReverse ? symbolA : symbolB}
           </span>
         </div>
         <FormField
@@ -74,7 +77,7 @@ export default function MarketOrder({
                           ? "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
                           : market.image
                       }
-                      alt={type === "buy" ? market.tokenB : market.tokenA}
+                      alt={type === "buy" ? isReverse ? symbolA : symbolB : isReverse ? symbolA : symbolB}
                       className="rounded-full w-6 h-6 self-center"
                     />
                   </Avatar>

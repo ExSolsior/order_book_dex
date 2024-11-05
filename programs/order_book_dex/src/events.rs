@@ -34,10 +34,12 @@ pub struct NewOrderPositionConfigEvent {
 
 #[event]
 pub struct CreateOrderPositionEvent {
+    pub market_maker: Pubkey,
     pub pos_pubkey: Pubkey,
     pub book_config: Pubkey,
     pub pos_config: Pubkey,
     pub order_type: Order,
+    pub next_nonce: u64,
 }
 
 #[event]

@@ -3,24 +3,28 @@
 import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
-import { candles } from "@/lib/candles";
-import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { useEffect } from "react";
 import { Header } from "./header";
 import OrderBook from "./order-book";
 import Trade from "./trade";
+import { PublicKey } from "@solana/web3.js";
+import { useTransaction } from "@/program/utils/useTransaction";
 
 export default function Page({ params }: { params: { marketId: string } }) {
-  const allMarkets = newMarkets.concat(topGainers, popular);
-  const market =
-    allMarkets.find((market) => market.marketId === params.marketId) ||
-    allMarkets[0];
+
+  const { data: market, marketOrder } = useTransaction(
+    new PublicKey(params.marketId),
+  );
 
   useEffect(() => {
-    if (market.marketId) {
-      document.title = `${market.tokenA}/${market.tokenB} - ${siteConfig.name}`;
+    if (market !== null && market!.orderBook!.accounts.marketId) {
+
+      document.title = `${market!.orderBook!.marketDetails.ticker} - ${siteConfig.name}`;
     }
   }, [market]);
+
+  if (market === null) return <>{"LOADING"}</>;
+  const { candles } = market;
 
   return (
     <div className="h-full">
@@ -29,9 +33,12 @@ export default function Page({ params }: { params: { marketId: string } }) {
       </div>
       <Separator />
       <div className="flex">
-        <CandlestickChart data={candles} />
+        <CandlestickChart data={candles!} />
         <OrderBook market={market} />
-        <Trade market={market} />
+        <Trade
+          market={market}
+          marketOrder={marketOrder}
+        />
       </div>
     </div>
   );

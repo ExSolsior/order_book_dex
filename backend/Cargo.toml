@@ -36,3 +36,4 @@ solana-test-framework = { git = "https://github.com/halbornteam/solana-test-fram
 ] }
 spl-associated-token-account = "3.0.4"
 thiserror = "1.0.64"
+actix-cors = "0.7.0"

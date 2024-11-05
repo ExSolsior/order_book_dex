@@ -1,4 +1,5 @@
 use {
+    actix_cors::Cors,
     actix_web::web::{self, Data, ServiceConfig},
     anyhow::Context,
     chrono::{DateTime, Utc},
@@ -12,6 +13,7 @@ use {
     shuttle_runtime::SecretStore,
     solana_pubsub_client::nonblocking::pubsub_client::PubsubClient,
     solana_rpc_client_api::config::{RpcTransactionLogsConfig, RpcTransactionLogsFilter},
+    solana_sdk::commitment_config::CommitmentConfig,
     sqlx::{postgres::PgPoolOptions, Pool, Postgres},
     std::{sync::Arc, time::Duration},
     tokio::{
@@ -39,6 +41,7 @@ async fn main(
     let ws_url = secrets.get("WS_URL").context("secret was not found")?;
 
     println!("{db_url}");
+    println!("{ws_url}");
 
     let pool = POOL
         .get_or_try_init(|| async {
@@ -85,8 +88,12 @@ async fn main(
                         .logs_subscribe(
                             RpcTransactionLogsFilter::Mentions(vec![String::from(
                                 "4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9",
+                                // "11111111111111111111111111111111",
+                                // 4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9
                             )]),
-                            RpcTransactionLogsConfig { commitment: None },
+                            RpcTransactionLogsConfig {
+                                commitment: Some(CommitmentConfig::confirmed()),
+                            },
                         )
                         .await?;
 
@@ -166,6 +173,7 @@ async fn main(
     let config = move |cfg: &mut ServiceConfig| {
         cfg.service(
             web::scope("/api")
+                .wrap(Cors::permissive())
                 .service(market_order_book)
                 .service(market_list)
                 .service(market_history)

@@ -423,3 +423,267 @@ system_program                  -- module
 
 
 
+-------------------------
+
+SELECT * FROM real_time_trade_data
+WHERE book_config = ""
+ORDER BY slot DESC
+LIMIT 20
+
+
+
+               WITH trade_pair AS (
+                    SELECT * FROM order_book_config AS obc
+                    WHERE obc.pubkey_id = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+
+                ), position AS (
+                    SELECT
+                        op.pubkey_id AS "pubkey_id", 
+                        opc.pubkey_id AS "position_config", 
+                        op.next_position AS "next_position", 
+                        opc.market_maker AS "market_maker", 
+                        op.order_type AS "order_type", 
+                        op.price AS "price", 
+                        op.size AS "size", 
+                        op.is_available AS  "is_available",
+
+                        CASE
+                            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                                OR (t.is_reverse AND op.order_type = 'ask')
+                                THEN opc.capital_a
+                            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                                OR (t.is_reverse AND op.order_type = 'bid')
+                                THEN opc.capital_b
+                        END AS "capital_source",
+                        
+                        CASE
+                            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                                OR (t.is_reverse AND op.order_type = 'ask')
+                                THEN opc.capital_b
+                            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                                OR (t.is_reverse AND op.order_type = 'bid')
+                                THEN opc.capital_a
+                        END AS "capital_destination",
+                        
+                        CASE
+                            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                                OR (t.is_reverse AND op.order_type = 'ask')
+                                THEN opc.vault_a
+                            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                                OR (t.is_reverse AND op.order_type = 'bid')
+                                THEN opc.vault_b
+                        END AS "source",
+                        
+                        CASE
+                            WHEN (NOT t.is_reverse AND op.order_type = 'bid')
+                                OR (t.is_reverse AND op.order_type = 'ask')
+                                THEN opc.vault_b
+                            WHEN (NOT t.is_reverse AND op.order_type = 'ask')
+                                OR (t.is_reverse AND op.order_type = 'bid')
+                                THEN opc.vault_a
+                        END AS "destination",
+
+                        op.slot AS "slot", 
+                        op.timestamp AS "timestamp"
+
+                    FROM order_position_config AS opc
+                    JOIN order_position AS op ON op.position_config = opc.pubkey_id
+                    JOIN trade_pair AS t ON t.pubkey_id = opc.book_config
+
+                ), bids AS (
+                    SELECT
+                        p.pubkey_id,
+                        p.position_config,
+                        p.next_position,
+                        p.market_maker,
+                        p.order_type,
+                        p.price,
+                        p.size,
+                        p.is_available,
+                        p.capital_source,
+                        p.capital_destination,
+                        p.source,
+                        p.destination,
+                        p.slot,
+                        p.timestamp
+
+                    FROM position AS p
+                    WHERE p.order_type = 'bid'
+                    ORDER BY p.price DESC, p.slot ASC
+
+                ), asks AS (
+                    SELECT
+                        p.pubkey_id,
+                        p.position_config,
+                        p.next_position,
+                        p.market_maker,
+                        p.order_type,
+                        p.price,
+                        p.size,
+                        p.is_available,
+                        p.capital_source,
+                        p.capital_destination,
+                        p.source,
+                        p.destination,
+                        p.slot,
+                        p.timestamp
+
+                    FROM position AS p
+                    WHERE p.order_type = 'ask'
+                    ORDER BY p.price ASC, p.slot ASC
+
+                ), agg_bids AS (
+                    SELECT 
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS "pubkey_id",
+                        array_agg(
+                            json_build_object(
+                                'pubkeyId', b.pubkey_id,
+                                'positionConfig', b.position_config,
+                                'nextPosition', b.next_position,
+                                'marketMaker', b.market_maker,
+                                'orderType', b.order_type,
+                                'price', b.price,
+                                'size', b.size,
+                                'isAvailable', b.is_available,
+                                'sourceCapital', b.capital_source,
+                                'destinationCapital', b.capital_destination,
+                                'sourceVault', b.source,
+                                'destinationVault', b.destination,
+                                'slot', b.slot,
+                                'timestamp', b.timestamp
+                            )
+                        ) AS bids
+                    FROM bids AS b
+
+                ), agg_asks AS (
+                    SELECT 
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS "pubkey_id",
+                        array_agg(
+                            json_build_object(
+                                'pubkeyId', a.pubkey_id,
+                                'positionConfig', a.position_config,
+                                'nextPosition', a.next_position,
+                                'marketMaker', a.market_maker,
+                                'orderType', a.order_type,
+                                'price', a.price,
+                                'size', a.size,
+                                'isAvailable', a.is_available,
+                                'sourceCapital', a.capital_source,
+                                'destinationCapital', a.capital_destination,
+                                'sourceVault', a.source,
+                                'destinationVault', a.destination,
+                                'slot', a.slot,
+                                'timestamp', a.timestamp
+                            )
+                        ) AS asks
+                    FROM asks AS a
+
+                ), trade_history AS (
+                    SELECT 
+                        order_type,
+                        last_price,
+                        amount,
+                        "timestamp"
+                        
+                    FROM real_time_trade_data
+                    WHERE book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                    ORDER BY slot DESC
+                    LIMIT 200
+
+                ), trade_history_agg AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        json_agg(
+                            json_build_object(
+                                'action', h.order_type,
+                                'price', h.last_price,
+                                'qty', h.amount,
+                                'time', h.timestamp
+                            )
+                        ) as trades
+                    FROM trade_history AS h
+                    GROUP BY book_config
+
+                ), market_data AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        CASE WHEN t.last_price IS NOT NULL 
+                            THEN t.last_price
+                            ELSE NULL 
+                        END AS last_price,
+
+                        CASE WHEN "24_hour_volume" IS NOT NULL 
+                            THEN "24_hour_volume"
+                            ELSE NULL 
+                        END AS volume,
+
+                        CASE WHEN "24_hour_turnover" IS NOT NULL 
+                            THEN "24_hour_turnover"
+                            ELSE NULL 
+                        END AS turnover,
+
+                        CASE WHEN "24_hour_price_change" IS NOT NULL 
+                            THEN "24_hour_price_change"
+                            ELSE NULL 
+                        END AS change_delta,
+
+                        CASE WHEN "24_hour_prev_last_price" IS NOT NULL 
+                            THEN "24_hour_prev_last_price"
+                            ELSE NULL 
+                        END AS prev_last_price,
+
+                        CASE WHEN t.timestamp IS NOT NULL 
+                            THEN t.timestamp
+                            ELSE NULL 
+                        END AS "timestamp"
+
+                    FROM trade_data_24_hour AS t 
+                    WHERE book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                    ORDER BY t.timestamp DESC 
+                    LIMIT 1
+                    
+                )
+
+                SELECT
+                    json_build_object(
+                        'pubkeyId', t.pubkey_id,
+                        'tokenMintA', t.token_mint_a,
+                        'tokenMintB', t.token_mint_b,
+                        'tokenProgramA', t.token_program_a,
+                        'tokenProgramB', t.token_program_b,
+                        'sellMarketPointer', t.sell_market,
+                        'buyMarketPointer', t.buy_market,
+                        'tokenDecimalsA', t.token_decimals_a,
+                        'tokenDecimalsB', t.token_decimals_b,
+                        'tokenSymbolA', t.token_symbol_a,
+                        'tokenSymbolB', t.token_symbol_b,
+                        'isReverse', t.is_reverse,
+                        
+                        'positionConfig', (
+                            SELECT pubkey_id
+                            FROM order_position_config
+                            WHERE pubkey_id = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                        ),
+
+                        'book', json_build_object(
+                            'asks', book_asks.asks,
+                            'bids', book_bids.bids
+                        ),
+
+                        'trades', h.trades,
+
+                        'marketData', json_build_object(
+                            'lastPrice', md.last_price,
+                            'volume', md.volume,
+                            'turnover', md.turnover,
+                            'changeDelta', md.change_delta,
+                            'prevLastPrice', md.prev_last_price,
+                            'time', md.timestamp
+                        )
+                    )
+
+                FROM trade_pair AS t
+                FULL JOIN trade_history_agg AS h ON h.book_config = t.pubkey_id
+                FULL JOIN market_data AS md ON md.book_config = t.pubkey_id
+                FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
+                FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;

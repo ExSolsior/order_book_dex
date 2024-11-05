@@ -86,6 +86,7 @@ export const columns: ColumnDef<Market>[] = [
       />
     ),
     cell: ({ row }) => {
+      // need to have dynamic number format for different currencies
       const amount = parseFloat(row.getValue("price"));
       const formatted = new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -106,8 +107,22 @@ export const columns: ColumnDef<Market>[] = [
         className="ml-auto"
       />
     ),
-    cell: ({}) => {
-      return <div className="text-right font-semibold">-</div>;
+    cell: ({ row }) => {
+      // if (row.original.turnover === 0)
+      //   return <div className="text-right font-semibold">-</div>;
+
+      const amount = parseFloat(row.getValue("turnover"));
+      let formatted;
+      if (amount >= 1_000_000) {
+        formatted = (amount / 1_000_000).toFixed(2) + "M";
+      } else if (amount >= 1_000) {
+        formatted = (amount / 1_000).toFixed(2) + "K";
+      } else {
+        formatted = amount.toFixed(2);
+      }
+      return (
+        <div className="text-right font-semibold">{formatted}</div>
+      )
     }
   },
   {
@@ -145,9 +160,8 @@ export const columns: ColumnDef<Market>[] = [
     cell: ({ row }) => {
       return (
         <div
-          className={`text-right font-semibold ${
-            row.original.change < 0 ? "text-red-500" : "text-green-500"
-          }`}
+          className={`text-right font-semibold ${row.original.change < 0 ? "text-red-500" : "text-green-500"
+            }`}
         >
           {row.original.change}%
         </div>

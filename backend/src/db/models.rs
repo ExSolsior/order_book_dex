@@ -4,7 +4,7 @@ use {
     chrono::prelude::*,
     order_book_dex::state::Order,
     serde::{Deserialize, Serialize},
-    serde_json::value::Value,
+    serde_json::{value::Value, Number},
     solana_sdk::pubkey::Pubkey,
     sqlx::{prelude::FromRow, Pool, Postgres, Row, ValueRef},
     std::str::FromStr,
@@ -977,7 +977,6 @@ pub async fn get_trade_pair(
     position_config: &Option<Pubkey>,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    println!("TEST A");
     let query = sqlx::query(
         r#"
                 WITH trade_pair AS (
@@ -1126,6 +1125,70 @@ pub async fn get_trade_pair(
                         ) AS asks
                     FROM asks AS a
 
+                ), trade_history AS (
+                    SELECT 
+                        order_type,
+                        last_price,
+                        amount,
+                        "timestamp"
+                        
+                    FROM real_time_trade_data
+                    WHERE book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                    ORDER BY slot DESC
+                    LIMIT 200
+
+                ), trade_history_agg AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        json_agg(
+                            json_build_object(
+                                'action', h.order_type,
+                                'price', h.last_price,
+                                'qty', h.amount,
+                                'time', h.timestamp
+                            )
+                        ) as trades
+                    FROM trade_history AS h
+                    GROUP BY book_config
+
+                ), market_data AS (
+                    SELECT
+                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        CASE WHEN t.last_price IS NOT NULL 
+                            THEN t.last_price
+                            ELSE 0 
+                        END AS last_price,
+
+                        CASE WHEN "24_hour_volume" IS NOT NULL 
+                            THEN "24_hour_volume"
+                            ELSE 0 
+                        END AS volume,
+
+                        CASE WHEN "24_hour_turnover" IS NOT NULL 
+                            THEN "24_hour_turnover"
+                            ELSE 0 
+                        END AS turnover,
+
+                        CASE WHEN "24_hour_price_change" IS NOT NULL 
+                            THEN "24_hour_price_change"
+                            ELSE 0 
+                        END AS change_delta,
+
+                        CASE WHEN "24_hour_prev_last_price" IS NOT NULL 
+                            THEN "24_hour_prev_last_price"
+                            ELSE 0 
+                        END AS prev_last_price,
+
+                        CASE WHEN t.timestamp IS NOT NULL 
+                            THEN t.timestamp
+                            ELSE 0 
+                        END AS "timestamp"
+
+                    FROM trade_data_24_hour AS t 
+                    WHERE book_config = $1
+                    ORDER BY t.timestamp DESC 
+                    LIMIT 1
+                    
                 )
 
                 SELECT
@@ -1142,6 +1205,7 @@ pub async fn get_trade_pair(
                         'tokenSymbolA', t.token_symbol_a,
                         'tokenSymbolB', t.token_symbol_b,
                         'isReverse', t.is_reverse,
+                        'ticker', t.ticker,
                         
                         'positionConfig', (
                             SELECT pubkey_id
@@ -1152,25 +1216,35 @@ pub async fn get_trade_pair(
                         'book', json_build_object(
                             'asks', book_asks.asks,
                             'bids', book_bids.bids
+                        ),
+
+                        'trades', h.trades,
+
+                        'marketData', json_build_object(
+                            'lastPrice', md.last_price,
+                            'volume', md.volume,
+                            'turnover', md.turnover,
+                            'changeDelta', md.change_delta,
+                            'prevLastPrice', md.prev_last_price,
+                            'time', md.timestamp
                         )
                     )
 
                 FROM trade_pair AS t
+                FULL JOIN trade_history_agg AS h ON h.book_config = t.pubkey_id
+                FULL JOIN market_data AS md ON md.book_config = t.pubkey_id
                 FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
     )
     .bind(pubkey_id.to_string());
-    println!("TEST B");
 
     let query = match position_config {
         Some(pc) => query.bind(pc.to_string()),
         None => query.bind(Option::<String>::None),
     };
-    println!("TEST C");
 
     let query = query.fetch_one(&app_state.pool).await?;
-    println!("TEST D");
 
     let mut data: Box<Value> = serde_json::from_str(
         query
@@ -1180,7 +1254,6 @@ pub async fn get_trade_pair(
             .unwrap(),
     )
     .unwrap();
-    println!("TEST E");
 
     if data["book"]["bids"] == Value::Null {
         data["book"]["bids"] = Value::Array(vec![]);
@@ -1189,7 +1262,21 @@ pub async fn get_trade_pair(
     if data["book"]["asks"] == Value::Null {
         data["book"]["asks"] = Value::Array(vec![]);
     }
-    println!("TEST F");
+
+    if data["trades"] == Value::Null {
+        data["trades"] = Value::Array(vec![]);
+    }
+
+    if data["marketData"]["lastPrice"] == Value::Null {
+        data["marketData"]["lastPrice"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["volume"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["turnover"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["changeDelta"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["prevLastPrice"] = Value::Number(Number::from_i128(0).unwrap());
+        data["marketData"]["time"] = Value::Number(Number::from_i128(0).unwrap());
+    }
+
+    println!("{}", data);
 
     Ok(data)
 }
@@ -1235,30 +1322,31 @@ pub async fn get_trade_pair_list(
                             'tokenSymbolA', "token_symbol_a",
                             'tokenSymbolB', "token_symbol_b",
                             'ticker', "ticker",
-                            'isReversal', "is_reverse",
+                            'isReverse', "is_reverse",
 
+                            -- need to fix some of these names
                             'marketData', json_build_object(
                                 'lastPrice',
                                     CASE WHEN m.last_price IS NOT NULL
                                         THEN m.last_price
                                         ELSE 0
                                     END,
-                                '24hVolume',
+                                'volume',
                                     CASE WHEN "24_hour_volume" IS NOT NULL
                                         THEN "24_hour_volume"
                                         ELSE 0
                                     END,
-                                '24hTurnover',
+                                'turnover',
                                     CASE WHEN "24_hour_turnover" IS NOT NULL
                                         THEN "24_hour_turnover"
                                         ELSE 0
                                     END,
-                                '24hPriceChange',
+                                'changeDelta',
                                     CASE WHEN "24_hour_price_change" IS NOT NULL
                                         THEN "24_hour_price_change"
                                         ELSE 0
                                     END,
-                                '24hPrevLastPrice',
+                                'prevLastPrice',
                                     CASE WHEN "24_hour_prev_last_price" IS NOT NULL
                                         THEN "24_hour_prev_last_price"
                                         ELSE 0
@@ -1270,7 +1358,7 @@ pub async fn get_trade_pair_list(
                                     END
                             )
                         )
-                    )
+                    ) as data
 
                 From config
                 LEFT JOIN market_data AS m ON m.book_config = config.pubkey_id;
@@ -1282,14 +1370,8 @@ pub async fn get_trade_pair_list(
     .fetch_one(&app_state.pool)
     .await?;
 
-    let data: Box<Value> = serde_json::from_str(
-        query
-            .try_get_raw("json_build_object")
-            .unwrap()
-            .as_str()
-            .unwrap(),
-    )
-    .unwrap();
+    let data: Box<Value> =
+        serde_json::from_str(query.try_get_raw("data").unwrap().as_str().unwrap()).unwrap();
 
     Ok(data)
 }
@@ -1303,53 +1385,78 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    println!("this");
     let query = sqlx::query(
         r#"
                 -- can't do this like this
                 -- SET intervalstyle = iso_8601;
 
                 WITH market AS (
-                    SELECT * FROM market_order_history AS m 
+                    SELECT 
+                        *
+                    FROM market_order_history AS m 
                     WHERE m.book_config = $1
-                    AND m.interval = $2::interval
+                    AND m.interval = '1m'::interval
                     ORDER BY m.timestamp DESC
                     LIMIT $3
-                    OFFSET $4;
+                    OFFSET $4
+
+                ), agg AS (
+                    SELECT 
+                        m.book_config AS book_config,
+                        json_agg(
+                                json_build_object(
+                                    -- 'id', m.id,
+                                    'open', m.open,
+                                    'high', m.high,
+                                    'low', m.low,
+                                    'close', m.close,
+                                    'volume', m.volume,
+                                    'turnover', m.turnover,
+                                    'timestamp', m.timestamp
+                                )
+                            ) AS "data"
+
+                    FROM market AS m 
+                    WHERE m.book_config = $1
+                    GROUP BY m.book_config
+
                 ), p AS (
                     SELECT 
                         DISTINCT m.book_config AS book_config,
+
                         CASE
-                            WHERE p.interval = 'T1m'::interval THEN '1m'::TEXT,
-                            WHERE p.interval = 'T2m'::interval THEN '2m'::TEXT,
-                            WHERE p.interval = 'T5m'::interval THEN '5m'::TEXT,
-                            WHERE p.interval = 'T10m'::interval THEN '10m'::TEXT,
-                            WHERE p.interval = 'T15m'::interval THEN '15m'::TEXT,
-                            WHERE p.interval = 'T20m'::interval THEN '20m'::TEXT,
-                            WHERE p.interval = 'T30m'::interval THEN '30m'::TEXT,
-                            WHERE p.interval = 'T1h'::interval THEN '1h'::TEXT,
-                            WHERE p.interval = 'T2h'::interval THEN '2h'::TEXT,
-                            WHERE p.interval = 'T3h'::interval THEN '3h'::TEXT,
-                            WHERE p.interval = 'T4h'::interval THEN '4h'::TEXT,
-                            WHERE p.interval = 'T6h'::interval THEN '6h'::TEXT,
-                            WHERE p.interval = 'T8h'::interval THEN '8h'::TEXT,
-                            WHERE p.interval = 'T12h'::interval THEN '12h'::TEXT,
-                            WHERE p.interval = 'PD'::interval THEN 'D'::TEXT,
-                            WHERE p.interval = 'P2D'::interval THEN '2D'::TEXT,
-                            WHERE p.interval = 'P3D'::interval THEN '3D'::TEXT,
-                            WHERE p.interval = 'PW'::interval THEN 'W'::TEXT,
-                            WHERE p.interval = 'P2W'::interval THEN '2W'::TEXT,
-                            WHERE p.interval = 'P3W'::interval THEN '3W'::TEXT,
-                            WHERE p.interval = 'P1M'::interval THEN '1M'::TEXT,
-                            WHERE p.interval = 'P2M'::interval THEN '2M'::TEXT,
-                            WHERE p.interval = 'P3M'::interval THEN '3M'::TEXT,
-                            WHERE p.interval = 'P4M'::interval THEN '4M'::TEXT,
-                            WHERE p.interval = 'P6M'::interval THEN '6M'::TEXT,
-                            WHERE p.interval = 'P12M'::interval THEN '12M'::TEXT,
+                            WHEN m.interval = '1m'::interval THEN '1m'::TEXT
+                            WHEN m.interval = '2m'::interval THEN '2m'::TEXT
+                            WHEN m.interval = '5m'::interval THEN '5m'::TEXT
+                            WHEN m.interval = '10m'::interval THEN '10m'::TEXT
+                            WHEN m.interval = '15m'::interval THEN '15m'::TEXT
+                            WHEN m.interval = '20m'::interval THEN '20m'::TEXT
+                            WHEN m.interval = '30m'::interval THEN '30m'::TEXT
+                            WHEN m.interval = '1h'::interval THEN '1h'::TEXT
+                            WHEN m.interval = '2h'::interval THEN '2h'::TEXT
+                            WHEN m.interval = '3h'::interval THEN '3h'::TEXT
+                            WHEN m.interval = '4h'::interval THEN '4h'::TEXT
+                            WHEN m.interval = '6h'::interval THEN '6h'::TEXT
+                            WHEN m.interval = '8h'::interval THEN '8h'::TEXT
+                            WHEN m.interval = '12h'::interval THEN '12h'::TEXT
+                            WHEN m.interval = 'P1D'::interval THEN 'D'::TEXT
+                            WHEN m.interval = 'P2D'::interval THEN '2D'::TEXT
+                            WHEN m.interval = 'P3D'::interval THEN '3D'::TEXT
+                            WHEN m.interval = 'P1W'::interval THEN 'W'::TEXT
+                            WHEN m.interval = 'P2W'::interval THEN '2W'::TEXT
+                            WHEN m.interval = 'P3W'::interval THEN '3W'::TEXT
+                            WHEN m.interval = 'P1M'::interval THEN '1M'::TEXT
+                            WHEN m.interval = 'P2M'::interval THEN '2M'::TEXT
+                            WHEN m.interval = 'P3M'::interval THEN '3M'::TEXT
+                            WHEN m.interval = 'P4M'::interval THEN '4M'::TEXT
+                            WHEN m.interval = 'P6M'::interval THEN '6M'::TEXT
+                            WHEN m.interval = 'P12M'::interval THEN '12M'::TEXT
                         END AS interval
 
                     FROM market_order_history AS m 
                     WHERE m.book_config = $1
-                    AND m.interval = '$2::interval
+                    AND m.interval = $2::interval
                     
                 )
 
@@ -1357,21 +1464,10 @@ pub async fn get_market_order_history(
                     json_build_object(
                         'orderBookConfig', p.book_config,
                         'interval', p.interval,
-                        'market', json_agg(
-                            json_build_object(
-                                -- 'id', m.id,
-                                'open', m.open,
-                                'high', m.high,
-                                'low', m.low,
-                                'close', m.close,
-                                'volume', m.volume,
-                                'turnover', m.turnover,
-                                'timestamp', m.timestamp
-                            )
-                        )
+                        'market', m.data
                     )
 
-                FROM market AS m
+                FROM agg AS m
                 JOIN p ON p.book_config = m.book_config;
             "#,
     )
@@ -1382,6 +1478,8 @@ pub async fn get_market_order_history(
     .fetch_one(&app_state.pool)
     .await?;
 
+    println!("working?");
+
     let data: Box<Value> = serde_json::from_str(
         query
             .try_get_raw("json_build_object")
@@ -1390,6 +1488,8 @@ pub async fn get_market_order_history(
             .unwrap(),
     )
     .unwrap();
+
+    println!("fail?");
 
     Ok(data)
 }
@@ -1469,6 +1569,7 @@ pub async fn update_order_position(id: String, size: u64, is_available: bool, ap
     .unwrap();
 }
 
+// need add the position config id, right now it's just jank
 pub async fn open_limit_order(
     pubkey_id: Pubkey,
     order_type: &Order,
@@ -1481,6 +1582,13 @@ pub async fn open_limit_order(
         Order::Bid => "bid",
         _ => unreachable!(),
     };
+
+    println!(
+        "price {}, order_type {}, pubkey {}",
+        price,
+        order_type,
+        pubkey_id.to_string()
+    );
 
     let query = sqlx::query(
         r#"
