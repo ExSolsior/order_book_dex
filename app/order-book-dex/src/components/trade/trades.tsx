@@ -11,8 +11,8 @@ import { Market } from "../../program/utils/useTransaction";
 // time correct locale time string? I need to research
 // need to include more trades and allow it to be scrollable
 export default function Trades({ market }: { market: Market }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
-  const { trades } = market.orderBook;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
+  const { trades } = market!.orderBook!;
   return (
     <Table>
       <TableHeader>

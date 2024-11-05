@@ -1,6 +1,6 @@
 "use client";
 
-import { MarketOrderBook } from "@/lib/types";
+// import { MarketOrderBook } from "@/lib/types";
 import {
   AnchorProvider,
   BN,
@@ -23,7 +23,7 @@ import {
   getSellMarketPointerPDA,
   getVaultAccountPDA
 } from "./pdas";
-import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
+// import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
 import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
 import {
@@ -71,42 +71,42 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     );
 
   // Tx: Open Limit Order
-  const openLimitOrder = async ({
-    marketOrderBook,
-    nextPositionPointer,
-    orderType,
-    price,
-    amount,
-    nonce
-  }: {
-    marketOrderBook: MarketOrderBook;
-    nextPositionPointer: web3.PublicKey | null;
-    orderType: OrderType;
-    price: BN;
-    amount: BN;
-    nonce: BN;
-  }) => {
-    try {
-      const tx = await createOpenLimitOrderTx({
-        marketOrderBook,
-        connection,
-        program,
-        userWallet,
-        nextPositionPointer,
-        orderType,
-        price,
-        amount,
-        nonce
-      });
+  // const openLimitOrder = async ({
+  //   marketOrderBook,
+  //   nextPositionPointer,
+  //   orderType,
+  //   price,
+  //   amount,
+  //   nonce
+  // }: {
+  //   marketOrderBook: MarketOrderBook;
+  //   nextPositionPointer: web3.PublicKey | null;
+  //   orderType: OrderType;
+  //   price: BN;
+  //   amount: BN;
+  //   nonce: BN;
+  // }) => {
+  //   try {
+  //     const tx = await createOpenLimitOrderTx({
+  //       marketOrderBook,
+  //       connection,
+  //       program,
+  //       userWallet,
+  //       nextPositionPointer,
+  //       orderType,
+  //       price,
+  //       amount,
+  //       nonce
+  //     });
 
-      await userWallet.signTransaction(tx);
-      const txHash = await connection.sendTransaction(tx);
-      await confirmTx(txHash, connection);
-      toast.success("Order placed successfully!");
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  //     await userWallet.signTransaction(tx);
+  //     const txHash = await connection.sendTransaction(tx);
+  //     await confirmTx(txHash, connection);
+  //     toast.success("Order placed successfully!");
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
 
   /* Instruction: Create Trade Pair */
   const createTradePair = async (
@@ -465,7 +465,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
         cancelOrderPosition,
         closeOrderPosition,
         returnExecutionMarketOrder,
-        openLimitOrder
+        // openLimitOrder
       }}
     >
       {children}
@@ -528,21 +528,21 @@ interface Value {
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey
   ) => Promise<void>);
-  openLimitOrder: (({
-    marketOrderBook,
-    nextPositionPointer,
-    orderType,
-    price,
-    amount,
-    nonce
-  }: {
-    marketOrderBook: MarketOrderBook;
-    nextPositionPointer: web3.PublicKey | null;
-    orderType: OrderType;
-    price: BN;
-    amount: BN;
-    nonce: BN;
-  }) => Promise<void>);
+  // openLimitOrder: (({
+  //   marketOrderBook,
+  //   nextPositionPointer,
+  //   orderType,
+  //   price,
+  //   amount,
+  //   nonce
+  // }: {
+  //   marketOrderBook: MarketOrderBook;
+  //   nextPositionPointer: web3.PublicKey | null;
+  //   orderType: OrderType;
+  //   price: BN;
+  //   amount: BN;
+  //   nonce: BN;
+  // }) => Promise<void>);
 }
 
 export const useProgramContext = () => {
