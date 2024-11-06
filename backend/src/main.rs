@@ -39,7 +39,7 @@ async fn main(
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
     let db_url = secrets.get("DB_URL").context("secret was not found")?;
     let ws_url = secrets.get("WS_URL").context("secret was not found")?;
-    let program_id = secrets.get("WS_URL").context("secret was not found")?;
+    let program_id = secrets.get("PROGRAM_ID").context("secret was not found")?;
 
     println!("{db_url}");
     println!("{ws_url}");
