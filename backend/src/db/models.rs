@@ -241,7 +241,7 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
     let dt: DateTime<Utc> = Utc::now();
     let time = dt.timestamp() / 60 * 60;
 
-    sqlx::raw_sql(
+    match sqlx::raw_sql(
         &format!(
             r#"
                 BEGIN;
@@ -968,8 +968,10 @@ pub async fn insert_market_order_history(pool: &Pool<Postgres>) {
             "#)
     )
     .execute(pool)
-    .await
-    .unwrap();
+    .await {
+        Ok(data) => println!("INSERT RESULT MARKET HISTORY {:?}", data),
+        Err(error) => println!("INSERT MARKET HISTORY ERROR: {}", error),
+    }
 }
 
 pub async fn get_trade_pair(
@@ -1540,18 +1542,18 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     let dt: DateTime<Utc> = Utc::now();
     let timestamp = dt.timestamp() / 60 * 60;
 
-    sqlx::raw_sql(&format!(
+    match sqlx::raw_sql(&format!(
         r#"
             DELETE FROM real_time_trade_data  AS td
-            WHERE {} - td.timestamp >= 86400;
-        "#,
-        timestamp
+            WHERE {timestamp} - td.timestamp >= 86400;
+        "#
     ))
-    // .bind(timestamp)
-    // .persistent(false)
     .execute(pool)
     .await
-    .unwrap();
+    {
+        Ok(data) => println!("DELETE REAL TRADE: {:?}", data),
+        Err(error) => println!("DELETE REALE TRADE ERROR: {}", error),
+    }
 }
 
 pub async fn update_order_position(id: String, size: u64, is_available: bool, app_state: AppState) {
