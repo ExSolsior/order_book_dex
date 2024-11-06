@@ -15,7 +15,7 @@ import {
 }
   from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
   getBuyMarketPointerPDA,
@@ -28,7 +28,7 @@ import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
 import {
   PublicKey,
-  // SystemProgram, 
+  SystemProgram,
   // Transaction
 } from "@solana/web3.js";
 
@@ -50,21 +50,32 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // Get provider
   const { connection } = useConnection();
   const userWallet = useAnchorWallet();
+  const [loading, setLoading] = useState(true);
+  const [program, setProgram] = useState<Program<typeof CHRONO_IDL> | null>(null);
 
-  const program = useMemo(() => {
-    if (userWallet) {
-      const getProvider = () => {
+  useEffect(() => {
+    const initializeProgram = async () => {
+      if (userWallet) {
         const provider = new AnchorProvider(connection, userWallet, {
-          commitment: "confirmed"
+          commitment: "confirmed",
         });
         setProvider(provider);
-        return provider;
-      };
 
-      return new Program<typeof CHRONO_IDL>(CHRONO_IDL, getProvider());
-    }
+        const newProgram = new Program<typeof CHRONO_IDL>(CHRONO_IDL, provider);
+        setProgram(newProgram);
+      }
+      setLoading(false);
+    };
+
+    initializeProgram();
   }, [connection, userWallet]);
 
+  console.log("User Wallet:", userWallet); // For debugging
+  console.log("Program:", program); // For debugging
+
+  if (loading) {
+    return <div>Loading.......</div>
+  }
   if (!program || !userWallet)
     return (
       <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
@@ -110,6 +121,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 
   /* Instruction: Create Trade Pair */
   const createTradePair = async (
+    tokenSymbolA: string,
+    tokenSymbolB: string,
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,
     isReverse: boolean
@@ -120,11 +133,11 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       const sellMarketPointer = getSellMarketPointerPDA(orderBookConfig);
 
       // Derive token programs from mints
-      const mintA = await getAccount(connection, tokenMintA);
-      const mintB = await getAccount(connection, tokenMintB);
+      const mintA = await connection.getAccountInfo(tokenMintA);
+      const mintB = await connection.getAccountInfo(tokenMintB);
 
       const txHash = await program.methods
-        .createTradePair(isReverse)
+        .createTradePair(tokenSymbolA, tokenSymbolB, isReverse)
         .accountsStrict({
           authority: userWallet?.publicKey,
           orderBookConfig,
@@ -132,9 +145,9 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           sellMarketPointer,
           tokenMintA,
           tokenMintB,
-          tokenProgramA: mintA.owner,
-          tokenProgramB: mintB.owner,
-          SystemProgram: web3.SystemProgram.programId
+          tokenProgramA: mintA!.owner,
+          tokenProgramB: mintB!.owner,
+          systemProgram: SystemProgram.programId,
         })
         .rpc();
 
@@ -477,6 +490,8 @@ interface Value {
   program: Program<typeof CHRONO_IDL>,
   programId: PublicKey,
   createTradePair: ((
+    tokenSymbolA: string,
+    tokenSymbolB: string,
     tokenMintA: web3.PublicKey,
     tokenMintB: web3.PublicKey,
     isReverse: boolean
@@ -546,5 +561,9 @@ interface Value {
 }
 
 export const useProgramContext = () => {
-  return useContext(ProgramContext);
+  const context = useContext(ProgramContext);
+  // if( !context ){
+  //   throw new Error("useProgramContext must be used within ProgramProvider");
+  // }
+  return context;
 };
