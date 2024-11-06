@@ -28,7 +28,7 @@ import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
 import {
   PublicKey,
-  // SystemProgram, 
+  SystemProgram,
   // Transaction
 } from "@solana/web3.js";
 
@@ -73,7 +73,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   console.log("User Wallet:", userWallet); // For debugging
   console.log("Program:", program); // For debugging
 
-  if(loading) {
+  if (loading) {
     return <div>Loading.......</div>
   }
   if (!program || !userWallet)
