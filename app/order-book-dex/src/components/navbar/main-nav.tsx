@@ -10,9 +10,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
+import { useContext } from "react";
+import { MarketContext } from "../provider/market-provider";
 
 export function MainNav({ isDemo }: { isDemo: boolean }) {
   const pathname = usePathname();
+  const markets = useContext(MarketContext);
+
+  // implement to find default marekt -> BTC / USDC | ETH / USDC | SOL / USDC
+  // implement if markets is empty disable trade link
+  // implement marketId is the last market user viewed
+  const marketId = markets.length !== 0
+    ? markets[0].accounts.marketId
+    : undefined;
 
   return (
     <div className="mr-4 flex flex-1 items-center justify-between">
@@ -40,7 +50,11 @@ export function MainNav({ isDemo }: { isDemo: boolean }) {
           </Link>
 
           <Link
-            href={`${isDemo ? "/demo" : "/devnet"}/trade`}
+            href={
+              markets.length === 0
+                ? `${isDemo ? "/demo" : "/devnet"}/trade`
+                : `${isDemo ? "/demo" : "/devnet"}/trade?marketId=${marketId}`
+            }
             className={cn(
               "transition-colors hover:text-foreground font-semibold",
               pathname.includes((isDemo ? "/demo" : "/devnet") + "/trade")

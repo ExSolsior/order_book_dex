@@ -39,9 +39,11 @@ async fn main(
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
     let db_url = secrets.get("DB_URL").context("secret was not found")?;
     let ws_url = secrets.get("WS_URL").context("secret was not found")?;
+    let program_id = secrets.get("WS_URL").context("secret was not found")?;
 
     println!("{db_url}");
     println!("{ws_url}");
+    println!("{program_id}");
 
     let pool = POOL
         .get_or_try_init(|| async {
@@ -84,13 +86,10 @@ async fn main(
                 let unsubscribe_sender = unsubscribe_sender.clone();
                 let pubsub_client = Arc::clone(&pubsub_client);
                 async move {
+                    // -- need to add some logice to try reconnect if connection fail
                     let (mut logs_notifications, logs_unsubscribe) = pubsub_client
                         .logs_subscribe(
-                            RpcTransactionLogsFilter::Mentions(vec![String::from(
-                                "4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9",
-                                // "11111111111111111111111111111111",
-                                // 4z84hS8fsVpBgZvNwPtH82uUrjuoGP5GkRrTKkAaFDc9
-                            )]),
+                            RpcTransactionLogsFilter::Mentions(vec![String::from(program_id)]),
                             RpcTransactionLogsConfig {
                                 commitment: Some(CommitmentConfig::confirmed()),
                             },
@@ -133,26 +132,8 @@ async fn main(
 
         // Do application logic here.
 
-        let dt: DateTime<Utc> = Utc::now();
-        let mut schduler = AsyncScheduler::new();
-
-        schduler.every(1.minutes()).run(move || {
-            let dt: DateTime<Utc> = Utc::now();
-            println!("{}", dt.timestamp());
-            scheduled_process()
-        });
-
-        tokio::spawn(async move {
-            let sync = 60 - (dt.timestamp() - (dt.timestamp() / 60 * 60)) as u64;
-            println!("sync: {}", sync);
-            tokio::time::sleep(Duration::from_secs(sync)).await;
-            loop {
-                schduler.run_pending().await;
-                tokio::time::sleep(Duration::from_millis(100)).await;
-            }
-        });
-
         // Wait for input or some application-specific shutdown condition.
+        // -- this causes an error on production... why?
         tokio::io::stdin().read_u8().await.unwrap();
 
         // Unsubscribe from everything, which will shutdown all the tasks.
@@ -167,6 +148,26 @@ async fn main(
             if let Ok(Err(e)) = handle.await {
                 println!("task {} failed: {}", name, e);
             }
+        }
+    });
+
+    tokio::spawn(async move {
+        let dt: DateTime<Utc> = Utc::now();
+        let mut schduler = AsyncScheduler::new();
+
+        schduler.every(1.minutes()).run(move || {
+            let dt: DateTime<Utc> = Utc::now();
+            println!("{}", dt.timestamp());
+            scheduled_process()
+        });
+
+        let sync = 60 - (dt.timestamp() - (dt.timestamp() / 60 * 60)) as u64;
+        println!("sync: {}", sync);
+
+        tokio::time::sleep(Duration::from_secs(sync)).await;
+        loop {
+            schduler.run_pending().await;
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
     });
 

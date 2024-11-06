@@ -3,22 +3,38 @@
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react"
 
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+// const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
+
 
 export const useMarkets = () => {
-    const [data, setData] = useState<Markets[] | null>(null);
+    const [data, setData] = useState<Markets[]>([]);
 
     // load listener
 
     const load = async () => {
 
-        const base = new URL("http://127.0.0.1:8000/api/");
-        const marketListURL = new URL("./market_list?offset=0&limit=10", base);
+        const params = new URLSearchParams();
+        params.append("limit", (1000).toString());
+        params.append("offset", (0).toString());
+
+
+        const base = new URL("./api/", API_ENDPOINT);
+        const marketListURL = new URL("./market_list?" + params.toString(), base);
+
+        console.log(marketListURL)
 
         try {
             const response = await fetch(marketListURL);
+
             const data = await response.json();
 
-            // update to fetched market: WIP
+            // set empty state
+            if (data === null) {
+                setData([])
+                return
+            }
+
             const list = data.map((el: FetchedMarket) => {
                 return {
                     accounts: {
@@ -55,13 +71,12 @@ export const useMarkets = () => {
                         turnover: BigInt(el.marketData.turnover),
                         changeDelta: BigInt(el.marketData.changeDelta),
                         // need to display as percentage
-                        changePercent: el.marketData.prevLastPrice === '0' ? BigInt(0) :
+                        changePercent: el.marketData.prevLastPrice === 0 ? BigInt(0) :
                             BigInt(el.marketData.changeDelta) * BigInt(100_000) / BigInt(el.marketData.prevLastPrice),
                     }
                 }
             })
 
-            console.log(list)
             setData(list)
 
         } catch (err) {
@@ -69,7 +84,7 @@ export const useMarkets = () => {
         }
     }
 
-    if (!data) {
+    if (data.length === 0) {
         load()
     }
 
@@ -141,7 +156,7 @@ export interface FetchedMarket {
         'volume': string,
         'turnover': string,
         'changeDelta': string,
-        'prevLastPrice': string,
+        'prevLastPrice': number,
         'time': string,
     },
 

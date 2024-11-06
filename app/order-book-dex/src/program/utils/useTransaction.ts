@@ -17,6 +17,9 @@ import { CachedMarket } from "./types";
 // useMarket
 // useEvents
 
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+// const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
+
 
 class Queue {
     current: string;
@@ -110,7 +113,7 @@ export const useTransaction = (marketId: PublicKey) => {
     })();
 
 
-    const base = new URL("http://127.0.0.1:8000/api/")
+    const base = new URL("./api/", API_ENDPOINT)
 
     const load = async (marketId: PublicKey, queue: Queue) => {
 
@@ -200,8 +203,17 @@ export const useTransaction = (marketId: PublicKey) => {
             )
         }
 
-        const orderBookURL = new URL(`./market_order_book?book_config=${marketId.toString()}`, base);
-        const candleDataURL = new URL(`./market_history?book_config=${marketId.toString()}&interval=1m&limit=1000&offset=0`, base);
+        const bookParams = new URLSearchParams();
+        bookParams.append("book_config", marketId.toString());
+
+        const candleParams = new URLSearchParams();
+        candleParams.append("book_config", marketId.toString());
+        candleParams.append("limit", (1000).toString());
+        candleParams.append("offset", (0).toString());
+
+
+        const orderBookURL = new URL("./market_order_book?" + bookParams.toString(), base);
+        const candleDataURL = new URL("./market_history?" + candleParams.toString(), base);
 
         try {
 

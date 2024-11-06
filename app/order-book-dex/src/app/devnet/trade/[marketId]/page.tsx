@@ -11,10 +11,12 @@ import { PublicKey } from "@solana/web3.js";
 import { useTransaction } from "@/program/utils/useTransaction";
 
 export default function Page({ params }: { params: { marketId: string } }) {
-
+  console.log("here", params)
   const { data: market, marketOrder } = useTransaction(
     new PublicKey(params.marketId),
   );
+
+  console.log(market)
 
   useEffect(() => {
     if (market !== null && market!.orderBook!.accounts.marketId) {

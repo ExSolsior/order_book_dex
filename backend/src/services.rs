@@ -27,7 +27,6 @@ pub struct ExecuteMarketOrder {
     pub position_config: String,
     pub book_config: String,
     pub order_type: String,
-    pub fill_type: String,
     pub target_price: Option<u64>,
     pub target_amount: u64,
 }
@@ -126,8 +125,14 @@ pub async fn market_list(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+        Ok(data) => {
+            println!("{:?}", data);
+            HttpResponse::Ok().json(data)
+        }
+        Err(error) => {
+            println!("{:?}", error);
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 
@@ -202,17 +207,9 @@ pub async fn execute_market_order(
         _ => return HttpResponse::BadRequest().body("Invalid Order Type"),
     };
 
-    let fill = match query.fill_type.as_str() {
-        "full" => Fill::Full,
-        "partial" => {
-            if query.target_price.is_none() {
-                return HttpResponse::BadRequest().body("Invalid Target Price");
-            };
-            Fill::Partial {
-                target_price: query.target_price.unwrap(),
-            }
-        }
-        _ => return HttpResponse::BadRequest().body("Invalid Fill Type"),
+    let fill = match query.target_price {
+        Some(target_price) => Fill::Partial { target_price },
+        None => Fill::Full,
     };
 
     let market_order = MarketOrderParams {
