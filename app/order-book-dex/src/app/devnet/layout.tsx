@@ -1,3 +1,5 @@
+"use client"
+
 import { NoticeBanner } from "@/components/notice-banner";
 import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/config/site";
@@ -8,7 +10,7 @@ export const metadata: Metadata = {
   description: siteConfig.description
 };
 
-export default function DemoLayout({
+export default function DevnetLayout({
   children
 }: Readonly<{
   children: React.ReactNode;

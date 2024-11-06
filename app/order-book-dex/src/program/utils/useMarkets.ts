@@ -3,6 +3,9 @@
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react"
 
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
+
 
 export const useMarkets = () => {
     const [data, setData] = useState<Markets[] | null>(null);
@@ -11,10 +14,13 @@ export const useMarkets = () => {
 
     const load = async () => {
 
-        const base = new URL("http://127.0.0.1:8000/api/");
-        const marketListURL = new URL("./market_list?offset=0&limit=10", base);
+        const params = new URLSearchParams();
+        params.append("limit", (1000).toString());
+        params.append("offset", (0).toString());
 
-        console.log(marketListURL)
+
+        const base = new URL("./api/", API_ENDPOINT);
+        const marketListURL = new URL("./market_list?" + params.toString(), base);
 
         try {
             const response = await fetch(marketListURL);
@@ -27,7 +33,6 @@ export const useMarkets = () => {
                 return
             }
 
-            // update to fetched market: WIP
             const list = data.map((el: FetchedMarket) => {
                 return {
                     accounts: {

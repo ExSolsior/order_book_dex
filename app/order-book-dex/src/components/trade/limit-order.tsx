@@ -20,6 +20,8 @@ import { MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+
 // need to add better validations
 const formSchema = z.object({
   price: z.string().refine((val) => {
@@ -84,7 +86,7 @@ export default function LimitOrder({
     }
 
     // url should come from a config file
-    const base = new URL("http://127.0.0.1:8000/api/");
+    const base = new URL("./api/", API_ENDPOINT);
     const path = new URL("./open_limit_order?" + params.toString(), base.toString());
 
 
