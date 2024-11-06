@@ -31,3 +31,13 @@ export type OrderBookEntry = {
   slot: number;
   timestamp: number;
 };
+
+export interface TransactionOrder {
+  accountKey: PublicKey,
+  readonlyIndexes: number[],
+  writeableIndexes: number[],
+  accounts: number[],
+  data: number[],
+  programIdIndex: number,
+  message: TransactionOrder[],
+}

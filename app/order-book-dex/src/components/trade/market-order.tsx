@@ -16,9 +16,10 @@ import { Input } from "../ui/input";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
+import { MessageHeader, MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
+import { TransactionOrder } from "@/lib/types";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
@@ -63,10 +64,21 @@ export default function MarketOrder({
     fetch(path)
       .then((data) => data.json())
       .then((msg) => {
-        const v0TransactionList = msg.map((data: any) => {
+        console.log("msg", msg)
+
+        interface TransactionList {
+          message: {
+            addressTableLookups: TransactionOrder[],
+            instructions: TransactionOrder[],
+            recentBlockhash: number[],
+            header: MessageHeader
+            accountKeys: number[][],
+          }[]
+        }
+        const v0TransactionList = msg.map((data: TransactionList) => {
           const vMessage = new MessageV0({
 
-            addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: any) => {
+            addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: TransactionOrder) => {
               return {
                 accountKey: data.accountKey,
                 readonlyIndexes: data.readonlyIndexes,
@@ -74,7 +86,7 @@ export default function MarketOrder({
               }
             }),
 
-            compiledInstructions: data.message[1].instructions.slice(1).map((data: any) => {
+            compiledInstructions: data.message[1].instructions.slice(1).map((data: TransactionOrder) => {
               return {
                 accountKeyIndexes: data.accounts.slice(1),
                 data: new Uint8Array(data.data.slice(1)),
@@ -93,8 +105,8 @@ export default function MarketOrder({
           return userWallet?.signTransaction(vTransaction);
         })
 
-        return v0TransactionList.map((signedTransaction: any) => {
-          program!.provider!.sendAndConfirm!(signedTransaction as VersionedTransaction)
+        return v0TransactionList.map((signedTransaction: VersionedTransaction) => {
+          program!.provider!.sendAndConfirm!(signedTransaction)
         })
 
       })

@@ -17,8 +17,8 @@ import { CachedMarket } from "./types";
 // useMarket
 // useEvents
 
-const API_ENDPOINT = process.env.API_ENDPOINT;
-const API_SVM = process.env.API_SVM;
+const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
+// const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
 
 class Queue {

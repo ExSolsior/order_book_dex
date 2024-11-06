@@ -111,6 +111,8 @@ export function MarketsTable<TData, TValue>({
                     // for now it works, so leave it be to continue development
                     const marketId = row.getAllCells()[0].getValue();
                     router.push(`/devnet/trade/${marketId}`);
+                    // router.push(`/devnet/trade?marketId=${marketId}`);
+
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (

@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { popular } from "@/lib/markets";
 
-// how to handle this correctly.
-// state lives on client, but this is a server component
-// and all it's parents are server components.
-// so there is no path for state to propergate towards this component
-// could fetch data from api... but how to fetch data?
 export default function Trade() {
-  redirect(`/devnet/trade/${popular[0].marketId}`);
+  // should do this if path is /trade
+  // but not if /trade/marketId or /trade?marketId=id
+
+  // so I found out how to use /trade?markeId=id
+  // I just need to use this component instead [marketId] component
+  // and use usedSearchParams
+  redirect(`/devnet`);
 }

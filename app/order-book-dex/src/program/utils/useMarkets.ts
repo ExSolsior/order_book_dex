@@ -4,11 +4,11 @@ import { PublicKey } from "@solana/web3.js";
 import { useState } from "react"
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
-const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
+// const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
 
 export const useMarkets = () => {
-    const [data, setData] = useState<Markets[] | null>(null);
+    const [data, setData] = useState<Markets[]>([]);
 
     // load listener
 
@@ -21,6 +21,8 @@ export const useMarkets = () => {
 
         const base = new URL("./api/", API_ENDPOINT);
         const marketListURL = new URL("./market_list?" + params.toString(), base);
+
+        console.log(marketListURL)
 
         try {
             const response = await fetch(marketListURL);
@@ -82,7 +84,7 @@ export const useMarkets = () => {
         }
     }
 
-    if (!data) {
+    if (data.length === 0) {
         load()
     }
 

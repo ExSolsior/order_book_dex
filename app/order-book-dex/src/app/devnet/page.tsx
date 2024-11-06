@@ -4,11 +4,14 @@ import { MainCarousel } from "@/components/home/main-carousel";
 import { Markets } from "@/components/home/markets";
 import { columns } from "@/components/markets-table/columns";
 import { MarketsTable } from "@/components/markets-table/data-table";
+import { MarketContext } from "@/components/provider/market-provider";
 import { Market } from "@/lib/markets";
-import { useMarkets } from "@/program/utils/useMarkets";
+import { useContext } from "react";
 
 export default function Home() {
-  const { data: allMarkets } = useMarkets()
+  const allMarkets = useContext(MarketContext)
+
+  console.log(allMarkets)
 
   if (!allMarkets) return <>{"LOADING..."}</>
 
