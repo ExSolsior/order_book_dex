@@ -125,8 +125,14 @@ pub async fn market_list(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(_) => HttpResponse::BadRequest().into(),
+        Ok(data) => {
+            println!("{:?}", data);
+            HttpResponse::Ok().json(data)
+        }
+        Err(error) => {
+            println!("{:?}", error);
+            HttpResponse::BadRequest().into()
+        }
     }
 }
 

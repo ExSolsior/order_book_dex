@@ -1287,7 +1287,7 @@ pub async fn get_trade_pair_list(
     limit: u64,
     offset: u64,
     app_state: web::Data<AppState>,
-) -> Result<Box<Value>, sqlx::Error> {
+) -> Result<Option<Box<Value>>, sqlx::Error> {
     let dt: DateTime<Utc> = Utc::now();
     let delta = dt.timestamp() % 60;
     let time = if delta < 6 {
@@ -1372,8 +1372,14 @@ pub async fn get_trade_pair_list(
     .fetch_one(&app_state.pool)
     .await?;
 
-    let data: Box<Value> =
-        serde_json::from_str(query.try_get_raw("data").unwrap().as_str().unwrap()).unwrap();
+    let data = query.try_get_raw("data")?.as_str();
+    let data: Option<Box<Value>> = match data {
+        Ok(data) => serde_json::from_str(data).unwrap(),
+        Err(error) => {
+            println!("{}", error);
+            None
+        }
+    };
 
     Ok(data)
 }

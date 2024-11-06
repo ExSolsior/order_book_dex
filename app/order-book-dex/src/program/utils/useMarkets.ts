@@ -14,9 +14,18 @@ export const useMarkets = () => {
         const base = new URL("http://127.0.0.1:8000/api/");
         const marketListURL = new URL("./market_list?offset=0&limit=10", base);
 
+        console.log(marketListURL)
+
         try {
             const response = await fetch(marketListURL);
+
             const data = await response.json();
+
+            // set empty state
+            if (data === null) {
+                setData([])
+                return
+            }
 
             // update to fetched market: WIP
             const list = data.map((el: FetchedMarket) => {
@@ -55,13 +64,12 @@ export const useMarkets = () => {
                         turnover: BigInt(el.marketData.turnover),
                         changeDelta: BigInt(el.marketData.changeDelta),
                         // need to display as percentage
-                        changePercent: el.marketData.prevLastPrice === '0' ? BigInt(0) :
+                        changePercent: el.marketData.prevLastPrice === 0 ? BigInt(0) :
                             BigInt(el.marketData.changeDelta) * BigInt(100_000) / BigInt(el.marketData.prevLastPrice),
                     }
                 }
             })
 
-            console.log(list)
             setData(list)
 
         } catch (err) {
@@ -141,7 +149,7 @@ export interface FetchedMarket {
         'volume': string,
         'turnover': string,
         'changeDelta': string,
-        'prevLastPrice': string,
+        'prevLastPrice': number,
         'time': string,
     },
 
