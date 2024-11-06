@@ -4,16 +4,11 @@ import { MainCarousel } from "@/components/home/main-carousel";
 import { Markets } from "@/components/home/markets";
 import { columns } from "@/components/markets-table/columns";
 import { MarketsTable } from "@/components/markets-table/data-table";
-import { Market, newMarkets, popular, topGainers } from "@/lib/markets";
+import { Market } from "@/lib/markets";
 import { useMarkets } from "@/program/utils/useMarkets";
-import { string } from "zod";
 
 export default function Home() {
-  // const allMarkets = newMarkets
-  //   .concat(topGainers, popular)
-  //   .sort((a, b) => b.volume - a.volume);
-
-  let { data: allMarkets } = useMarkets()
+  const { data: allMarkets } = useMarkets()
 
   if (!allMarkets) return <>{"LOADING..."}</>
 
@@ -32,6 +27,7 @@ export default function Home() {
               tokenB: data.details.quoteToken.symbol,
               price: Number(data.status.lastPrice.toString()),
               change: Number(data.status.changePercent.toString()),
+              turnover: Number(data.status.turnover.toString()),
               volume: Number(data.status.volume),
               image: "",
             } as Market

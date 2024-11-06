@@ -3,38 +3,27 @@
 import CandlestickChart from "@/components/CandleStickChart";
 import { Separator } from "@/components/ui/separator";
 import { siteConfig } from "@/config/site";
-import { newMarkets, popular, topGainers } from "@/lib/markets";
-import { useContext, useEffect } from "react";
+import { useEffect } from "react";
 import { Header } from "./header";
 import OrderBook from "./order-book";
 import Trade from "./trade";
 import { PublicKey } from "@solana/web3.js";
 import { useTransaction } from "@/program/utils/useTransaction";
-import { ProgramContext } from "@/program/ProgramProvider";
 
 export default function Page({ params }: { params: { marketId: string } }) {
 
-  let programContext = useContext(ProgramContext)
-  if (!programContext) {
-    return <>{"loading"}</>
-  }
-
-  const allMarkets = newMarkets.concat(topGainers, popular);
-  // const market =
-  //   allMarkets.find((market) => market.marketId === params.marketId) ||
-  //   allMarkets[0];
-
-  const { data: market } = useTransaction(
-    new PublicKey("BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK"),
+  const { data: market, marketOrder } = useTransaction(
+    new PublicKey(params.marketId),
   );
 
-  // useEffect(() => {
-  //   if (market !== null && market.marketId) {
-  //     document.title = `${market.tokenA}/${market.tokenB} - ${siteConfig.name}`;
-  //   }
-  // }, [market]);
+  useEffect(() => {
+    if (market !== null && market!.orderBook!.accounts.marketId) {
 
-  if (market === null) return;
+      document.title = `${market!.orderBook!.marketDetails.ticker} - ${siteConfig.name}`;
+    }
+  }, [market]);
+
+  if (market === null) return <>{"LOADING"}</>;
   const { candles } = market;
 
   return (
@@ -44,9 +33,12 @@ export default function Page({ params }: { params: { marketId: string } }) {
       </div>
       <Separator />
       <div className="flex">
-        <CandlestickChart data={candles} />
+        <CandlestickChart data={candles!} />
         <OrderBook market={market} />
-        <Trade market={market} />
+        <Trade
+          market={market}
+          marketOrder={marketOrder}
+        />
       </div>
     </div>
   );

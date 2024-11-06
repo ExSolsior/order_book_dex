@@ -21,17 +21,19 @@ export default function MarketOrder({
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const formSchema = z.object({
-    quantity: z.number()
+    quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    })
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quantity: 0
+      quantity: '0'
     }
   });
 

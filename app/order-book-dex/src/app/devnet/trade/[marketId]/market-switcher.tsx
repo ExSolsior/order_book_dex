@@ -20,7 +20,7 @@ export function MarketSwitcher({ market }: { market: Market }) {
     .concat(topGainers, popular)
     .sort((a, b) => b.volume - a.volume);
 
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const { image } = market;
 
   return (

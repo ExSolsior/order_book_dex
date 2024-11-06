@@ -1,7 +1,6 @@
 "use client"
 
-import { useContext, useEffect, useState } from "react";
-import { createContext } from "vm";
+import { useContext, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import {
@@ -12,6 +11,7 @@ import {
 } from "./events"
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { ProgramContext } from "../ProgramProvider";
+import { CachedMarket } from "./types";
 
 // const transactionContext = createContext();
 // useMarket
@@ -64,41 +64,184 @@ class Queue {
     }
 }
 
-// how I can think about preventing double rendering is add a loading state,
-// when is fully loaded, then fetch data
+export class MarketOrderState {
+    bidNextPointer: PublicKey | undefined | null;
+    askNextPointer: PublicKey | undefined | null;
+    constructor() {
+        // sell side market pointer
+        this.bidNextPointer = null;
+        // buy side market pointer
+        this.askNextPointer = null;
+    }
+
+    update(side: string | undefined, value: PublicKey | undefined | null) {
+        if (side === "buy") {
+            this.askNextPointer = value;
+        }
+
+        if (side === "sell") {
+            this.bidNextPointer = value;
+        }
+    }
+
+}
+
+// I wonder if this could cause some issues
+const marketOrder = new MarketOrderState();
+
 // rename to useMarket
-// should we fetch the last 100 market orders for trade history?
 // need to handle if get no data, could use default empty state instead of null
 export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
+
     const userWallet = useAnchorWallet();
-    const { programId } = useContext(ProgramContext)!;
+    const context = useContext(ProgramContext);
+
+    const { programId, program } = (() => {
+        if (context === null) {
+            return {
+                programId: undefined,
+                program: undefined,
+            }
+        }
+
+        const { programId, program } = context;
+        return { programId, program }
+    })();
+
+
+    const base = new URL("http://127.0.0.1:8000/api/")
 
     const load = async (marketId: PublicKey, queue: Queue) => {
 
-        const base = new URL("http://127.0.0.1:8000")
-        const orderBook = new URL(`/api/market_order_book?book_config=${marketId.toString()}`, base);
-        const marketData = new URL(`/api/market_history?book_config=${marketId.toString()}&interval=1m&limit=1000&offset=0`, base);
 
+        /*
+        
+            checking if user is cached
+            if not the create cache state
+            using local storage for now but should use indexedDB
+            should derive user data
+            state: 
+                markets
+                    marketId
+                    positionConfig
+        */
+
+        if (!localStorage.getItem(userWallet!.publicKey.toString())) {
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], programId!)
+
+            const positionConfigNonce = await (async () => {
+                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
+                if (account !== null) {
+                    const offset = 32 * 4;
+                    return account.data.readBigInt64BE(offset);
+                }
+
+                return BigInt(0);
+            })()
+
+            const data = {
+                markets: [{
+                    marketId: marketId.toString(),
+                    positionConfigId: positionConfigId.toString(),
+                    positionConfigNonce: positionConfigNonce.toString(),
+                }]
+            }
+
+            localStorage.setItem(
+                userWallet!.publicKey.toString(),
+                JSON.stringify(data),
+            )
+        }
+
+        if (!JSON.parse(localStorage
+            .getItem(userWallet!.publicKey.toString())!)
+            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+
+            const user = JSON.parse(localStorage
+                .getItem(userWallet!.publicKey.toString())!);
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], programId!)
+
+            const positionConfigNonce = await (async () => {
+                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
+                if (account !== null) {
+                    const offset = 32 * 4;
+                    return account.data.readBigInt64BE(offset);
+                }
+
+                return BigInt(0);
+            })()
+
+            const data = {
+                ...user,
+                markets: [
+                    ...user.market.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                    {
+                        marketId: marketId.toString(),
+                        positionConfigId: positionConfigId.toString(),
+                        positionConfigNonce: positionConfigNonce.toString(),
+                    }
+                ]
+            }
+
+            localStorage.setItem(
+                userWallet!.publicKey.toString(),
+                JSON.stringify(data),
+            )
+        }
+
+        const orderBookURL = new URL(`./market_order_book?book_config=${marketId.toString()}`, base);
+        const candleDataURL = new URL(`./market_history?book_config=${marketId.toString()}&interval=1m&limit=1000&offset=0`, base);
 
         try {
 
-            // need to handle when don't get the expected data
+            const { positionConfigNonce } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId);
+
             const response = await Promise.all([
-                fetch(orderBook),
-                fetch(marketData)
+                fetch(orderBookURL),
+                fetch(candleDataURL)
             ]);
 
-            let book = await response[0].json();
-            let candles = await response[1].json();
+            const book = await (async () => {
+                if (response[0].status === 200) {
+                    return await response[0].json();
+                }
+                return null;
+            })();
 
-            console.log(candles)
+            if (book === null) {
+                return
+            }
+
+            const candles = await (async () => {
+                if (response[1].status === 200) {
+                    return await response[1].json();
+                }
+                return { market: [] };
+            })();
 
             let asks = new Map<bigint, Order>();
             let bids = new Map<bigint, Order>();
 
+            // interface Order {
+            //     price: string,
+            //     size: string,
+
+            // };
+
             // also need display format and real format
-            book.book.asks.forEach((element: any) => {
+            book.book.asks.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
                 asks.set(price, {
@@ -110,7 +253,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
             });
 
-            book.book.bids.forEach((element: any) => {
+            book.book.bids.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
                 bids.set(price, {
@@ -214,7 +357,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
             asks
                 .values()
-                .forEach((data: any) => {
+                .forEach((data: Order) => {
                     askDepth += data.size;
                     data.depth = askDepth;
 
@@ -233,7 +376,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
             bids
                 .values()
-                .forEach((data: any) => {
+                .forEach((data: Order) => {
                     bidDepth += data.size;
                     data.depth = bidDepth;
 
@@ -242,20 +385,18 @@ export const useTransaction = (marketId: PublicKey) => {
                     });
                 });
 
-            let store = {
-                image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
-                candles: candles.market.map((data: any) => ({
-                    time: Number(data.timestamp),
-                    open: Number(data.open),
-                    high: Number(data.high),
-                    low: Number(data.low),
-                    close: Number(data.close),
 
-                    // open: BigInt(data.open),
-                    // high: BigInt(data.high),
-                    // low: BigInt(data.low),
-                    // close: BigInt(data.close),
-                })).sort((a: Candle, b: Candle) => a.time - b.time),
+            const store = {
+                // how to handle including image?
+                // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
+                image: "",
+                page: 0,
+                candles: updateCandles(candles.market)
+                    .sort((a: Candle, b: Candle) => a.time - b.time),
+
+                user: {
+                    positionConfigNonce,
+                },
 
                 orderBook: {
                     accounts: {
@@ -298,42 +439,33 @@ export const useTransaction = (marketId: PublicKey) => {
                         ], programId!)[0],
                     },
                     marketDetails: {
-                        isReverse: book.isReverse as boolean,
-                        ticker: book.ticker as string,
-                        // symbolA: book.symbolA as string,
-                        // symbolB: book.symbolB as string,
-                        symbolA: "abc",
-                        symbolB: "xxyz",
-                        decimalsA: 9,
-                        decimalsB: 6,
+                        isReverse: book.isReverse,
+                        ticker: book.ticker,
+                        symbolA: book.tokenSymbolA,
+                        symbolB: book.tokenSymbolB,
+                        decimalsA: book.tokenDecimalsA,
+                        decimalsB: book.tokenDecimalsB,
                     },
                     marketData: {
-                        lastPrice: BigInt(1000),
-                        volume: BigInt(5545760),
-                        change: BigInt(-10),
+                        lastPrice: BigInt(book.trades.length === 0 ? 0 : book.trades[0].price),
+                        volume: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
+                        turnover: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
+                        change: BigInt(
+                            book.marketData === undefined || book.marketData.prevLastPrice === 0
+                                ? 0
+                                : BigInt(book.marketData.changeDelta) * BigInt(100_000) / BigInt(book.marketData.prevLastPrice)
+                        ),
                     },
-                    trades: [
-                        { price: 2558.08, qty: 0.039, time: 1728929558, action: "buy" } as Trade,
-                        { price: 2556.16, qty: 0.2767, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2556.16, qty: 0.0438, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2556.16, qty: 0.0221, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2555.32, qty: 0.3423, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2555.15, qty: 3.5, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2554.62, qty: 0.6, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2554.62, qty: 0.3644, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2554.62, qty: 0.0438, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2554.61, qty: 0.6, time: 1728929548, action: "buy" } as Trade,
-                        { price: 2552.63, qty: 0.0009, time: 1728929521, action: "sell" } as Trade,
-                        { price: 2555.95, qty: 0.0054, time: 1728929413, action: "sell" } as Trade,
-                        { price: 2560.07, qty: 0.0054, time: 1728929245, action: "buy" } as Trade,
-                        { price: 2560.0, qty: 0.0117, time: 1728929245, action: "buy" } as Trade,
-                        { price: 2559.57, qty: 0.0106, time: 1728929245, action: "buy" } as Trade,
-                        { price: 2559.04, qty: 0.0118, time: 1728929244, action: "buy" } as Trade,
-                        { price: 2556.57, qty: 0.3989, time: 1728929216, action: "buy" } as Trade,
-                        { price: 2555.95, qty: 0.0054, time: 1728929216, action: "buy" } as Trade,
-                        { price: 2555.16, qty: 0.0013, time: 1728929216, action: "buy" } as Trade,
-                        { price: 2554.88, qty: 0.3994, time: 1728929216, action: "buy" } as Trade
-                    ],
+
+                    trades: book.trades.map((data: Trade) => {
+                        return {
+                            price: Number(data.price),
+                            qty: Number(data.qty),
+                            action: String(data.action),
+                            time: Number(data.time),
+                        } as Trade
+                    }),
+
                     asks: {
                         feedData: asks,
                     },
@@ -343,21 +475,34 @@ export const useTransaction = (marketId: PublicKey) => {
                 }
             }
 
-            console.log(store, data);
-
             setData(store);
         } catch (err) {
             console.log(err)
         }
     }
 
-    const marketData = async (url: URL) => {
-        try {
-            const response = await fetch(url)
-            let data = await response.json();
+    const getCandleData = async () => {
+        const offset = data!.page! * 1000;
 
-            // process response
-            // set state
+        const params = new URLSearchParams();
+        params.append("book_config", marketId.toString());
+        params.append("offset", offset.toString());
+        params.append("limit", (1000).toString());
+
+        const candleDataURL = new URL(`./market_history?${params.toString()}`, base);
+
+        try {
+
+            const response = await fetch(candleDataURL);
+            const candles = await response.json();
+
+            setData({
+                ...data!,
+                page: data!.page! + 1,
+                candles: updateCandles(candles.market)
+                    .concat(data!.candles!)
+                    .sort((a: Candle, b: Candle) => a.time - b.time)
+            });
 
         } catch (err) {
             console.log(err)
@@ -371,8 +516,16 @@ export const useTransaction = (marketId: PublicKey) => {
             return
         }
 
-        const queue = new Queue()
-        const id = eventListner(
+        // edge case: as this data is initialize on first render
+        // the actual market order data may not be null
+        // so need to come back to this to handle better
+        marketOrder.update("buy", null);
+        marketOrder.update("sell", null);
+
+        const queue = new Queue();
+
+        // returns id but for now not handling it
+        eventListner(
             marketId,
             [
                 OPEN_LIMIT_ORDER_EVENT,
@@ -382,8 +535,74 @@ export const useTransaction = (marketId: PublicKey) => {
             (method, payload) => {
 
                 switch (method) {
+                    case "create-market-order": {
+                        marketOrder.update(payload.orderType, payload.nextPointerPubkey);
+                        break;
+                    }
+
+                    case "fill-market-order": {
+                        const data = {
+                            method: "sub",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price!.toString()),
+                            size: BigInt(payload.size!.toString()),
+                        }
+
+                        queue.push(data);
+                        break;
+                    }
+
+                    case "complete-market-order": {
+                        marketOrder.update(payload.orderType, null);
+                        break;
+                    }
+
+                    case "create-limit-order": {
+
+                        if (payload.marketMakerPubkey !== userWallet.publicKey) {
+                            break;
+                        }
+
+                        const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
+                        const { positionConfigNonce, market } = (() => {
+                            const data = user!.markets
+                                .find((id: string) => marketId.toString() === id);
+
+                            return {
+                                positionConfigNonce: BigInt(data.positionConfigNonce),
+                                market: data,
+                            }
+                        })();
+
+                        const data = {
+                            ...user,
+                            markets: [
+                                ...user.markets.filter((item: CachedMarket) => item.marketId !== marketId.toString()),
+                                {
+                                    ...market,
+                                    positionConfigNonce: payload.nonce!.toString(),
+                                }
+                            ]
+                        }
+
+                        localStorage.setItem(
+                            userWallet!.publicKey.toString(),
+                            JSON.parse(data),
+                        );
+
+                        setData({
+                            ...data!,
+                            user: {
+                                ...data!.user,
+                                positionConfigNonce: positionConfigNonce + BigInt(1),
+                            }
+                        })
+
+                        break;
+                    }
+
                     case "open-limit-order": {
-                        let data = {
+                        const data = {
                             method: "add",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
@@ -395,19 +614,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "cancel-limit-order": {
-                        let data = {
-                            method: "sub",
-                            order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
-                        }
-
-                        queue.push(data);
-                        break;
-                    }
-
-                    case "fill-market-order": {
-                        let data = {
+                        const data = {
                             method: "sub",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
@@ -424,16 +631,48 @@ export const useTransaction = (marketId: PublicKey) => {
 
         load(marketId, queue);
 
-        return id;
+        // need to store the id in state
+        // on first render data is valid
+        // on all subsequent renders data is null
+        // return id;
     }
 
-    const id = run();
+    if (programId === undefined) {
+        return {
+            data: {
+                image: undefined,
+                candles: undefined,
+                page: undefined,
+                user: undefined,
+                orderBook: undefined,
+            },
+            marketOrder,
+            getCandleData,
+        }
+    }
+
+    run();
 
     return {
         data,
-        load,
-        marketData,
+        marketOrder,
+        getCandleData,
     }
+}
+
+const updateCandles = (candles: Candle[]) => {
+    return candles.map((data: Candle) => ({
+        time: Number(data.time),
+        open: Number(data.open),
+        high: Number(data.high),
+        low: Number(data.low),
+        close: Number(data.close),
+
+        // open: BigInt(data.open),
+        // high: BigInt(data.high),
+        // low: BigInt(data.low),
+        // close: BigInt(data.close),
+    }));
 }
 
 interface Payload {
@@ -464,9 +703,13 @@ export type Trade = {
     action: "buy" | "sell";
 };
 
-export type Market = {
-    image: string,
-    candles: Candle[],
+export interface Market {
+    image: string | undefined,
+    candles: Candle[] | undefined,
+    page: number | undefined,
+    user: {
+        positionConfigNonce: bigint,
+    } | undefined,
     orderBook: {
         accounts: {
             marketId: PublicKey,
@@ -495,6 +738,7 @@ export type Market = {
             lastPrice: bigint,
             volume: bigint,
             change: bigint,
+            turnover: bigint,
         },
         trades: Trade[],
         asks: {
@@ -503,7 +747,7 @@ export type Market = {
         bids: {
             feedData: Map<bigint, Order>,
         }
-    }
+    } | undefined,
 }
 
 

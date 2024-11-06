@@ -14,12 +14,19 @@ import { Market, Order } from "../../program/utils/useTransaction";
 // last price needs to be updated to reflect token currency correctly
 // decimlas need to correctly factored based on reverse and other conditions
 // need to implement better number formatting with the most cost effective way.
-export default function Book({ market }: { market: Market }) {
+export default function Book({ market }: { market: Market | null }) {
 
-  const { decimalsA, decimalsB } = market.orderBook.marketDetails;
-  const { lastPrice } = market.orderBook.marketData;
-  const { feedData: asks } = market.orderBook.asks;
-  const { feedData: bids } = market.orderBook.bids;
+  if (market === null) {
+    return <>{"LOADING"}</>
+  }
+
+  const {
+    decimalsA,
+    // decimalsB 
+  } = market!.orderBook!.marketDetails;
+  const { lastPrice } = market!.orderBook!.marketData;
+  const { feedData: asks } = market!.orderBook!.asks;
+  const { feedData: bids } = market!.orderBook!.bids;
 
   return (
     <>
@@ -92,7 +99,7 @@ export default function Book({ market }: { market: Market }) {
 }
 
 function BookHeader({ market }: { market: Market }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
 
   return (
     <TableHeader>

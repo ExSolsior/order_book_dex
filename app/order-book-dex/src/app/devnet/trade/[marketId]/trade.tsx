@@ -1,13 +1,13 @@
 import OpenNewWindowButton from "@/components/open-new-window-button";
 import OrderDetails from "@/components/trade/order-details";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Market } from "../../../../program/utils/useTransaction";
+import { Market, MarketOrderState } from "../../../../program/utils/useTransaction";
 
 const SOON_EXPLORER_URL = "https://explorer.devnet.soo.network";
 
 // need to hande link for OpenNewWindowButton
-export default function Trade({ market }: { market: Market }) {
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+export default function Trade({ market, marketOrder }: { market: Market, marketOrder: MarketOrderState }) {
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
 
   return (
     <div className="flex flex-col w-1/4 border-2 border-t-0">
@@ -26,6 +26,7 @@ export default function Trade({ market }: { market: Market }) {
 
       <Tabs defaultValue="buy">
         <TabsList className="bg-transparent w-full py-9 px-0">
+
           <TabsTrigger
             value="buy"
             className="rounded-none grow data-[state=active]:bg-green-950 border-b-2 data-[state=active]:border-b-green-700 py-5"
@@ -34,6 +35,7 @@ export default function Trade({ market }: { market: Market }) {
               Buy
             </span>
           </TabsTrigger>
+
           <TabsTrigger
             value="sell"
             className="rounded-none grow data-[state=active]:bg-red-950 border-b-2 data-[state=active]:border-b-red-700 py-5"
@@ -42,19 +44,27 @@ export default function Trade({ market }: { market: Market }) {
               Sell
             </span>
           </TabsTrigger>
+
         </TabsList>
+
         <TabsContent value="buy">
           <OrderDetails
             market={market}
+            marketOrder={marketOrder}
+
             type="buy"
           />
         </TabsContent>
+
         <TabsContent value="sell">
           <OrderDetails
             market={market}
+            marketOrder={marketOrder}
+
             type="sell"
           />
         </TabsContent>
+
       </Tabs>
     </div>
   );

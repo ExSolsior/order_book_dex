@@ -127,10 +127,12 @@ impl<'info> CreateOrderPosition<'info> {
         )?;
 
         emit!(CreateOrderPositionEvent {
+            market_maker: self.signer.key(),
             pos_pubkey: self.order_position.key(),
             book_config: self.order_book_config.key(),
             pos_config: self.order_position_config.key(),
             order_type: self.order_position.order_type.clone(),
+            next_nonce: self.order_position_config.nonce,
         });
 
         Ok(())

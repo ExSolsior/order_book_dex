@@ -1,3 +1,5 @@
+"use client"
+
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react"
 
@@ -12,13 +14,12 @@ export const useMarkets = () => {
         const base = new URL("http://127.0.0.1:8000/api/");
         const marketListURL = new URL("./market_list?offset=0&limit=10", base);
 
-        console.log(marketListURL);
-
         try {
             const response = await fetch(marketListURL);
-            let data = await response.json();
+            const data = await response.json();
 
-            const list = data.map((el: any) => {
+            // update to fetched market: WIP
+            const list = data.map((el: FetchedMarket) => {
                 return {
                     accounts: {
                         marketId: new PublicKey(el.pubkeyId),
@@ -54,7 +55,7 @@ export const useMarkets = () => {
                         turnover: BigInt(el.marketData.turnover),
                         changeDelta: BigInt(el.marketData.changeDelta),
                         // need to display as percentage
-                        changePercent: el.marketData.prevLastPrice === 0 ? BigInt(0) :
+                        changePercent: el.marketData.prevLastPrice === '0' ? BigInt(0) :
                             BigInt(el.marketData.changeDelta) * BigInt(100_000) / BigInt(el.marketData.prevLastPrice),
                     }
                 }
@@ -79,6 +80,7 @@ export const useMarkets = () => {
 export type Markets = {
     accounts: {
         marketId: PublicKey,
+        // maybe I don't need this data?
         tokenMintA: PublicKey,
         tokenMintB: PublicKey,
         tokenProgramA: PublicKey,
@@ -119,3 +121,29 @@ export type Markets = {
         changePercent: bigint,
     },
 };
+
+export interface FetchedMarket {
+    'pubkeyId': string,
+    'tokenMintA': string,
+    'tokenMintB': string,
+    'tokenProgramA': string,
+    'tokenProgramB': string,
+    'sellMarketPointer': string,
+    'buyMarketPointer': string,
+    'tokenDecimalsA': string,
+    'tokenDecimalsB': string,
+    'tokenSymbolA': string,
+    'tokenSymbolB': string,
+    'isReverse': string,
+    'ticker': string | undefined,
+    'marketData': {
+        'lastPrice': string,
+        'volume': string,
+        'turnover': string,
+        'changeDelta': string,
+        'prevLastPrice': string,
+        'time': string,
+    },
+
+
+}

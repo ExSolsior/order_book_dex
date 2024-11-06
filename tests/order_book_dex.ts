@@ -13,8 +13,12 @@ import {
 } from "@solana/spl-token";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
+
+
 // WHY AM I GETTING LINTER ERROR? THOUGH IT RUNS FINE?
 describe("order_book_dex", () => {
+  console.log(process.env.ANCHOR_BROWSER)
+
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -30,6 +34,7 @@ describe("order_book_dex", () => {
   const users = [];
   const tokenMints = [];
   const orderBookConfigAddressList = [];
+
 
   before(async () => {
 

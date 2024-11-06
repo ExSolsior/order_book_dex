@@ -1,15 +1,19 @@
 "use client";
 
-import { MarketOrderBook } from "@/lib/types";
+// import { MarketOrderBook } from "@/lib/types";
 import {
   AnchorProvider,
   BN,
   Program,
   setProvider,
-  Wallet,
   web3
 } from "@coral-xyz/anchor";
-import { getAccount, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getAccount,
+  // getAssociatedTokenAddressSync, 
+  // TOKEN_PROGRAM_ID 
+}
+  from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -19,10 +23,14 @@ import {
   getSellMarketPointerPDA,
   getVaultAccountPDA
 } from "./pdas";
-import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
+// import { createOpenLimitOrderTx } from "./transactions/open-limit-order";
 import { CHRONO_IDL } from "./utils/constants";
 import { confirmTx } from "./utils/helper";
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import {
+  PublicKey,
+  // SystemProgram, 
+  // Transaction
+} from "@solana/web3.js";
 
 export enum OrderType {
   Buy = "Buy",
@@ -73,46 +81,43 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
     );
 
-
-  console.log(connection.rpcEndpoint)
-
   // Tx: Open Limit Order
-  const openLimitOrder = async ({
-    marketOrderBook,
-    nextPositionPointer,
-    orderType,
-    price,
-    amount,
-    nonce
-  }: {
-    marketOrderBook: MarketOrderBook;
-    nextPositionPointer: web3.PublicKey | null;
-    orderType: OrderType;
-    price: BN;
-    amount: BN;
-    nonce: BN;
-  }) => {
-    try {
-      const tx = await createOpenLimitOrderTx({
-        marketOrderBook,
-        connection,
-        program,
-        userWallet,
-        nextPositionPointer,
-        orderType,
-        price,
-        amount,
-        nonce
-      });
+  // const openLimitOrder = async ({
+  //   marketOrderBook,
+  //   nextPositionPointer,
+  //   orderType,
+  //   price,
+  //   amount,
+  //   nonce
+  // }: {
+  //   marketOrderBook: MarketOrderBook;
+  //   nextPositionPointer: web3.PublicKey | null;
+  //   orderType: OrderType;
+  //   price: BN;
+  //   amount: BN;
+  //   nonce: BN;
+  // }) => {
+  //   try {
+  //     const tx = await createOpenLimitOrderTx({
+  //       marketOrderBook,
+  //       connection,
+  //       program,
+  //       userWallet,
+  //       nextPositionPointer,
+  //       orderType,
+  //       price,
+  //       amount,
+  //       nonce
+  //     });
 
-      await userWallet.signTransaction(tx);
-      const txHash = await connection.sendTransaction(tx);
-      await confirmTx(txHash, connection);
-      toast.success("Order placed successfully!");
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  //     await userWallet.signTransaction(tx);
+  //     const txHash = await connection.sendTransaction(tx);
+  //     await confirmTx(txHash, connection);
+  //     toast.success("Order placed successfully!");
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
 
   /* Instruction: Create Trade Pair */
   const createTradePair = async (
@@ -396,68 +401,71 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   // https://rpc.devnet.soo.network/rpc
   // so I can quickly test out creating a new trade pair for testing of other purpose
 
-  if (false) {
-    const conn = new web3.Connection("http://127.0.0.1:8899");
-    // const tokenMintA = new PublicKey("84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun")
-    // const tokenMintB = new PublicKey("HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz")
+  // if (false) {
+  //   const conn = new web3.Connection("http://127.0.0.1:8899");
+  //   // const tokenMintA = new PublicKey("84zTKsj5fWTMne3ejVrVU2W6GXswyRKioMA4iSrtPtun")
+  //   // const tokenMintB = new PublicKey("HTAbX8zePCdDJJoPf2tf95RvExJ99wtqgGwnnXiLZUtz")
 
-    const tokenMintA = new PublicKey("23bsqv8ZCfQM6WUWYuPMBXvVs8BYKGLqmqzMfHSi9qih")
-    const tokenMintB = new PublicKey("AG7S5pvDni7SGeJGUfZYrWEobhrRTxTvGCRWv8nXdYYb")
-    const isReverse = false;
+  //   const tokenMintA = new PublicKey("23bsqv8ZCfQM6WUWYuPMBXvVs8BYKGLqmqzMfHSi9qih")
+  //   const tokenMintB = new PublicKey("AG7S5pvDni7SGeJGUfZYrWEobhrRTxTvGCRWv8nXdYYb")
+  //   const isReverse = false;
 
-    const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
-    const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
-    const sellMarketPointer = getSellMarketPointerPDA(orderBookConfig);
+  //   const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
+  //   const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
+  //   const sellMarketPointer = getSellMarketPointerPDA(orderBookConfig);
 
-    // 7So216Ms52t7JTdjPQgVL7Cx54tUiS9UwqcAdPrxkfvN 
-    const capitalA = getAssociatedTokenAddressSync(
-      tokenMintA,
-      userWallet!.publicKey,
-    );
+  //   // 7So216Ms52t7JTdjPQgVL7Cx54tUiS9UwqcAdPrxkfvN 
+  //   const capitalA = getAssociatedTokenAddressSync(
+  //     tokenMintA,
+  //     userWallet!.publicKey,
+  //   );
 
-    // DbP7dt1FHwm5nfxzjyPbRz1bxTq3a3RgBTLkQQqADnpg
-    const capitalB = getAssociatedTokenAddressSync(
-      tokenMintB,
-      userWallet!.publicKey,
-    );
+  //   // DbP7dt1FHwm5nfxzjyPbRz1bxTq3a3RgBTLkQQqADnpg
+  //   const capitalB = getAssociatedTokenAddressSync(
+  //     tokenMintB,
+  //     userWallet!.publicKey,
+  //   );
 
-    console.log(capitalA.toString(), capitalB.toString())
+  //   console.log(capitalA.toString(), capitalB.toString())
 
-    // let data = conn
+  //   // let data = conn
 
 
-    program!.methods
-      .createTradePair("USDC", "BTC", isReverse)
-      .accountsStrict({
-        authority: userWallet?.publicKey,
-        orderBookConfig,
-        buyMarketPointer,
-        sellMarketPointer,
-        tokenMintA,
-        tokenMintB,
-        tokenProgramA: TOKEN_PROGRAM_ID,
-        tokenProgramB: TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .prepare()
-      .then(async (data: any) => {
-        const recentBlockhash = await conn.getLatestBlockhash();
-        const transaction = new Transaction(recentBlockhash)
-        transaction.feePayer = userWallet!.publicKey;
-        transaction.add(data.instruction)
+  //   program!.methods
+  //     .createTradePair("USDC", "BTC", isReverse)
+  //     .accountsStrict({
+  //       authority: userWallet?.publicKey,
+  //       orderBookConfig,
+  //       buyMarketPointer,
+  //       sellMarketPointer,
+  //       tokenMintA,
+  //       tokenMintB,
+  //       tokenProgramA: TOKEN_PROGRAM_ID,
+  //       tokenProgramB: TOKEN_PROGRAM_ID,
+  //       systemProgram: SystemProgram.programId,
+  //     })
+  //     .prepare()
+  //     // causes vercel issue, because of any...
+  //     // though doesn't matter this code is just here
+  //     // for testing purposes and will be removed soon
+  //     .then(async (data: any) => {
+  //       const recentBlockhash = await conn.getLatestBlockhash();
+  //       const transaction = new Transaction(recentBlockhash)
+  //       transaction.feePayer = userWallet!.publicKey;
+  //       transaction.add(data.instruction)
 
-        const signTx = await userWallet!
-          .signTransaction(transaction)
-        const serializedTx = signTx.serialize()
-        console.log(signTx, serializedTx)
+  //       const signTx = await userWallet!
+  //         .signTransaction(transaction)
+  //       const serializedTx = signTx.serialize()
+  //       console.log(signTx, serializedTx)
 
-        const hash = await conn.sendRawTransaction(serializedTx)
-        console.log(hash)
+  //       const hash = await conn.sendRawTransaction(serializedTx)
+  //       console.log(hash)
 
-      })
-      .catch(error => console.log(error));
+  //     })
+  //     .catch(error => console.log(error));
 
-  }
+  // }
 
   return (
     <ProgramContext.Provider
@@ -470,7 +478,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
         cancelOrderPosition,
         closeOrderPosition,
         returnExecutionMarketOrder,
-        openLimitOrder
+        // openLimitOrder
       }}
     >
       {children}
@@ -479,7 +487,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 };
 
 interface Value {
-  program: Program<typeof CHRONO_IDL> | undefined,
+  program: Program<typeof CHRONO_IDL>,
   programId: PublicKey,
   createTradePair: ((
     tokenSymbolA: string,
@@ -535,21 +543,21 @@ interface Value {
     orderBookConfig: web3.PublicKey,
     marketPointer: web3.PublicKey
   ) => Promise<void>);
-  openLimitOrder: (({
-    marketOrderBook,
-    nextPositionPointer,
-    orderType,
-    price,
-    amount,
-    nonce
-  }: {
-    marketOrderBook: MarketOrderBook;
-    nextPositionPointer: web3.PublicKey | null;
-    orderType: OrderType;
-    price: BN;
-    amount: BN;
-    nonce: BN;
-  }) => Promise<void>);
+  // openLimitOrder: (({
+  //   marketOrderBook,
+  //   nextPositionPointer,
+  //   orderType,
+  //   price,
+  //   amount,
+  //   nonce
+  // }: {
+  //   marketOrderBook: MarketOrderBook;
+  //   nextPositionPointer: web3.PublicKey | null;
+  //   orderType: OrderType;
+  //   price: BN;
+  //   amount: BN;
+  //   nonce: BN;
+  // }) => Promise<void>);
 }
 
 export const useProgramContext = () => {

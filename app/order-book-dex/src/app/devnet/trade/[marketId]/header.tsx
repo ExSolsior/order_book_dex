@@ -13,15 +13,15 @@ export function Header({ market }: { market: Market }) {
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 10
-  }).format(market.orderBook.marketData.lastPrice);
+  }).format(market!.orderBook!.marketData.lastPrice);
 
   let volume;
-  if (market.orderBook.marketData.volume >= 1_000_000) {
-    volume = (parseInt(market.orderBook.marketData.volume.toString()) / 1_000_000).toFixed(2) + "M";
-  } else if (parseInt(market.orderBook.marketData.volume.toString()) >= 1_000) {
-    volume = (parseInt(market.orderBook.marketData.volume.toString()) / 1_000).toFixed(2) + "K";
+  if (market!.orderBook!.marketData.volume >= 1_000_000) {
+    volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000_000).toFixed(2) + "M";
+  } else if (parseInt(market!.orderBook!.marketData.volume.toString()) >= 1_000) {
+    volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000).toFixed(2) + "K";
   } else {
-    volume = parseInt(market.orderBook.marketData.volume.toString()).toFixed(2);
+    volume = parseInt(market!.orderBook!.marketData.volume.toString()).toFixed(2);
   }
 
   return (
@@ -31,10 +31,10 @@ export function Header({ market }: { market: Market }) {
       <div className="flex flex-col items-center">
         <span className="text-sm text-muted-foreground">24H Change</span>
         <span
-          className={`font-semibold font-sans ${market.orderBook.marketData.change < 0 ? "text-red-500" : "text-green-500"
+          className={`font-semibold font-sans ${market!.orderBook!.marketData.change < 0 ? "text-red-500" : "text-green-500"
             }`}
         >
-          {market.orderBook.marketData.change.toLocaleString()}%
+          {market!.orderBook!.marketData.change.toLocaleString()}%
         </span>
       </div>
       <div className="flex flex-col items-center">

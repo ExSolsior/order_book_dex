@@ -9,79 +9,83 @@ import {
   FormLabel,
   FormMessage
 } from "@/components/ui/form";
-import { Market } from "../../program/utils/useTransaction";
+import { Market, MarketOrderState } from "../../program/utils/useTransaction";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageV0, PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
+import { MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
+
+// need to add better validations
+const formSchema = z.object({
+  price: z.string().refine((val) => {
+    console.log(val, val.length)
+    return !Number.isNaN(parseInt(val, 10))
+  }, {
+    message: "Expected number, received a string"
+  }),
+  quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+    message: "Expected number, received a string"
+  }),
+  orderValue: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+    message: "Expected number, received a string"
+  })
+});
 
 // structure to get image data is incorrect, currently not handling that
 // so using dummy structure
 export default function LimitOrder({
   market,
+  marketOrder,
   type
 }: {
   market: Market;
-  type: "buy" | "sell";
+  marketOrder: MarketOrderState,
+  type: "buy" | "sell" | "ask" | "bid";
 }) {
-  const { marketId } = market.orderBook.accounts;
-  const { symbolA, symbolB, isReverse } = market.orderBook.marketDetails;
+  const { marketId } = market!.orderBook!.accounts;
+  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const userWallet = useAnchorWallet();
   const { program } = useContext(ProgramContext)!;
-
-  // Dummy log to prevent lint error for `type` until functionality is implemented
-  console.log(`Trade type: ${type}`);
-
-  const formSchema = z.object({
-    price: z.number(),
-    quantity: z.number(),
-    orderValue: z.number()
-  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      price: Number(market.orderBook.marketData.lastPrice.toString()),
-      quantity: 0,
-      orderValue: 0
+      price: market!.orderBook!.marketData.lastPrice.toString(),
+      quantity: '0',
+      orderValue: '0'
     }
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
 
-    console.log("LOG::", values);
-    {
-      /* TODO: Implement functionality */
-      // book config
-      // signer address
-      // next position pointer = null
-      // order type
-      // price
-      // amount
-      // nonce
-    }
-
     const params = new URLSearchParams({
-      "book_config": new PublicKey("DqLsxqNjX3Zs8V5xGPBJi4GkggUypnWMoRkS43VSjQa7").toString(),
-      // "book_config": marketId.toString(),
-      signer: userWallet!.publicKey.toString(),
-      "order_type": "bid",
-      // next_position_pointer: optional value?
-      // this will come from market pointer state
-      // which is currently not implemented yet
-      price: (10).toString(),
-      amount: (1).toString(),
-      nonce: (0).toString(),
+      "book_config": marketId.toString(),
+      "signer": userWallet!.publicKey.toString(),
+      "order_type": type,
+      "price": values.price,
+      "amount": values.quantity,
+
+      // need to send correct nonce
+      // because is not being handled on backend atm
+      "nonce": market!.user!.positionConfigNonce.toString(),
     });
 
+    if (type === "bid" && marketOrder.bidNextPointer !== null && marketOrder.bidNextPointer !== undefined) {
+      params.append("next_position_pointer", marketOrder.bidNextPointer.toString());
+    }
+
+    if (type === "ask" && marketOrder.askNextPointer !== null && marketOrder.askNextPointer !== undefined) {
+      params.append("next_position_pointer", marketOrder.askNextPointer.toString());
+    }
+
     // url should come from a config file
-    const base = new URL("http://127.0.0.1:8000");
-    const path = new URL("/api/open_limit_order?" + params.toString(), base.toString());
+    const base = new URL("http://127.0.0.1:8000/api/");
+    const path = new URL("./open_limit_order?" + params.toString(), base.toString());
 
 
     fetch(path)
@@ -94,9 +98,18 @@ export default function LimitOrder({
       })
       .then((data) => {
 
-        let vMessage = new MessageV0({
+        interface LimitOrderTransaction {
+          accountKey: number,
+          readonlyIndexes: number,
+          writeableIndexes: number,
+          accounts: number[],
+          data: number[],
+          programIdIndex: number,
+        }
 
-          addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: any) => {
+        const vMessage = new MessageV0({
+
+          addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: LimitOrderTransaction) => {
             return {
               accountKey: data.accountKey,
               readonlyIndexes: data.readonlyIndexes,
@@ -104,7 +117,7 @@ export default function LimitOrder({
             }
           }),
 
-          compiledInstructions: data.message[1].instructions.slice(1).map((data: any) => {
+          compiledInstructions: data.message[1].instructions.slice(1).map((data: LimitOrderTransaction) => {
             return {
               accountKeyIndexes: data.accounts.slice(1),
               data: new Uint8Array(data.data.slice(1)),
@@ -114,12 +127,12 @@ export default function LimitOrder({
 
           header: data.message[1].header,
           recentBlockhash: new PublicKey(Buffer.from(data.message[1].recentBlockhash)).toString(),
-          staticAccountKeys: data.message[1].accountKeys.slice(1).map((data: any) => {
+          staticAccountKeys: data.message[1].accountKeys.slice(1).map((data: number[]) => {
             return new PublicKey(Buffer.from(data));
           }),
         })
 
-        let vTransaction = new VersionedTransaction(vMessage);
+        const vTransaction = new VersionedTransaction(vMessage);
         return userWallet?.signTransaction(vTransaction);
       })
       .then((signedTransaction) => {
@@ -139,7 +152,6 @@ export default function LimitOrder({
         console.log(err)
       })
   }
-
 
   return (
     <Form {...form}>

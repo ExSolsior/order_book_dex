@@ -90,9 +90,9 @@ export function MarketsTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -107,8 +107,10 @@ export function MarketsTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                   className="cursor-pointer"
                   onClick={() => {
+                    // issue /devnet path... how to handle this correctly?
+                    // for now it works, so leave it be to continue development
                     const marketId = row.getAllCells()[0].getValue();
-                    router.push(`/trade/${marketId}`);
+                    router.push(`/devnet/trade/${marketId}`);
                   }}
                 >
                   {row.getVisibleCells().map((cell) => (

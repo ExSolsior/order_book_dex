@@ -1,6 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
-import { OrderType } from "../ProgramProvider";
+// import { OrderType } from "../ProgramProvider";
 
 const CANCEL_LIMIT_ORDER_EVENT = Buffer.from([216, 16, 162, 254, 206, 149, 207, 36]);
 const CLOSE_LIMIT_ORDER_EVENT = Buffer.from([37, 48, 113, 193, 242, 130, 158, 58]);
@@ -26,7 +26,7 @@ interface ResponseData {
 
     buyMarketPointerPubkey: PublicKey | undefined,
     orderPositionConfigPubkey: PublicKey | undefined,
-    marketMarkerPubkey: PublicKey | undefined,
+    marketMakerPubkey: PublicKey | undefined,
     vaultAPubkey: PublicKey | undefined,
     vaultBPubkey: PublicKey | undefined,
 
@@ -39,6 +39,7 @@ interface ResponseData {
     isReverse: boolean | undefined,
     isAvailable: boolean | undefined,
     isExecution: boolean | undefined,
+    nonce: bigint | undefined,
     slot: bigint | undefined,
     timestamp: bigint | undefined,
 
@@ -127,12 +128,13 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isExecution: undefined,
     }
@@ -171,7 +173,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         destinationPubkey: undefined,
         nextPositionPubkey: undefined,
         orderPositionConfigPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
@@ -179,6 +181,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isAvailable: undefined,
         isExecution: undefined,
     }
@@ -198,7 +201,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
     const data = {
         orderBookConfigPubkey: getPubkey(decoded, offset),
         orderPositionConfigPubkey: getPubkey(decoded, offset),
-        marketMarkerPubkey: getPubkey(decoded, offset),
+        marketMakerPubkey: getPubkey(decoded, offset),
         vaultAPubkey: getPubkey(decoded, offset),
         vaultBPubkey: getPubkey(decoded, offset),
         slot: getSlot(decoded, offset),
@@ -220,6 +223,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
         isExecution: undefined,
@@ -238,10 +242,12 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
     }
 
     const data = {
+        marketMakerPubkey: getPubkey(decoded, offset),
         orderPositionPubkey: getPubkey(decoded, offset),
         orderBookConfigPubkey: getPubkey(decoded, offset),
         orderPositionConfigPubkey: getPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
+        nonce: BigInt(getBN(decoded, offset).toString()),
 
         sourcePubkey: undefined,
         destinationPubkey: undefined,
@@ -252,7 +258,6 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
-        marketMarkerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
@@ -296,7 +301,7 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
@@ -304,6 +309,7 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isExecution: undefined,
         slot: undefined,
@@ -338,7 +344,7 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         tokenProgramBPubkey: undefined,
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
@@ -346,6 +352,7 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
         isExecution: undefined,
@@ -386,13 +393,14 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
     }
@@ -433,13 +441,14 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         nextPointerPubkey: undefined,
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
     }
@@ -481,11 +490,12 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         sellMarketPointerPubkey: undefined,
         buyMarketPointerPubkey: undefined,
         orderPositionConfigPubkey: undefined,
-        marketMarkerPubkey: undefined,
+        marketMakerPubkey: undefined,
         vaultAPubkey: undefined,
         vaultBPubkey: undefined,
         price: undefined,
         size: undefined,
+        nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
     }
