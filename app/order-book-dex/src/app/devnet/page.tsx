@@ -11,8 +11,6 @@ import { useContext } from "react";
 export default function Home() {
   const allMarkets = useContext(MarketContext)
 
-  console.log(allMarkets)
-
   if (!allMarkets) return <>{"LOADING..."}</>
 
   return (

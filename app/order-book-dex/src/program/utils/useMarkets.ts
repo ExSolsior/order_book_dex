@@ -6,9 +6,8 @@ import { useState } from "react"
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
-
 export const useMarkets = () => {
-    const [data, setData] = useState<Markets[]>([]);
+    const [data, setData] = useState<Markets[] | undefined>();
 
     // load listener
 
@@ -18,15 +17,11 @@ export const useMarkets = () => {
         params.append("limit", (1000).toString());
         params.append("offset", (0).toString());
 
-
         const base = new URL("./api/", API_ENDPOINT);
         const marketListURL = new URL("./market_list?" + params.toString(), base);
 
-        console.log(marketListURL)
-
         try {
             const response = await fetch(marketListURL);
-
             const data = await response.json();
 
             // set empty state
@@ -84,7 +79,7 @@ export const useMarkets = () => {
         }
     }
 
-    if (data.length === 0) {
+    if (data === undefined) {
         load()
     }
 

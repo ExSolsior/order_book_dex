@@ -31,6 +31,7 @@ import {
   SystemProgram,
   // Transaction
 } from "@solana/web3.js";
+import { set } from "@coral-xyz/anchor/dist/cjs/utils/features";
 
 export enum OrderType {
   Buy = "Buy",
@@ -47,37 +48,39 @@ type Fill = {
 export const ProgramContext = createContext<Value | null>(null);
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
-  console.log("PROVIDER")
-  // Get provider
   const { connection } = useConnection();
   const userWallet = useAnchorWallet();
-  const [loading, setLoading] = useState(true);
-  const [program, setProgram] = useState<Program<typeof CHRONO_IDL> | null>(null);
+  const [isLoading, setLoading] = useState(true);
+  const [program, setProgram] = useState<typeof CHRONO_IDL | undefined>()
 
-  console.log(program)
+  const initializeProgram = () => {
+    if (!userWallet || (userWallet && !isLoading)) {
+      return
+    }
 
-  useEffect(() => {
-    const initializeProgram = async () => {
-      if (userWallet) {
-        const provider = new AnchorProvider(connection, userWallet, {
-          commitment: "confirmed",
-        });
-        setProvider(provider);
+    const provider = new AnchorProvider(connection, userWallet, {
+      commitment: "confirmed",
+    });
 
-        const newProgram = new Program<typeof CHRONO_IDL>(CHRONO_IDL, provider);
-        setProgram(newProgram);
-      }
-      setLoading(false);
-    };
+    setProvider(provider);
+    setLoading(false);
+    setProgram(new Program<typeof CHRONO_IDL>(CHRONO_IDL, provider))
+  };
 
-    initializeProgram();
-  }, [connection, userWallet]);
+  initializeProgram()
+
+  console.log({
+    program,
+    userWallet,
+    connection,
+    isLoading,
+  })
+
+  // need loading 
+  if (isLoading) return
 
 
-  if (loading) {
-    return <div>Loading.......</div>
-  }
-
+  // since we will have loading process, this condition is no longer ncessary
   if (!program || !userWallet)
     return (
       <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
