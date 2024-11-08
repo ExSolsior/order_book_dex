@@ -1,21 +1,23 @@
 "use client"
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import {
+    getAccount,
+    getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import {
     eventListner,
     OPEN_LIMIT_ORDER_EVENT,
     CANCEL_LIMIT_ORDER_EVENT,
     MARKET_ORDER_FILL_EVENT,
 } from "./events"
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { ProgramContext } from "../ProgramProvider";
+import {
+    useAnchorWallet,
+    useConnection,
+} from "@solana/wallet-adapter-react";
 import { CachedMarket } from "./types";
-
-// const transactionContext = createContext();
-// useMarket
-// useEvents
+import { PROGRAM_ID } from "./constants";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
@@ -96,23 +98,8 @@ const marketOrder = new MarketOrderState();
 // need to handle if get no data, could use default empty state instead of null
 export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
-
+    const { connection } = useConnection();
     const userWallet = useAnchorWallet();
-    const context = useContext(ProgramContext);
-
-    const { programId, program } = (() => {
-        if (context === null) {
-            return {
-                programId: undefined,
-                program: undefined,
-            }
-        }
-
-        const { programId, program } = context;
-        return { programId, program }
-    })();
-
-
     const base = new URL("./api/", API_ENDPOINT)
 
     const load = async (marketId: PublicKey, queue: Queue) => {
@@ -130,19 +117,21 @@ export const useTransaction = (marketId: PublicKey) => {
                     positionConfig
         */
 
-        if (!localStorage.getItem(userWallet!.publicKey.toString())) {
+        if (userWallet !== undefined && !localStorage.getItem(userWallet.publicKey.toString())) {
 
             const [positionConfigId] = PublicKey.findProgramAddressSync([
                 userWallet!.publicKey.toBuffer(),
                 marketId.toBuffer(),
                 Buffer.from("order-position-config"),
-            ], programId!)
+            ], PROGRAM_ID)
 
             const positionConfigNonce = await (async () => {
-                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
+                const account = await connection.getAccountInfo(positionConfigId)
+
+                console.log(account)
                 if (account !== null) {
-                    const offset = 32 * 4;
-                    return account.data.readBigInt64BE(offset);
+                    const offset = 32 * 4 + 8;
+                    return account.data.readBigUInt64LE(offset);
                 }
 
                 return BigInt(0);
@@ -162,9 +151,16 @@ export const useTransaction = (marketId: PublicKey) => {
             )
         }
 
-        if (!JSON.parse(localStorage
-            .getItem(userWallet!.publicKey.toString())!)
+        if (userWallet !== undefined && !JSON.parse(localStorage
+            .getItem(userWallet.publicKey.toString())!)
             .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+
+            console.log(JSON.parse(localStorage
+                .getItem(userWallet.publicKey.toString())!))
+
+            console.log(JSON.parse(localStorage
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId))
 
             const user = JSON.parse(localStorage
                 .getItem(userWallet!.publicKey.toString())!);
@@ -173,13 +169,13 @@ export const useTransaction = (marketId: PublicKey) => {
                 userWallet!.publicKey.toBuffer(),
                 marketId.toBuffer(),
                 Buffer.from("order-position-config"),
-            ], programId!)
+            ], PROGRAM_ID)
 
             const positionConfigNonce = await (async () => {
-                const account = await program!.provider.connection.getAccountInfo(positionConfigId)
+                const account = await connection.getAccountInfo(positionConfigId)
                 if (account !== null) {
-                    const offset = 32 * 4;
-                    return account.data.readBigInt64BE(offset);
+                    const offset = 32 * 4 + 8;
+                    return account.data.readBigUInt64LE(offset);
                 }
 
                 return BigInt(0);
@@ -188,7 +184,7 @@ export const useTransaction = (marketId: PublicKey) => {
             const data = {
                 ...user,
                 markets: [
-                    ...user.market.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                    ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
                     {
                         marketId: marketId.toString(),
                         positionConfigId: positionConfigId.toString(),
@@ -217,9 +213,6 @@ export const useTransaction = (marketId: PublicKey) => {
 
         try {
 
-            const { positionConfigNonce } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId);
-
             const response = await Promise.all([
                 fetch(orderBookURL),
                 fetch(candleDataURL)
@@ -232,9 +225,74 @@ export const useTransaction = (marketId: PublicKey) => {
                 return null;
             })();
 
+            // need to add redirect to home page if  marketId is not found
             if (book === null) {
                 return
             }
+
+            const user = await (async () => {
+                if (!userWallet) {
+                    return null
+                }
+
+                const userCapitalA = await getAssociatedTokenAddress(
+                    new PublicKey(book.tokenMintA),
+                    userWallet!.publicKey!,
+                    true,
+                    new PublicKey(book.tokenProgramA),
+                );
+
+                const userCapitalB = await getAssociatedTokenAddress(
+                    new PublicKey(book.tokenMintB),
+                    userWallet!.publicKey!,
+                    true,
+                    new PublicKey(book.tokenProgramB),
+                );
+
+                const userVaultA = PublicKey.findProgramAddressSync([
+                    new PublicKey(book.pubkeyId).toBuffer(),
+                    new PublicKey(book.tokenMintA).toBuffer(),
+                    userWallet!.publicKey!.toBuffer(),
+                    Buffer.from("vault-account"),
+                ], PROGRAM_ID)[0];
+
+                const userVaultB = PublicKey.findProgramAddressSync([
+                    new PublicKey(book.pubkeyId).toBuffer(),
+                    new PublicKey(book.tokenMintB).toBuffer(),
+                    userWallet!.publicKey!.toBuffer(),
+                    Buffer.from("vault-account"),
+                ], PROGRAM_ID)[0];
+
+                const data = await Promise.allSettled([
+                    getAccount(connection, userCapitalA),
+                    getAccount(connection, userCapitalB),
+                    getAccount(connection, userVaultA),
+                    getAccount(connection, userVaultB),
+                ]).then((results) => {
+                    return results.map(data => {
+                        return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
+                    })
+                })
+
+                const {
+                    positionConfigId,
+                    positionConfigNonce,
+                } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
+                    .markets!.find((item: CachedMarket) => marketId.toString() === item.marketId);
+
+                return {
+                    positionConfigId: new PublicKey(positionConfigId),
+                    positionConfigNonce: BigInt(positionConfigNonce),
+                    userCapitalA,
+                    userCapitalB,
+                    userVaultA,
+                    userVaultB,
+                    capitalABalance: data[0],
+                    capitalBBalance: data[1],
+                    vaultABalance: data[2],
+                    vaultBBalance: data[3],
+                }
+            })()
 
             const candles = await (async () => {
                 if (response[1].status === 200) {
@@ -245,12 +303,6 @@ export const useTransaction = (marketId: PublicKey) => {
 
             let asks = new Map<bigint, Order>();
             let bids = new Map<bigint, Order>();
-
-            // interface Order {
-            //     price: string,
-            //     size: string,
-
-            // };
 
             // also need display format and real format
             book.book.asks.forEach((element: Order) => {
@@ -407,7 +459,9 @@ export const useTransaction = (marketId: PublicKey) => {
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
-                    positionConfigNonce,
+                    positionConfigNonce: BigInt(user ? user.positionConfigNonce : 0),
+                    capitalABalance: BigInt(user ? user.capitalABalance : 0),
+                    capitalBBalance: BigInt(user ? user.capitalBBalance : 0),
                 },
 
                 orderBook: {
@@ -419,36 +473,12 @@ export const useTransaction = (marketId: PublicKey) => {
                         tokenMintB: new PublicKey(book.tokenMintB),
                         tokenProgramA: new PublicKey(book.tokenProgramA),
                         tokenProgramB: new PublicKey(book.tokenProgramB),
-                        userAddress: userWallet!.publicKey,
-                        userPositionConfig: PublicKey.findProgramAddressSync([
-                            userWallet!.publicKey!.toBuffer(),
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            Buffer.from("order-position-config"),
-                        ], programId!)[0],
-                        userCapitalA: await getAssociatedTokenAddress(
-                            new PublicKey(book.tokenMintA),
-                            userWallet!.publicKey!,
-                            true,
-                            programId,
-                        ),
-                        userCapitalB: await getAssociatedTokenAddress(
-                            new PublicKey(book.tokenMintB),
-                            userWallet!.publicKey!,
-                            true,
-                            programId,
-                        ),
-                        userVaultA: PublicKey.findProgramAddressSync([
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            new PublicKey(book.tokenMintA).toBuffer(),
-                            userWallet!.publicKey!.toBuffer(),
-                            Buffer.from("vault-account"),
-                        ], programId!)[0],
-                        userVaultB: PublicKey.findProgramAddressSync([
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            new PublicKey(book.tokenMintB).toBuffer(),
-                            userWallet!.publicKey!.toBuffer(),
-                            Buffer.from("vault-account"),
-                        ], programId!)[0],
+                        userAddress: userWallet ? userWallet!.publicKey : undefined,
+                        userPositionConfig: userWallet ? user?.positionConfigId : undefined,
+                        userCapitalA: userWallet ? user?.userCapitalA : undefined,
+                        userCapitalB: userWallet ? user?.userCapitalB : undefined,
+                        userVaultA: userWallet ? user?.userVaultA : undefined,
+                        userVaultB: userWallet ? user?.userVaultB : undefined,
                     },
                     marketDetails: {
                         isReverse: book.isReverse,
@@ -522,10 +552,20 @@ export const useTransaction = (marketId: PublicKey) => {
     }
 
     const run = () => {
-
-        if (programId === undefined || userWallet === undefined || data !== null) {
+        // so I have a complicated process here
+        // on first render userWallet doens't exist
+        // but the data is fetched, 2 times
+        // once userWallet is avaiable, data is not null
+        // and doesn't fetch again... interesting issue
+        // how to resolve?... for now the user is forced to have a wallet
+        // until I can find some clever way to handle this
+        if (userWallet === undefined || connection === undefined || data !== null) {
             // need to cache and return id
-            return
+            return {
+                data,
+                marketOrder,
+                getCandleData,
+            }
         }
 
         // edge case: as this data is initialize on first render
@@ -571,7 +611,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
                     case "create-limit-order": {
 
-                        if (payload.marketMakerPubkey !== userWallet.publicKey) {
+                        if (userWallet === undefined || payload.marketMakerPubkey !== userWallet.publicKey) {
                             break;
                         }
 
@@ -614,14 +654,32 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "open-limit-order": {
-                        const data = {
+                        const input = {
                             method: "add",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
                             size: BigInt(payload.size!.toString()),
                         }
 
-                        queue.push(data);
+
+                        queue.push(input);
+                        console.log(input)
+                        console.log(queue)
+
+                        // setData({
+                        //     ...data!,
+                        //     orderBook{
+                        //         ...data.orderBook,
+                        //         bids: {
+                        //             ...data
+                        //         }
+                        //     }
+                        //     user: {
+                        //         ...data!.user,
+                        //         positionConfigNonce: positionConfigNonce + BigInt(1),
+                        //     }
+                        // })
+
                         break;
                     }
 
@@ -643,33 +701,14 @@ export const useTransaction = (marketId: PublicKey) => {
 
         load(marketId, queue);
 
-        // need to store the id in state
-        // on first render data is valid
-        // on all subsequent renders data is null
-        // return id;
-    }
-
-    if (programId === undefined) {
         return {
-            data: {
-                image: undefined,
-                candles: undefined,
-                page: undefined,
-                user: undefined,
-                orderBook: undefined,
-            },
+            data,
             marketOrder,
             getCandleData,
         }
     }
 
-    run();
-
-    return {
-        data,
-        marketOrder,
-        getCandleData,
-    }
+    return run();
 }
 
 const updateCandles = (candles: Candle[]) => {
@@ -718,10 +757,12 @@ export type Trade = {
 export interface Market {
     image: string | undefined,
     candles: Candle[] | undefined,
-    page: number | undefined,
+    page: number,
     user: {
-        positionConfigNonce: bigint,
-    } | undefined,
+        positionConfigNonce: bigint | undefined,
+        capitalABalance: bigint,
+        capitalBBalance: bigint,
+    },
     orderBook: {
         accounts: {
             marketId: PublicKey,
@@ -731,12 +772,12 @@ export interface Market {
             tokenMintB: PublicKey,
             tokenProgramA: PublicKey,
             tokenProgramB: PublicKey,
-            userAddress: PublicKey,
-            userPositionConfig: PublicKey,
-            userCapitalA: PublicKey,
-            userCapitalB: PublicKey,
-            userVaultA: PublicKey,
-            userVaultB: PublicKey,
+            userAddress: PublicKey | undefined,
+            userPositionConfig: PublicKey | undefined,
+            userCapitalA: PublicKey | undefined,
+            userCapitalB: PublicKey | undefined,
+            userVaultA: PublicKey | undefined,
+            userVaultB: PublicKey | undefined,
         },
         marketDetails: {
             isReverse: boolean,
@@ -759,7 +800,7 @@ export interface Market {
         bids: {
             feedData: Map<bigint, Order>,
         }
-    } | undefined,
+    },
 }
 
 

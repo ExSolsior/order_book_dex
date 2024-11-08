@@ -20,7 +20,7 @@ export function MainNav({ isDemo }: { isDemo: boolean }) {
   // implement to find default marekt -> BTC / USDC | ETH / USDC | SOL / USDC
   // implement if markets is empty disable trade link
   // implement marketId is the last market user viewed
-  const marketId = markets.length !== 0
+  const marketId = markets !== undefined && markets.length !== 0
     ? markets[0].accounts.marketId
     : undefined;
 
@@ -51,9 +51,9 @@ export function MainNav({ isDemo }: { isDemo: boolean }) {
 
           <Link
             href={
-              markets.length === 0
+              markets !== undefined && markets.length === 0
                 ? `${isDemo ? "/demo" : "/devnet"}/trade`
-                : `${isDemo ? "/demo" : "/devnet"}/trade?marketId=${marketId}`
+                : `${isDemo ? "/demo" : "/devnet"}/trade/${marketId}`
             }
             className={cn(
               "transition-colors hover:text-foreground font-semibold",

@@ -1,7 +1,8 @@
-import { ThemeProvider } from "@/components/theme-provider";
 import { WalletAdapter } from "@/components/wallet-adapter";
-import { siteConfig } from "@/config/site";
+import { ThemeProvider } from "@/components/theme-provider";
 import { ProgramProvider } from "@/program/ProgramProvider";
+import { siteConfig } from "@/config/site";
+
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -11,11 +12,13 @@ const geistSans = localFont({
   variable: "--font-geist-sans",
   weight: "100 900"
 });
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900"
 });
+
 const montserrat = localFont({
   src: "./fonts/Montserrat-Medium.ttf",
   variable: "--font-montserrat",

@@ -18,6 +18,7 @@ export default function OrderDetails({
 }) {
 
   const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
+  const { capitalABalance, capitalBBalance } = market!.user!;
   const userWallet = useAnchorWallet();
 
   if (!userWallet) {
@@ -37,7 +38,13 @@ export default function OrderDetails({
         value="limit"
         className="space-y-3 px-2 pt-2"
       >
-        <Balance token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB} />
+        <Balance
+          token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
+          // need better way to format number
+          balance={(type === "buy" ? !isReverse
+            ? capitalBBalance : capitalABalance : !isReverse
+            ? capitalABalance : capitalBBalance).toString()}
+        />
         <LimitOrder
           market={market}
           marketOrder={marketOrder}
@@ -48,7 +55,13 @@ export default function OrderDetails({
         value="market"
         className="space-y-3 px-2 pt-2"
       >
-        <Balance token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB} />
+        <Balance
+          token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
+          // need better way to format number
+          balance={(type === "buy" ? !isReverse
+            ? capitalBBalance : capitalABalance : !isReverse
+            ? capitalABalance : capitalBBalance).toString()}
+        />
         <MarketOrder
           market={market}
           type={type}

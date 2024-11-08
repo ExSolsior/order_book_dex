@@ -7,6 +7,7 @@ const SOON_EXPLORER_URL = "https://explorer.devnet.soo.network";
 
 // need to hande link for OpenNewWindowButton
 export default function Trade({ market, marketOrder }: { market: Market, marketOrder: MarketOrderState }) {
+
   const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
 
   return (

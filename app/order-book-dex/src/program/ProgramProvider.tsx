@@ -15,7 +15,7 @@ import {
 }
   from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import toast from "react-hot-toast";
 import {
   getBuyMarketPointerPDA,
@@ -47,37 +47,30 @@ type Fill = {
 export const ProgramContext = createContext<Value | null>(null);
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {
-  console.log("PROVIDER")
-  // Get provider
   const { connection } = useConnection();
   const userWallet = useAnchorWallet();
-  const [loading, setLoading] = useState(true);
-  const [program, setProgram] = useState<Program<typeof CHRONO_IDL> | null>(null);
+  const [isLoading, setLoading] = useState(true);
+  const [program, setProgram] = useState<typeof CHRONO_IDL | undefined>()
 
-  console.log(program)
+  // console.log("user wallet", userWallet, isLoading, program, connection)
 
-  useEffect(() => {
-    const initializeProgram = async () => {
-      if (userWallet) {
-        const provider = new AnchorProvider(connection, userWallet, {
-          commitment: "confirmed",
-        });
-        setProvider(provider);
+  const initializeProgram = () => {
+    if (!userWallet || (userWallet && !isLoading)) {
+      return
+    }
 
-        const newProgram = new Program<typeof CHRONO_IDL>(CHRONO_IDL, provider);
-        setProgram(newProgram);
-      }
-      setLoading(false);
-    };
+    const provider = new AnchorProvider(connection, userWallet, {
+      commitment: "confirmed",
+    });
 
-    initializeProgram();
-  }, [connection, userWallet]);
+    setProvider(provider);
+    setLoading(false);
+    setProgram(new Program<typeof CHRONO_IDL>(CHRONO_IDL, provider))
+  };
 
+  initializeProgram()
 
-  if (loading) {
-    return <div>Loading.......</div>
-  }
-
+  // since we will have loading process, this condition is no longer ncessary
   if (!program || !userWallet)
     return (
       <ProgramContext.Provider value={null}>{children}</ProgramContext.Provider>
@@ -129,6 +122,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     tokenMintB: web3.PublicKey,
     isReverse: boolean
   ) => {
+
     try {
       const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
       const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
@@ -152,6 +146,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
+
+      console.log(txHash)
 
       await confirmTx(txHash, connection);
       toast.success("Trade pair created successfully!");
