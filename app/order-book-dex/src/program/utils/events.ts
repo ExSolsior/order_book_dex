@@ -52,7 +52,7 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
     const conn = new Connection(NEXT_PUBLIC_API_SVM);
     const subscriptionId = conn.onLogs(address, (logs) => {
 
-        for (let event of logs.logs.filter((log) => log.startsWith("Program data: "))) {
+        for (const event of logs.logs.filter((log) => log.startsWith("Program data: "))) {
 
             const eventData = event.slice("Program data: ".length);
             const decoded = Buffer.from(eventData as string, 'base64');

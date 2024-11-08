@@ -2,14 +2,20 @@
 
 import { useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import { getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import {
+    getAccount,
+    getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import {
     eventListner,
     OPEN_LIMIT_ORDER_EVENT,
     CANCEL_LIMIT_ORDER_EVENT,
     MARKET_ORDER_FILL_EVENT,
 } from "./events"
-import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import {
+    useAnchorWallet,
+    useConnection,
+} from "@solana/wallet-adapter-react";
 import { CachedMarket } from "./types";
 import { PROGRAM_ID } from "./constants";
 
