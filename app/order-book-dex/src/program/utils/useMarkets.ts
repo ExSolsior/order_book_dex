@@ -1,15 +1,16 @@
 "use client"
 
 import { PublicKey } from "@solana/web3.js";
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
+// should place these under constants.ts file
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
 export const useMarkets = () => {
-    const [data, setData] = useState<Markets[] | undefined>();
-
-    // load listener
+    const [data, setData] = useState<Markets[]>([]);
+    const [intervalId, setIntervalId] = useState<NodeJS.Timeout | undefined>()
+    const [isLoading, setLoading] = useState(true);
 
     const load = async () => {
 
@@ -79,11 +80,19 @@ export const useMarkets = () => {
         }
     }
 
-    if (data === undefined) {
-        load()
-    }
+    useEffect(() => {
+        if (isLoading == false) {
+            return () => clearInterval(intervalId);
+        }
 
-    // return subscriptionId
+        const id = setInterval(() => load(), 60000)
+
+        setLoading(false);
+        setIntervalId(id);
+        load();
+
+    }, [isLoading, intervalId])
+
     return { data }
 }
 

@@ -13,10 +13,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { useProgramContext } from "@/program//ProgramProvider" 
+import { useProgramContext } from "@/program//ProgramProvider"
 import * as web3 from "@solana/web3.js"
 
 
+// need to improve and add better error handling
 export default function TradePairCreator() {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -27,32 +28,32 @@ export default function TradePairCreator() {
     return null;
   }
 
-  const {createTradePair} = programContext;
+  const { createTradePair } = programContext;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsLoading(true)
 
     const formData = new FormData(event.currentTarget);
-  
+
     // Get values for Token A
-    let tokenSymbolA = formData.get('tokenASymbol') as string; 
-    let tokenMintA = formData.get('tokenAMint') as string; 
+    let tokenSymbolA = formData.get('tokenASymbol') as string;
+    let tokenMintA = formData.get('tokenAMint') as string;
 
     // Get values for Token B
-    let tokenSymbolB = formData.get('tokenBSymbol') as string; 
-    let tokenMintB = formData.get('tokenBMint') as string; 
+    let tokenSymbolB = formData.get('tokenBSymbol') as string;
+    let tokenMintB = formData.get('tokenBMint') as string;
 
     const isReversed = formData.get('isReversed') !== null; // Checkbox value
 
     try {
-     // Calculate the byte sizes of the strings
-    const encoder = new TextEncoder();
-    const tokenMintABytes = encoder.encode(tokenMintA).length; // Get byte size of tokenMintA
-    const tokenMintBBytes = encoder.encode(tokenMintB).length; // Get byte size of tokenMintB
+      // Calculate the byte sizes of the strings
+      const encoder = new TextEncoder();
+      const tokenMintABytes = encoder.encode(tokenMintA).length; // Get byte size of tokenMintA
+      const tokenMintBBytes = encoder.encode(tokenMintB).length; // Get byte size of tokenMintB
 
-    // Compare the byte sizes
-    if (tokenMintABytes > tokenMintBBytes) {
+      // Compare the byte sizes
+      if (tokenMintABytes > tokenMintBBytes) {
         // Swap the values if tokenMintA has more bytes
 
         // Swap token mints
@@ -63,10 +64,10 @@ export default function TradePairCreator() {
         const tempSymbol = tokenSymbolA;
         tokenSymbolA = tokenSymbolB;
         tokenSymbolB = tempSymbol;
-     } 
+      }
 
-     // TokenMintA is guaranteed to have less or equal bytes than tokenMintB
-     await createTradePair(tokenSymbolA, tokenSymbolB, new web3.PublicKey(tokenMintA), new web3.PublicKey(tokenMintB), isReversed);
+      // TokenMintA is guaranteed to have less or equal bytes than tokenMintB
+      await createTradePair(tokenSymbolA, tokenSymbolB, new web3.PublicKey(tokenMintA), new web3.PublicKey(tokenMintB), isReversed);
     } catch (error) {
       console.error(error);
       toast({
@@ -83,8 +84,8 @@ export default function TradePairCreator() {
     <div className="p-8 flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="rounded-md px-6 py-3 text-lg font-semibold bg-white text-gray-700 hover:bg-gray-100 hover:text-primary-dark transition-colors duration-200 shadow-md hover:shadow-lg"
           >
             Create New Trade Pair
@@ -104,8 +105,8 @@ export default function TradePairCreator() {
                       <Label htmlFor={`token${token}${field}`} className="text-sm font-medium text-gray-700">
                         {field}
                       </Label>
-                      <Input 
-                        id={`token${token}${field}`} 
+                      <Input
+                        id={`token${token}${field}`}
                         name={`token${token}${field}`} // Added name attribute for form data
                         className="rounded-md border-gray-300 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 transition-all duration-200 text-black"
                         required
@@ -122,8 +123,8 @@ export default function TradePairCreator() {
                 <Label htmlFor="isReversed" className="text-sm font-medium text-gray-700">Is reversed</Label>
               </div>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full rounded-md bg-black hover:bg-primary-dark text-white font-semibold py-2 transition-colors duration-200"
                 disabled={isLoading}
               >

@@ -72,10 +72,7 @@ export default function LimitOrder({
       "order_type": type,
       "price": values.price,
       "amount": values.quantity,
-
-      // need to send correct nonce
-      // because is not being handled on backend atm
-      "nonce": market!.user!.positionConfigNonce.toString(),
+      "nonce": market!.user!.positionConfigNonce!.toString(),
     });
 
     if (type === "bid" && marketOrder.bidNextPointer !== null && marketOrder.bidNextPointer !== undefined) {
@@ -86,21 +83,12 @@ export default function LimitOrder({
       params.append("next_position_pointer", marketOrder.askNextPointer.toString());
     }
 
-    // url should come from a config file
     const base = new URL("./api/", API_ENDPOINT);
     const path = new URL("./open_limit_order?" + params.toString(), base.toString());
 
-
     fetch(path)
+      .then((data) => data.json())
       .then((data) => {
-
-        // need to check data is valid and handle appropiately
-        // also need to handle when multiple version transactions...
-        // well not for open limit order but for execute market order
-        return data.json();
-      })
-      .then((data) => {
-        console.log("msg", data)
         const vMessage = new MessageV0({
 
           addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: TransactionOrder) => {
@@ -135,11 +123,7 @@ export default function LimitOrder({
         return program!.provider!.sendAndConfirm!(signedTransaction as VersionedTransaction)
       })
       .then((data) => {
-
-        // how to handle this? what data will this be?
-        // can do anything with it since it fails atm
-        // but apparently it returns a string?
-        // signature possibly?
+        // is a txSig, what to do with it?
         console.log(data)
       })
       .catch(err => {
@@ -232,6 +216,7 @@ export default function LimitOrder({
         />
         <Button
           type="submit"
+          disabled={!userWallet}
           className="w-full font-bold text-lg"
         >
           Swap

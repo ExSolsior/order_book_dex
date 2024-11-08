@@ -46,52 +46,58 @@ interface ResponseData {
 
 }
 
+const NEXT_PUBLIC_API_SVM = process.env.NEXT_PUBLIC_API_SVM as string;
+
 const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: string, data: ResponseData) => void) => {
-    const conn = new Connection("https://rpc.devnet.soo.network/rpc");
+    const conn = new Connection(NEXT_PUBLIC_API_SVM);
     const subscriptionId = conn.onLogs(address, (logs) => {
 
-        const eventData = logs.logs.find((log) => log.startsWith("Program data: "))?.slice("Program data: ".length);
-        const decoded = Buffer.from(eventData as string, 'base64');
-        const discrimniator = decoded.subarray(0, 8)
+        for (let event of logs.logs.filter((log) => log.startsWith("Program data: "))) {
 
-        switch (discrimniator) {
-            case OPEN_LIMIT_ORDER_EVENT:
-                openLimitOrderEvent(OPEN_LIMIT_ORDER_EVENT, listen, decoded, callback);
-                break;
+            const eventData = event.slice("Program data: ".length);
+            const decoded = Buffer.from(eventData as string, 'base64');
+            const discrimniator = decoded.subarray(0, 8)
 
-            case CANCEL_LIMIT_ORDER_EVENT:
-                cancelLimitOrderEvent(CANCEL_LIMIT_ORDER_EVENT, listen, decoded, callback);
-                break;
+            switch (discrimniator.toString()) {
+                case OPEN_LIMIT_ORDER_EVENT.toString():
+                    openLimitOrderEvent(OPEN_LIMIT_ORDER_EVENT, listen, decoded, callback);
+                    break;
 
-            case CLOSE_LIMIT_ORDER_EVENT:
-                closeLimitOrderEvent(CLOSE_LIMIT_ORDER_EVENT, listen, decoded, callback);
-                break;
+                case CANCEL_LIMIT_ORDER_EVENT.toString():
+                    cancelLimitOrderEvent(CANCEL_LIMIT_ORDER_EVENT, listen, decoded, callback);
+                    break;
 
-            case CREATE_ORDER_POSITION_EVENT:
-                createOrderPositionEvent(CREATE_ORDER_POSITION_EVENT, listen, decoded, callback);
-                break;
+                case CLOSE_LIMIT_ORDER_EVENT.toString():
+                    closeLimitOrderEvent(CLOSE_LIMIT_ORDER_EVENT, listen, decoded, callback);
+                    break;
 
-            case NEW_ORDER_BOOK_CONFIG_EVENT:
-                newOrderBookconfigEvent(NEW_ORDER_BOOK_CONFIG_EVENT, listen, decoded, callback);
-                break;
+                case CREATE_ORDER_POSITION_EVENT.toString():
+                    createOrderPositionEvent(CREATE_ORDER_POSITION_EVENT, listen, decoded, callback);
+                    break;
 
-            case NEW_ORDER_POSITION_CONFIG_EVENT:
-                newOrderPositionConfigEvent(NEW_ORDER_POSITION_CONFIG_EVENT, listen, decoded, callback);
-                break;
+                case NEW_ORDER_BOOK_CONFIG_EVENT.toString():
+                    newOrderBookconfigEvent(NEW_ORDER_BOOK_CONFIG_EVENT, listen, decoded, callback);
+                    break;
 
-            case MARKET_ORDER_TRIGGER_EVENT:
-                marketOrderTriggerEvent(MARKET_ORDER_TRIGGER_EVENT, listen, decoded, callback);
-                break;
+                case NEW_ORDER_POSITION_CONFIG_EVENT.toString():
+                    newOrderPositionConfigEvent(NEW_ORDER_POSITION_CONFIG_EVENT, listen, decoded, callback);
+                    break;
 
-            case MARKET_ORDER_FILL_EVENT:
-                marketOrderFillEvent(MARKET_ORDER_FILL_EVENT, listen, decoded, callback);
-                break;
+                case MARKET_ORDER_TRIGGER_EVENT.toString():
+                    marketOrderTriggerEvent(MARKET_ORDER_TRIGGER_EVENT, listen, decoded, callback);
+                    break;
 
-            case MARKET_ORDER_COMPLETE_EVENT:
-                marketOrderCompleteEvent(MARKET_ORDER_COMPLETE_EVENT, listen, decoded, callback);
-                break;
+                case MARKET_ORDER_FILL_EVENT.toString():
+                    marketOrderFillEvent(MARKET_ORDER_FILL_EVENT, listen, decoded, callback);
+                    break;
 
-            default: console.log("invalid event discriminator");
+                case MARKET_ORDER_COMPLETE_EVENT.toString():
+                    marketOrderCompleteEvent(MARKET_ORDER_COMPLETE_EVENT, listen, decoded, callback);
+                    break;
+
+                default: console.log("invalid event discriminator");
+            }
+
         }
 
     }, "processed")
@@ -101,8 +107,12 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
 
 const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
+        console.log("not listening")
         return
     }
+
+    console.log("is listening")
+
 
     const offset = {
         value: 8,

@@ -1,4 +1,6 @@
 export default function Balance({ token }: { token: string }) {
+
+  // need to get userWallet balance of specfied mint
   return (
     <div className="flex justify-between pr-4">
       <span className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">

@@ -15,7 +15,7 @@ import {
 }
   from "@solana/spl-token";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import toast from "react-hot-toast";
 import {
   getBuyMarketPointerPDA,
@@ -31,7 +31,6 @@ import {
   SystemProgram,
   // Transaction
 } from "@solana/web3.js";
-import { set } from "@coral-xyz/anchor/dist/cjs/utils/features";
 
 export enum OrderType {
   Buy = "Buy",
@@ -69,16 +68,9 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
 
   initializeProgram()
 
-  console.log({
-    program,
-    userWallet,
-    connection,
-    isLoading,
-  })
-
-  // need loading 
+  // need loading -> this should give no problem
+  // but if a problem does still persist I will revist this
   if (isLoading) return
-
 
   // since we will have loading process, this condition is no longer ncessary
   if (!program || !userWallet)
@@ -132,6 +124,7 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     tokenMintB: web3.PublicKey,
     isReverse: boolean
   ) => {
+
     try {
       const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
       const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
@@ -155,6 +148,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
           systemProgram: SystemProgram.programId,
         })
         .rpc();
+
+      console.log(txHash)
 
       await confirmTx(txHash, connection);
       toast.success("Trade pair created successfully!");

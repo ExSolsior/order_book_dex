@@ -11,8 +11,6 @@ import { useContext } from "react";
 export default function Home() {
   const allMarkets = useContext(MarketContext)
 
-  if (!allMarkets) return <>{"LOADING..."}</>
-
   return (
     <div className="container space-y-6">
       <MainCarousel />

@@ -9,9 +9,8 @@ import { MarketSwitcher } from "./market-switcher";
 // change % needs to be fixed to refect 0.000% percision
 export function Header({ market }: { market: Market }) {
 
-  if (market === undefined) {
-    console.log("no market:::::")
-    return
+  if (market === null) {
+    return <>{"LOADING..."}</>
   }
 
   const price = new Intl.NumberFormat("en-US", {

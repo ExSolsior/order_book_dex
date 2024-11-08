@@ -16,7 +16,7 @@ import { Market, Order } from "../../program/utils/useTransaction";
 // need to implement better number formatting with the most cost effective way.
 export default function Book({ market }: { market: Market | null }) {
 
-  if (market === null) {
+  if (market === null || market.orderBook === undefined) {
     return <>{"LOADING"}</>
   }
 

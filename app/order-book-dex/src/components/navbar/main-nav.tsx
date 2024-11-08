@@ -53,7 +53,7 @@ export function MainNav({ isDemo }: { isDemo: boolean }) {
             href={
               markets !== undefined && markets.length === 0
                 ? `${isDemo ? "/demo" : "/devnet"}/trade`
-                : `${isDemo ? "/demo" : "/devnet"}/trade?marketId=${marketId}`
+                : `${isDemo ? "/demo" : "/devnet"}/trade/${marketId}`
             }
             className={cn(
               "transition-colors hover:text-foreground font-semibold",
