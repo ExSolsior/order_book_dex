@@ -539,6 +539,15 @@ solana-test-validator -r --bpf-program
 solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.json ./target/deploy/order_book_dex.so
 
 
+// spl-token create-token --url localhost
+// solana account --url localhost --output json --output-file ./token/<mint-<#>>/mint <mint-address>
+// solana account --url localhost --output json --output-file ./token/<mint-<#>>/accounts/<account-<#>> <account-address>
+
+// solana account --url localhost --output json --output-file ./token/mint <mint-address>
+// solana account --url localhost --output json --output-file ./token/<account-<#>> <account-address>
+
+// --account-dir <DIRECTORY>.
+
 
 solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.json ./target/deploy/order_book_dex.so \
 --account 9G4FwtEmzCG4Fnuco87TNrB6ZtYmgvrKv7qj4wT9zjfu ./token/9G4FwtEmzCG4Fnuco87TNrB6ZtYmgvrKv7qj4wT9zjfu \

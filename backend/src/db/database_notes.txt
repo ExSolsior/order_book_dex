@@ -219,4 +219,33 @@ solana airdrop 1000 --url localhost CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
 spl-token create-token --url localhost
 
 spl-token create-account <TOKEN_MINT_ADDRESS> --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
-spl-token mint <TOKEN_MINT_ADDRESS> 100 <RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --url localhost
+spl-token mint <TOKEN_MINT_ADDRESS> 100 <RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --url https://rpc.devnet.soo.network/rpc
+
+
+
+
+spl-token create-account <TOKEN_MINT_ADDRESS> --url https://rpc.devnet.soo.network/rpc --fee-payer /home/nomadic/.config/solana/id.json --owner 2qssPXxhdYMFFfQQEbeVD7M9LLPs5kChk1ojzDdCXuS9
+spl-token mint <TOKEN_MINT_ADDRESS> 100 <RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --url https://rpc.devnet.soo.network/rpc
+
+
+accounts
+CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
+2qssPXxhdYMFFfQQEbeVD7M9LLPs5kChk1ojzDdCXuS9
+
+mints
+Cz7EHUhbABTYZSxKyMuPVgicZndePxW4FRph1PAzay2x
+9ESnUxvZGhwWyG1d1j8xJW4YnmxM8dWzZM44QHEb4Bt4
+
+
+--------------------------------------
+
+SOL ACCOUNT
+6KXbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhRD
+
+MINT
+G1M3t2M8iWjjRZ9PKC1tc7d8a497c1gHrHUtP9K6wZjt
+HDJgNLsGDwgvngaEtC8oP6Jx6vtfYxpFDnQyTKXHwbgZ
+
+TOKEN ACCOUNTS
+9jEydFEtKx9tFZF1W5yRGGzMKtR8VhJWXBW8PsqMqA9i
+FSX99st2LvRmkTkQmWqwUZsr4JrMDK8gErdqj3sQ7Jpa
