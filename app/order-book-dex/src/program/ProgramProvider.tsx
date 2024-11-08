@@ -52,6 +52,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setLoading] = useState(true);
   const [program, setProgram] = useState<typeof CHRONO_IDL | undefined>()
 
+  // console.log("user wallet", userWallet, isLoading, program, connection)
+
   const initializeProgram = () => {
     if (!userWallet || (userWallet && !isLoading)) {
       return
@@ -67,10 +69,6 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
   };
 
   initializeProgram()
-
-  // need loading -> this should give no problem
-  // but if a problem does still persist I will revist this
-  if (isLoading) return
 
   // since we will have loading process, this condition is no longer ncessary
   if (!program || !userWallet)

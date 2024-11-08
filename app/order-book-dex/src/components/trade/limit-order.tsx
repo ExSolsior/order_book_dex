@@ -219,7 +219,8 @@ export default function LimitOrder({
           disabled={!userWallet}
           className="w-full font-bold text-lg"
         >
-          Swap
+          {/* Swap */}
+          Trade
         </Button>
       </form>
     </Form>

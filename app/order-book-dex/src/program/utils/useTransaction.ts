@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { getAccount, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
     eventListner,
     OPEN_LIMIT_ORDER_EVENT,
@@ -145,10 +145,16 @@ export const useTransaction = (marketId: PublicKey) => {
             )
         }
 
-        // need to handle if there is no user data
         if (userWallet !== undefined && !JSON.parse(localStorage
             .getItem(userWallet.publicKey.toString())!)
             .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+
+            console.log(JSON.parse(localStorage
+                .getItem(userWallet.publicKey.toString())!))
+
+            console.log(JSON.parse(localStorage
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId))
 
             const user = JSON.parse(localStorage
                 .getItem(userWallet!.publicKey.toString())!);
@@ -172,7 +178,7 @@ export const useTransaction = (marketId: PublicKey) => {
             const data = {
                 ...user,
                 markets: [
-                    ...user.market.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                    ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
                     {
                         marketId: marketId.toString(),
                         positionConfigId: positionConfigId.toString(),
@@ -218,15 +224,68 @@ export const useTransaction = (marketId: PublicKey) => {
                 return
             }
 
-            const { positionConfigNonce } = (() => {
+            const user = await (async () => {
                 if (!userWallet) {
-                    return {
-                        positionConfigNonce: undefined,
-                    }
+                    return null
                 }
 
-                return JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                    .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)
+                const userCapitalA = await getAssociatedTokenAddress(
+                    new PublicKey(book.tokenMintA),
+                    userWallet!.publicKey!,
+                    true,
+                    new PublicKey(book.tokenProgramA),
+                );
+
+                const userCapitalB = await getAssociatedTokenAddress(
+                    new PublicKey(book.tokenMintB),
+                    userWallet!.publicKey!,
+                    true,
+                    new PublicKey(book.tokenProgramB),
+                );
+
+                const userVaultA = PublicKey.findProgramAddressSync([
+                    new PublicKey(book.pubkeyId).toBuffer(),
+                    new PublicKey(book.tokenMintA).toBuffer(),
+                    userWallet!.publicKey!.toBuffer(),
+                    Buffer.from("vault-account"),
+                ], PROGRAM_ID)[0];
+
+                const userVaultB = PublicKey.findProgramAddressSync([
+                    new PublicKey(book.pubkeyId).toBuffer(),
+                    new PublicKey(book.tokenMintB).toBuffer(),
+                    userWallet!.publicKey!.toBuffer(),
+                    Buffer.from("vault-account"),
+                ], PROGRAM_ID)[0];
+
+                const data = await Promise.allSettled([
+                    getAccount(connection, userCapitalA),
+                    getAccount(connection, userCapitalB),
+                    getAccount(connection, userVaultA),
+                    getAccount(connection, userVaultB),
+                ]).then((results) => {
+                    return results.map(data => {
+                        return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
+                    })
+                })
+
+                const {
+                    positionConfigId,
+                    positionConfigNonce,
+                } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
+                    .markets!.find((item: CachedMarket) => marketId.toString() === item.marketId);
+
+                return {
+                    positionConfigId: new PublicKey(positionConfigId),
+                    positionConfigNonce: BigInt(positionConfigNonce),
+                    userCapitalA,
+                    userCapitalB,
+                    userVaultA,
+                    userVaultB,
+                    capitalABalance: data[0],
+                    capitalBBalance: data[1],
+                    vaultABalance: data[2],
+                    vaultBBalance: data[3],
+                }
             })()
 
             const candles = await (async () => {
@@ -394,7 +453,9 @@ export const useTransaction = (marketId: PublicKey) => {
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
-                    positionConfigNonce,
+                    positionConfigNonce: BigInt(user ? user.positionConfigNonce : 0),
+                    capitalABalance: BigInt(user ? user.capitalABalance : 0),
+                    capitalBBalance: BigInt(user ? user.capitalBBalance : 0),
                 },
 
                 orderBook: {
@@ -407,35 +468,11 @@ export const useTransaction = (marketId: PublicKey) => {
                         tokenProgramA: new PublicKey(book.tokenProgramA),
                         tokenProgramB: new PublicKey(book.tokenProgramB),
                         userAddress: userWallet ? userWallet!.publicKey : undefined,
-                        userPositionConfig: userWallet ? PublicKey.findProgramAddressSync([
-                            userWallet!.publicKey!.toBuffer(),
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            Buffer.from("order-position-config"),
-                        ], PROGRAM_ID)[0] : undefined,
-                        userCapitalA: userWallet ? await getAssociatedTokenAddress(
-                            new PublicKey(book.tokenMintA),
-                            userWallet!.publicKey!,
-                            true,
-                            PROGRAM_ID,
-                        ) : undefined,
-                        userCapitalB: userWallet ? await getAssociatedTokenAddress(
-                            new PublicKey(book.tokenMintB),
-                            userWallet!.publicKey!,
-                            true,
-                            PROGRAM_ID,
-                        ) : undefined,
-                        userVaultA: userWallet ? PublicKey.findProgramAddressSync([
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            new PublicKey(book.tokenMintA).toBuffer(),
-                            userWallet!.publicKey!.toBuffer(),
-                            Buffer.from("vault-account"),
-                        ], PROGRAM_ID)[0] : undefined,
-                        userVaultB: userWallet ? PublicKey.findProgramAddressSync([
-                            new PublicKey(book.pubkeyId).toBuffer(),
-                            new PublicKey(book.tokenMintB).toBuffer(),
-                            userWallet!.publicKey!.toBuffer(),
-                            Buffer.from("vault-account"),
-                        ], PROGRAM_ID)[0] : undefined,
+                        userPositionConfig: userWallet ? user?.positionConfigId : undefined,
+                        userCapitalA: userWallet ? user?.userCapitalA : undefined,
+                        userCapitalB: userWallet ? user?.userCapitalB : undefined,
+                        userVaultA: userWallet ? user?.userVaultA : undefined,
+                        userVaultB: userWallet ? user?.userVaultB : undefined,
                     },
                     marketDetails: {
                         isReverse: book.isReverse,
@@ -509,8 +546,14 @@ export const useTransaction = (marketId: PublicKey) => {
     }
 
     const run = () => {
-
-        if (connection === undefined || data !== null) {
+        // so I have a complicated process here
+        // on first render userWallet doens't exist
+        // but the data is fetched, 2 times
+        // once userWallet is avaiable, data is not null
+        // and doesn't fetch again... interesting issue
+        // how to resolve?... for now the user is forced to have a wallet
+        // until I can find some clever way to handle this
+        if (userWallet === undefined || connection === undefined || data !== null) {
             // need to cache and return id
             return {
                 data,
@@ -711,6 +754,8 @@ export interface Market {
     page: number,
     user: {
         positionConfigNonce: bigint | undefined,
+        capitalABalance: bigint,
+        capitalBBalance: bigint,
     },
     orderBook: {
         accounts: {

@@ -125,6 +125,7 @@ export default function MarketOrder({
             Average Price
           </span>
           <span className="text-sm font-semibold text-right">
+            {/* how to compute the average price? or should compute the average price? */}
             0.00 {isReverse ? symbolA : symbolB}
           </span>
         </div>
