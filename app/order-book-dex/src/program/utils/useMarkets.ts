@@ -96,6 +96,150 @@ export const useMarkets = () => {
     return { data }
 }
 
+const event = () => {
+    // signer event listner
+    // eventListner(
+    //     userWallet.publicKey,
+    //     [
+    //         // MARKET_ORDER_COMPLETE_EVENT,
+    //         CREATE_ORDER_POSITION_EVENT,
+    //         CLOSE_LIMIT_ORDER_EVENT,
+    //         // OPEN_LIMIT_ORDER_EVENT,
+    //     ],
+    //     async (method, payload) => {
+
+    //         switch (method) {
+
+    //             case "complete-market-order": {
+    //                 marketOrder.update(payload.orderType, null);
+
+    //                 (async () => {
+
+
+    //                     if (userWallet === undefined || payload.marketTaker !== userWallet.publicKey) {
+    //                         return;
+    //                     }
+
+    //                     setData({
+    //                         ...queue.data!,
+    //                         user: {
+    //                             ...queue.data!.user,
+    //                             capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
+    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalABalance,
+    //                             capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
+    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalBBalance,
+    //                         }
+    //                     })
+
+    //                 })();
+
+    //                 break;
+    //             }
+
+    //             case "create-limit-order": {
+
+    //                 (async () => {
+
+    //                     if (userWallet === undefined || payload.marketMaker !== userWallet.publicKey) {
+    //                         return;
+    //                     }
+
+    //                     const { market, user } = (() => {
+    //                         const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
+    //                         const market = user!.markets
+    //                             .find((id: string) => marketId.toString() === id);
+
+    //                         return { market, user }
+    //                     })();
+
+    //                     const state = {
+    //                         ...user,
+    //                         markets: [
+    //                             {
+    //                                 ...market,
+    //                                 positionConfigNonce: payload.nonce!.toString(),
+    //                             },
+    //                             ...user.markets.filter((item: CachedMarket) => item.marketId !== marketId.toString()),
+    //                         ]
+    //                     }
+
+    //                     localStorage.setItem(
+    //                         userWallet!.publicKey.toString(),
+    //                         JSON.parse(state),
+    //                     );
+
+    //                     setData({
+    //                         ...queue.data!,
+    //                         user: {
+    //                             ...queue.data!.user,
+    //                             positionConfigNonce: payload.nonce!,
+    //                             capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
+    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalABalance,
+    //                             capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
+    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalBBalance,
+    //                         }
+    //                     })
+
+    //                 })();
+
+    //                 break;
+    //             }
+
+    //             case "open-limit-order": {
+
+
+    //                 // not going to process this here
+    //                 (() => {
+
+    //                     if (userWallet === undefined || payload.marketMaker !== userWallet.publicKey) {
+    //                         return;
+    //                     }
+
+    //                     const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
+
+    //                     const state = {
+    //                         ...user,
+    //                         positions: [
+    //                             {
+    //                                 marketId: payload.bookConfig,
+    //                                 positionConfigId: payload.positionConfig,
+    //                                 positionId: payload.position,
+    //                                 price: payload.price?.toString(),
+    //                                 size: payload.size?.toString(),
+    //                             },
+    //                             ...user.positions,
+    //                         ]
+    //                     }
+
+    //                     localStorage.setItem(
+    //                         userWallet!.publicKey.toString(),
+    //                         JSON.parse(state),
+    //                     );
+    //                 })
+
+    //                 break;
+    //             }
+
+    //             case "close-limit-order": {
+
+    //                 // not correct, need to use a user State hook
+    //                 setData({
+    //                     ...queue.data!,
+    //                     user: {
+    //                         ...queue.data!.user,
+    //                         capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
+    //                             BigInt(payload.capitalSourceBalance!.toString())
+    //                             : BigInt(payload.capitalDestBalance!.toString()),
+    //                         capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
+    //                             BigInt(payload.capitalSourceBalance!.toString())
+    //                             : BigInt(payload.capitalDestBalance!.toString()),
+    //                     }
+    //                 })
+    //             }
+    //         }
+    //     })
+}
+
 export type Markets = {
     accounts: {
         marketId: PublicKey,

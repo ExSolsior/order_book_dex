@@ -7,11 +7,13 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Market } from "../../program/utils/useTransaction";
+import { displayValue } from "@/program/utils/helper";
 
 // time correct locale time string? I need to research
 // need to include more trades and allow it to be scrollable
+// need to store trade.price and trade.quantity as bigint
 export default function Trades({ market }: { market: Market }) {
-  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
+  const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
   const { trades } = market!.orderBook!;
   return (
     <Table>
@@ -28,15 +30,17 @@ export default function Trades({ market }: { market: Market }) {
       </TableHeader>
       <TableBody>
         {trades.slice(0, 12).map((trade) => (
-          <TableRow key={trade.price}>
+          <TableRow key={trade.id}>
             <TableCell
               className={`font-mono ${trade.action === "buy" ? "text-green-500" : "text-red-500"
                 }`}
             >
-              {trade.price}
+              {displayValue(trade.price, isReverse ? decimalsA : decimalsB)}
+
             </TableCell>
             <TableCell className="text-right font-mono">
-              {trade.qty}
+              {displayValue(trade.qty, isReverse ? decimalsB : decimalsA)}
+
             </TableCell>
             <TableCell className="text-right font-mono ">
               {new Date(trade.time * 1000).toLocaleTimeString("en-GB", {

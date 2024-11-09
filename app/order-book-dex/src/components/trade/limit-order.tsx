@@ -24,20 +24,7 @@ import { TransactionOrder } from "@/lib/types";
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
 // need to add better validations
-const formSchema = z.object({
-  price: z.string().refine((val) => {
-    console.log(val, val.length)
-    return !Number.isNaN(parseInt(val, 10))
-  }, {
-    message: "Expected number, received a string"
-  }),
-  quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
-    message: "Expected number, received a string"
-  }),
-  orderValue: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
-    message: "Expected number, received a string"
-  })
-});
+
 
 // structure to get image data is incorrect, currently not handling that
 // so using dummy structure
@@ -51,9 +38,24 @@ export default function LimitOrder({
   type: "buy" | "sell" | "ask" | "bid";
 }) {
   const { marketId } = market!.orderBook!.accounts;
-  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
+  const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
   const userWallet = useAnchorWallet();
   const { program } = useContext(ProgramContext)!;
+
+  const formSchema = z.object({
+    price: z.string().refine((val) => {
+      return !Number.isNaN(parseInt(val, 10))
+    }, {
+      message: "Expected number, received a string"
+    }),
+    quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    }),
+
+    orderValue: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+      message: "Expected number, received a string"
+    })
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,17 +63,42 @@ export default function LimitOrder({
       price: market!.orderBook!.marketData.lastPrice.toString(),
       quantity: '0',
       orderValue: '0'
-    }
+    },
+    mode: "onChange",
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // not sure if this is correct?
+    const decimals = isReverse ? decimalsA : decimalsB
+    const convertNum = (value: string, decimals: number) => {
+      const list = value.split(".");
+
+      if (list.length > 2) {
+        // throw error
+      }
+
+      if (list.length === 1) {
+        return list[0].concat("0".repeat(decimals));
+      }
+
+      if (list[0] === '0') {
+        return list[1].padEnd(decimals, "0").replace(/^0+/, '');
+      }
+
+      return [list[0].replace(/^0+/, ''), list[1].padEnd(decimals, "0")].join("");
+    }
+
+    const price = convertNum(values.price, decimals);
+    const amount = convertNum(values.quantity, decimals);
+    // const total = BigInt(price) * BigInt(amount);
+    // validate total against quote balance
 
     const params = new URLSearchParams({
       "book_config": marketId.toString(),
       "signer": userWallet!.publicKey.toString(),
       "order_type": type,
-      "price": values.price,
-      "amount": values.quantity,
+      "price": price,
+      "amount": amount,
       "nonce": market!.user!.positionConfigNonce!.toString(),
     });
 
@@ -226,3 +253,4 @@ export default function LimitOrder({
     </Form>
   );
 }
+
