@@ -687,3 +687,32 @@ LIMIT 20
                 FULL JOIN market_data AS md ON md.book_config = t.pubkey_id
                 FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
+
+
+
+WITH positions AS (
+    SELECT
+        json_build_object(
+            'positionId', p.pubkey_id,
+            'marketId', p.book_config,
+            'positionConfig', p.position_config,
+            'orderType', p.order_type,
+            'price', p.price,
+            'size', p.size,
+            -- need filled total of size, currently not tracking
+            'slot', p.slot
+        ) AS "data"
+
+    FROM order_position_config AS c
+    JOIN order_position AS p ON p.position_config = c.pubkey_id
+    WHERE market_maker = $1
+    ORDER BY p.book_config p.slot DESC
+    
+)
+
+SELECT
+    array_agg(
+        p.data
+    ) AS "data"
+
+FROM positions AS p;

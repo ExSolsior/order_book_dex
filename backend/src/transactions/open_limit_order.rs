@@ -1,5 +1,7 @@
 use actix_web::web;
+use anchor_lang::Key;
 use anchor_lang::{system_program::ID as system_program, InstructionData, ToAccountMetas};
+use order_book_dex::constants::ORDER_POSITION_CONFIG_SEED;
 use order_book_dex::state::Order;
 use order_book_dex::{accounts, instruction, ID as program_id};
 // use solana_client::{client_error::ClientErrorKind, rpc_request::RpcError};
@@ -31,6 +33,16 @@ pub async fn open_limit_order(
 ) -> Result<VersionedTransaction, TransactionBuildError> {
     let rpc_client = create_rpc_client();
 
+    let position_config = Pubkey::find_program_address(
+        &[
+            params.signer.key().as_ref(),
+            params.order_book_config.key().as_ref(),
+            ORDER_POSITION_CONFIG_SEED.as_bytes(),
+        ],
+        &program_id,
+    )
+    .0;
+
     let OpenLimitOrder {
         token_mint_a,
         token_mint_b,
@@ -44,11 +56,20 @@ pub async fn open_limit_order(
         ..
     } = models::open_limit_order(
         params.order_book_config,
+        position_config,
         &params.order_type,
         params.price,
         app_state,
     )
     .await?;
+
+    let market_pointer_read = (!market_pointer.1).then(|| market_pointer.0);
+    let market_pointer_write = market_pointer.1.then(|| market_pointer.0);
+
+    println!("POSITION CONFIG? :: {:?}", position_config);
+    println!("MARKET POINTER? :: {:?}", market_pointer);
+    println!("READER? :: {:?}", market_pointer_read);
+    println!("WRITER? :: {:?}", market_pointer_write);
 
     let ixs = build_ixs(BuildIxsParams {
         signer: params.signer,
@@ -58,8 +79,8 @@ pub async fn open_limit_order(
         token_program_a,
         token_program_b,
 
-        market_pointer_read: (!market_pointer.1).then_some(market_pointer.0),
-        market_pointer_write: market_pointer.1.then_some(market_pointer.0),
+        market_pointer_read: (!market_pointer.1).then(|| market_pointer.0),
+        market_pointer_write: market_pointer.1.then(|| market_pointer.0),
 
         prev_order_position: prev_position,
         next_order_position: next_position,

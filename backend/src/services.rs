@@ -1,10 +1,10 @@
 use {
     crate::{
         db::models::{
-            delete_order_position, delete_real_trade, get_market_order_history, get_trade_pair,
-            get_trade_pair_list, insert_market_order_history, insert_order_position,
-            insert_order_position_config, insert_real_time_trade, insert_trade_pair,
-            update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+            self, delete_order_position, delete_real_trade, get_market_order_history,
+            get_trade_pair, get_trade_pair_list, insert_market_order_history,
+            insert_order_position, insert_order_position_config, insert_real_time_trade,
+            insert_trade_pair, update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
         },
         transactions::{
             self, cancel_limit_order::CancelLimitOrderParams,
@@ -60,6 +60,11 @@ pub struct TradePair {
 pub struct TradePairList {
     pub limit: u64,
     pub offset: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OpenPositions {
+    pub market_maker: String,
 }
 
 #[get("/market_order_book")]
@@ -125,6 +130,25 @@ pub async fn market_list(
     app_state: web::Data<AppState>,
 ) -> impl Responder {
     match get_trade_pair_list(query.limit, query.offset, app_state).await {
+        Ok(data) => {
+            println!("{:?}", data);
+            HttpResponse::Ok().json(data)
+        }
+        Err(error) => {
+            println!("{:?}", error);
+            HttpResponse::BadRequest().into()
+        }
+    }
+}
+
+#[get("/get_open_positions")]
+pub async fn get_open_positions(
+    query: web::Query<OpenPositions>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    let market_maker = Pubkey::from_str(&query.market_maker).unwrap();
+
+    match models::get_open_positions(market_maker, app_state).await {
         Ok(data) => {
             println!("{:?}", data);
             HttpResponse::Ok().json(data)
@@ -252,6 +276,7 @@ pub async fn scheduled_process() {
 
 pub async fn logs_handler(logs_info: Response<RpcLogsResponse>, app_state: AppState) {
     let logs = logs_info.value.logs;
+    // println!("{:?}", logs);
 
     // const PROGRAM_LOG = "Program log: ";
     // const PROGRAM_DATA = "Program data: ";
@@ -260,10 +285,14 @@ pub async fn logs_handler(logs_info: Response<RpcLogsResponse>, app_state: AppSt
 
     // Program data:
     let start = String::from("Program data: ").len();
-    match logs.iter().find(|log| log.starts_with("Program data: ")) {
-        Some(data) => decode(&data[start..].to_string(), app_state).await,
-        _ => println!("error"),
+
+    for data in logs.iter().filter(|log| log.starts_with("Program data: ")) {
+        decode(&data[start..].to_string(), &app_state).await;
     }
+    // match logs.iter().find(|log| log.starts_with("Program data: ")) {
+    //     Some(data) => decode(&data[start..].to_string(), app_state).await,
+    //     _ => println!("error"),
+    // }
 }
 
 const CANCEL_LIMIT_ORDER_EVENT: [u8; 8] = [216, 16, 162, 254, 206, 149, 207, 36];
@@ -276,7 +305,7 @@ const NEW_ORDER_BOOK_CONFIG_EVENT: [u8; 8] = [212, 127, 42, 69, 195, 133, 17, 14
 const NEW_ORDER_POSITION_CONFIG_EVENT: [u8; 8] = [135, 248, 180, 220, 179, 224, 202, 103];
 const OPEN_LIMIT_ORDER_EVENT: [u8; 8] = [106, 24, 71, 85, 57, 169, 158, 216];
 
-pub async fn decode(data: &String, app_state: AppState) {
+pub async fn decode(data: &String, app_state: &AppState) {
     let decoded = general_purpose::STANDARD.decode(data).unwrap();
     let discriminator = decoded[..8].try_into().expect("u8 array size 8");
 
@@ -302,7 +331,7 @@ pub async fn decode(data: &String, app_state: AppState) {
 }
 
 // insert
-pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
+pub async fn parse_order_book_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
 
     let book_config = get_pubkey(&data, &mut offset);
@@ -350,7 +379,7 @@ pub async fn parse_order_book_event(data: &[u8], app_state: AppState) {
 }
 
 // insert
-pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState) {
+pub async fn parse_order_position_config_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let book_config = get_pubkey(&data, &mut offset);
     let pos_config = get_pubkey(&data, &mut offset);
@@ -378,7 +407,7 @@ pub async fn parse_order_position_config_event(data: &[u8], app_state: AppState)
 }
 
 // don't think it's needed
-pub async fn _parse_create_order_position_event(data: &[u8], _app_state: AppState) {
+pub async fn _parse_create_order_position_event(data: &[u8], _app_state: &AppState) {
     let mut offset = 8;
     let _book_config = get_pubkey(&data, &mut offset);
     let _pos_config = get_pubkey(&data, &mut offset);
@@ -387,7 +416,7 @@ pub async fn _parse_create_order_position_event(data: &[u8], _app_state: AppStat
 }
 
 // insert
-pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
+pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
     let book_config = get_pubkey(&data, &mut offset);
@@ -424,7 +453,7 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: AppState) {
 }
 
 // delete
-pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: AppState) {
+pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
     let _book_config = get_pubkey(&data, &mut offset);
@@ -438,7 +467,7 @@ pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: AppState) {
 }
 
 // delete -> but cancel is handling it so not needed
-pub async fn _parse_close_limit_order_event(data: &[u8], _app_state: AppState) {
+pub async fn _parse_close_limit_order_event(data: &[u8], _app_state: &AppState) {
     let mut offset = 8;
     let _pos_pubkey = get_pubkey(&data, &mut offset);
     let _book_config = get_pubkey(&data, &mut offset);
@@ -446,7 +475,7 @@ pub async fn _parse_close_limit_order_event(data: &[u8], _app_state: AppState) {
 }
 
 // don't think it's needed
-pub async fn _parse_market_order_trigger_event(data: &[u8], _app_state: AppState) {
+pub async fn _parse_market_order_trigger_event(data: &[u8], _app_state: &AppState) {
     let mut offset = 8;
     let _market_pointer = get_pubkey(&data, &mut offset);
     let _book_config = get_pubkey(&data, &mut offset);
@@ -458,7 +487,7 @@ pub async fn _parse_market_order_trigger_event(data: &[u8], _app_state: AppState
 }
 
 // update
-pub async fn parse_market_order_fill_event(data: &[u8], app_state: AppState) {
+pub async fn parse_market_order_fill_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let _market_pointer = get_pubkey(&data, &mut offset);
     let _book_config = get_pubkey(&data, &mut offset);
@@ -478,7 +507,7 @@ pub async fn parse_market_order_fill_event(data: &[u8], app_state: AppState) {
 }
 
 // insert -> other?
-pub async fn parse_market_order_complete_event(data: &[u8], app_state: AppState) {
+pub async fn parse_market_order_complete_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let _market_pointer = get_pubkey(&data, &mut offset);
     let book_config = get_pubkey(&data, &mut offset);

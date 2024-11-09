@@ -99,7 +99,7 @@ pub struct MarketOrderHistory {
     timestamp: i64,
 }
 
-pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
+pub async fn insert_trade_pair(trade_pair: TradePair, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_book_config (
@@ -137,15 +137,15 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
     .unwrap();
 }
 
-pub async fn insert_order_position_config(position_config: PositionConfig, app_state: AppState) {
+pub async fn insert_order_position_config(position_config: PositionConfig, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_config (
                     "pubkey_id",
                     "book_config",
                     "market_maker",
-                    "capital_a,
-                    "capital_b,
+                    "capital_a",
+                    "capital_b",
                     "vault_a",
                     "vault_b",
                     "nonce",
@@ -165,12 +165,12 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
     .unwrap();
 }
 
-pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
+pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
     let query = sqlx::query(
         r#"
                 INSERT INTO order_position (
                     "pubkey_id",
-                    "booK_config"
+                    "book_config",
                     "position_config",
                     "next_position",
                     "source_vault",
@@ -181,7 +181,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: App
                     "is_available",
                     "slot",
                     "timestamp"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0);
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7::order_type, $8, $9, $10, 0, 0);
             "#,
     )
     .bind(order_position.pubkey_id.to_string())
@@ -198,17 +198,17 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: App
         .bind(order_position.source_vault.to_string())
         .bind(order_position.destination_vault.to_string())
         .bind(order_position.order_type.to_string())
-        .bind(order_position.price.to_string())
-        .bind(order_position.size.to_string())
+        .bind(order_position.price as i64)
+        .bind(order_position.size as i64)
         .bind(order_position.is_available)
-        .bind(order_position.slot.to_string())
-        .bind(order_position.timestamp.to_string())
+        .bind(order_position.slot as i64)
+        .bind(order_position.timestamp as i64)
         .execute(&app_state.pool)
         .await
         .unwrap();
 }
 
-pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
+pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO real_time_trade_data (
@@ -1393,7 +1393,6 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    println!("this");
     let query = sqlx::query(
         r#"
                 -- can't do this like this
@@ -1486,8 +1485,6 @@ pub async fn get_market_order_history(
     .fetch_one(&app_state.pool)
     .await?;
 
-    println!("working?");
-
     let data: Box<Value> = serde_json::from_str(
         query
             .try_get_raw("json_build_object")
@@ -1497,12 +1494,60 @@ pub async fn get_market_order_history(
     )
     .unwrap();
 
-    println!("fail?");
+    Ok(data)
+}
+
+pub async fn get_open_positions(
+    market_maker: Pubkey,
+    app_state: web::Data<AppState>,
+) -> Result<Option<Box<Value>>, sqlx::Error> {
+    let query = sqlx::query(
+        r#"
+            WITH positions AS (
+                SELECT
+                    json_build_object(
+                        'positionId', p.pubkey_id,
+                        'marketId', p.book_config,
+                        'positionConfig', p.position_config,
+                        'orderType', p.order_type,
+                        'price', p.price,
+                        'size', p.size,
+                        -- need filled total of size, currently not tracking
+                        'slot', p.slot
+                    ) AS "data"
+
+                FROM order_position_config AS c
+                JOIN order_position AS p ON p.position_config = c.pubkey_id
+                WHERE market_maker = $1
+                ORDER BY p.book_config p.slot DESC
+                
+            )
+
+            SELECT
+                array_agg(
+                    p.data
+                ) AS "data"
+
+            FROM positions AS p;
+        "#,
+    )
+    .bind(market_maker.to_string())
+    .fetch_one(&app_state.pool)
+    .await?;
+
+    let data = query.try_get_raw("data")?.as_str();
+    let data: Option<Box<Value>> = match data {
+        Ok(data) => serde_json::from_str(data).unwrap(),
+        Err(error) => {
+            println!("{}", error);
+            None
+        }
+    };
 
     Ok(data)
 }
 
-pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
+pub async fn delete_order_position(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position
@@ -1516,7 +1561,7 @@ pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
 }
 
 // functionality not implemented yet
-pub async fn _delete_position_config(pubkey_id: String, app_state: AppState) {
+pub async fn _delete_position_config(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position_config
@@ -1530,7 +1575,7 @@ pub async fn _delete_position_config(pubkey_id: String, app_state: AppState) {
 }
 
 // functionality not implemented yet
-pub async fn _delete_order_book_config(pubkey_id: String, app_state: AppState) {
+pub async fn _delete_order_book_config(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_book_config
@@ -1558,11 +1603,16 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     .await
     {
         Ok(data) => println!("DELETE REAL TRADE: {:?}", data),
-        Err(error) => println!("DELETE REALE TRADE ERROR: {}", error),
+        Err(error) => println!("DELETE REAL TRADE ERROR: {}", error),
     }
 }
 
-pub async fn update_order_position(id: String, size: u64, is_available: bool, app_state: AppState) {
+pub async fn update_order_position(
+    id: String,
+    size: u64,
+    is_available: bool,
+    app_state: &AppState,
+) {
     sqlx::query(
         r#"
                 UPDATE order_position SET "is_available" = $1, "size" = $2
@@ -1580,6 +1630,7 @@ pub async fn update_order_position(id: String, size: u64, is_available: bool, ap
 // need add the position config id, right now it's just jank
 pub async fn open_limit_order(
     pubkey_id: Pubkey,
+    position_config: Pubkey,
     order_type: &Order,
     price: u64,
     app_state: web::Data<AppState>,
@@ -1952,7 +2003,7 @@ pub async fn open_limit_order(
         "#,
     )
     .bind(&pubkey_id.to_string())
-    .bind(&pubkey_id.to_string())
+    .bind(&position_config.to_string())
     .bind(price as i64)
     .bind(&order_type)
     .fetch_one(&app_state.pool)
@@ -2107,6 +2158,11 @@ pub async fn open_limit_order(
                 });
 
             let data = order_book_data.unwrap();
+
+            println!("{:?}", head_bid_price);
+            println!("{:?}", prev_pubkey_id);
+            println!("{:?}", head_ask_price);
+            println!("{:?}", price);
 
             let market_pointer = (
                 data.1,
