@@ -62,15 +62,13 @@ pub struct CloseOrderPosition<'info> {
         constraint = capital_source.key() != capital_dest.key(),
         constraint = order_position_config.capital_a == capital_source.key() || order_position_config.capital_b == capital_source.key(),
     )]
-    /// CHECKED: Don't need the data, only pubkey
-    pub capital_source: UncheckedAccount<'info>,
+    pub capital_source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         constraint = order_position_config.capital_a == capital_dest.key() || order_position_config.capital_b == capital_dest.key(),
     )]
-    /// CHECKED: Don't need the data, only pubkey
-    pub capital_dest: UncheckedAccount<'info>,
+    pub capital_dest: InterfaceAccount<'info, TokenAccount>,
 
     pub token_mint_source: InterfaceAccount<'info, Mint>,
     pub token_mint_dest: InterfaceAccount<'info, Mint>,
@@ -131,10 +129,18 @@ impl<'info> CloseOrderPosition<'info> {
             )?;
         }
 
+        self.capital_source.reload()?;
+        self.capital_dest.reload()?;
+
         emit!(CloseLimitOrderEvent {
+            market_maker: self.owner.key(),
             pos_pubkey: self.order_position.key(),
             book_config: self.order_book_config.key(),
             pos_config: self.order_position_config.key(),
+            capital_source_balance: self.capital_source.amount,
+            capital_source_mint: self.capital_source.mint,
+            capital_dest_balance: self.capital_dest.amount,
+            capital_dest_mint: self.capital_dest.mint,
         });
 
         Ok(())

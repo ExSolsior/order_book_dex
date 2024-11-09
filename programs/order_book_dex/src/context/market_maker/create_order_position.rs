@@ -28,6 +28,7 @@ pub struct CreateOrderPosition<'info> {
         space = OrderPosition::LEN,
         seeds = [
             order_position_config.nonce.to_le_bytes().as_ref(),
+            order_position_config.key().as_ref(),
             signer.key().as_ref(),
             ORDER_POSITION_SEED.as_bytes(),
         ],
@@ -126,6 +127,8 @@ impl<'info> CreateOrderPosition<'info> {
             token_mint.decimals,
         )?;
 
+        self.capital_source.reload()?;
+
         emit!(CreateOrderPositionEvent {
             market_maker: self.signer.key(),
             pos_pubkey: self.order_position.key(),
@@ -133,6 +136,8 @@ impl<'info> CreateOrderPosition<'info> {
             pos_config: self.order_position_config.key(),
             order_type: self.order_position.order_type.clone(),
             next_nonce: self.order_position_config.nonce,
+            capital_source_balance: self.capital_source.amount,
+            capital_source_mint: self.capital_source.mint,
         });
 
         Ok(())

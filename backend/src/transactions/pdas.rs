@@ -66,10 +66,35 @@ pub fn get_order_position_config_pda(signer: Pubkey, order_book_config: Pubkey) 
     .0
 }
 
-pub fn get_order_position_pda(nonce: u64, signer: Pubkey) -> Pubkey {
+pub fn get_order_position_pda(nonce: u64, position_config: Pubkey, signer: Pubkey) -> Pubkey {
+    let a = Pubkey::find_program_address(
+        &[
+            nonce.to_le_bytes().as_ref(),
+            position_config.as_ref(),
+            signer.as_ref(),
+            ORDER_POSITION_SEED.as_bytes(),
+        ],
+        &program_id,
+    )
+    .0;
+
+    let b = Pubkey::find_program_address(
+        &[
+            nonce.to_le_bytes().as_ref(),
+            signer.as_ref(),
+            ORDER_POSITION_SEED.as_bytes(),
+        ],
+        &program_id,
+    )
+    .0;
+
+    println!(":::: {}", a);
+    println!(":::: {}", b);
+
     Pubkey::find_program_address(
         &[
             nonce.to_le_bytes().as_ref(),
+            position_config.as_ref(),
             signer.as_ref(),
             ORDER_POSITION_SEED.as_bytes(),
         ],

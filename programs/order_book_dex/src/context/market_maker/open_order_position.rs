@@ -43,6 +43,7 @@ pub struct OpenOrderPosition<'info> {
         constraint = market_pointer_write.is_valid_order_type_match(next_order_position.as_ref())
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_write.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
+        // what's causing this constrait to trigger?
             @ ErrorCode::InvalidOrderPositionAdd,
         constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
             @ ErrorCode::InvalidOrderPosition,
