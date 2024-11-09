@@ -43,21 +43,21 @@ interface ResponseData {
     tokenSymbolB: string | undefined,
 
     orderType: string | undefined,
-    price: BN | undefined,
-    size: BN | undefined,
-    totalCost: BN | undefined,
-    totalAmount: BN | undefined,
+    price: bigint | BN | undefined,
+    size: bigint | BN | undefined,
+    totalCost: bigint | BN | undefined,
+    totalAmount: bigint | BN | undefined,
 
-    capitalSourceBalance: BN | undefined,
-    capitalDestBalance: BN | undefined,
+    capitalSourceBalance: bigint | BN | undefined,
+    capitalDestBalance: bigint | BN | undefined,
 
 
     isReverse: boolean | undefined,
     isAvailable: boolean | undefined,
     isExecution: boolean | undefined,
-    nonce: bigint | undefined,
-    slot: bigint | undefined,
-    timestamp: bigint | undefined,
+    nonce: bigint | BN | undefined,
+    slot: bigint | BN | undefined,
+    timestamp: bigint | BN | undefined,
 
 
 }
@@ -73,6 +73,10 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
             const eventData = event.slice("Program data: ".length);
             const decoded = Buffer.from(eventData as string, 'base64');
             const discrimniator = decoded.subarray(0, 8)
+
+            console.log(decoded.length, discrimniator)
+            console.log(Array.from(decoded))
+            console.log(eventData)
 
             switch (discrimniator.toString()) {
                 case OPEN_LIMIT_ORDER_EVENT.toString():
@@ -130,6 +134,8 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         value: 8,
     }
 
+    console.log(offset, decoded.length)
+
     const data = {
         position: getPubkey(decoded, offset),
         bookConfig: getPubkey(decoded, offset),
@@ -172,6 +178,8 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         capitalDest: undefined,
         marketTaker: undefined,
     }
+    console.log(offset, data)
+
 
     callback("open-limit-order", data)
 }
@@ -644,11 +652,12 @@ const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
         return data.subarray(start, end);
     })();
 
-    const { start, end } = updateOffset(offset, 32);
-    if (!optionFlag) {
+
+    if (!!optionFlag) {
         return null
     }
 
+    const { start, end } = updateOffset(offset, 32);
     return new PublicKey(data.subarray(start, end));
 }
 
@@ -691,18 +700,17 @@ const getIsAvailable = (data: Buffer, offset: { value: number }) => {
 
 const getSlot = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return data.subarray(start, end).readBigUint64BE(0)
+    return data.subarray(start, end).readBigInt64LE(0)
 }
 
 const getTimestamp = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return data.subarray(start, end).readBigInt64BE(0)
-
+    return data.subarray(start, end).readBigInt64LE(0)
 }
 
 const getBN = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return new BN(data.subarray(start, end));
+    return data.subarray(start, end).readBigInt64LE(0);
 }
 
 const updateOffset = (offset: { value: number }, inc: number) => {

@@ -155,6 +155,8 @@ export default function LimitOrder({
       })
       .catch(err => {
         console.log(err)
+        console.log(err.getLogs())
+
       })
   }
 

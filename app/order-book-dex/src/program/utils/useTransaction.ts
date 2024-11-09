@@ -11,8 +11,8 @@ import {
     OPEN_LIMIT_ORDER_EVENT,
     CANCEL_LIMIT_ORDER_EVENT,
     MARKET_ORDER_FILL_EVENT,
-    CLOSE_LIMIT_ORDER_EVENT,
-    CREATE_ORDER_POSITION_EVENT,
+    // CLOSE_LIMIT_ORDER_EVENT,
+    // CREATE_ORDER_POSITION_EVENT,
     MARKET_ORDER_TRIGGER_EVENT,
     MARKET_ORDER_COMPLETE_EVENT,
 } from "./events"
@@ -22,9 +22,6 @@ import {
 } from "@solana/wallet-adapter-react";
 import { CachedMarket } from "./types";
 import { PROGRAM_ID } from "./constants";
-import { subscribe } from "diagnostics_channel";
-import { set } from "@coral-xyz/anchor/dist/cjs/utils/features";
-import { bigint } from "zod";
 import { displayValue } from "./helper";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
@@ -48,6 +45,8 @@ class Queue {
     update(data: Market | null, setData: Dispatch<SetStateAction<Market | null>>) {
         this.data = data;
         this.setData = setData;
+
+        console.log(this.data)
     }
 
     push(data: Payload) {
@@ -76,7 +75,7 @@ class Queue {
 
         if (this.current === "b") {
             this.current = "a";
-            const list = this.listA;
+            const list = this.listB;
             this.listA = [];
             return list;
         }
@@ -86,7 +85,9 @@ class Queue {
 
     run() {
 
-        setInterval(async () => {
+        console.log("START EVENT SCEDULER")
+        setInterval(() => {
+            console.log("Running!", this.listA.length, this.listB.length)
             let data = this.get();
 
             if (data.length === 0) {
@@ -113,7 +114,7 @@ class Queue {
             })
 
 
-        }, 1000)
+        }, 10000)
     }
 
     set(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
@@ -284,7 +285,7 @@ export const useTransaction = (marketId: PublicKey) => {
     queue.update(data, setData);
 
     useEffect(() => {
-        if (subscribeId === null) {
+        if (subscribeId === undefined) {
             return
         }
 
@@ -662,7 +663,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 OPEN_LIMIT_ORDER_EVENT,
                 CANCEL_LIMIT_ORDER_EVENT,
             ],
-            async (method, payload) => {
+            (method, payload) => {
 
                 switch (method) {
                     case "trigger-market-order": {
@@ -689,12 +690,15 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "open-limit-order": {
+                        console.log(payload)
                         queue.push({
                             method: "add",
                             order: payload.orderType!,
                             price: BigInt(payload.price!.toString()),
                             size: BigInt(payload.size!.toString()),
                         });
+
+                        console.log("added to queue?", queue);
 
                         break;
                     }
