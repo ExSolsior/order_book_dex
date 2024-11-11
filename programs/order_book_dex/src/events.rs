@@ -59,6 +59,7 @@ pub struct OpenLimitOrderEvent {
     pub slot: u64,
     pub timestamp: i64,
     pub is_available: bool,
+    pub is_head: bool,
 }
 
 #[event]

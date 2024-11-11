@@ -25,8 +25,8 @@ pub struct OpenOrderPosition<'info> {
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_read.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
             @ ErrorCode::InvalidOrderPositionAdd,
-        constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        // constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
+        //     @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_read.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
             @ ErrorCode::InvalidLedgerSection,
         constraint = order_position.is_valid_order_type_match(&market_pointer_read)
@@ -45,8 +45,8 @@ pub struct OpenOrderPosition<'info> {
         constraint = market_pointer_write.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
         // what's causing this constrait to trigger?
             @ ErrorCode::InvalidOrderPositionAdd,
-        constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        // constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
+        //     @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_write.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
             @ ErrorCode::InvalidLedgerSection,
         constraint = order_position.is_valid_order_type_match(&market_pointer_write)
@@ -133,6 +133,7 @@ impl<'info> OpenOrderPosition<'info> {
             slot: slot,
             timestamp: unix_timestamp,
             is_available: self.order_position.is_available,
+            is_head: self.market_pointer_write.is_some(),
         });
 
         Ok(())

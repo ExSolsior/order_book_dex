@@ -189,6 +189,8 @@ impl MarketPointer {
         if prev_order_position.is_some() && next_order_position.is_some() {
             return prev_order_position.unwrap().next_order_position.unwrap()
                 == next_order_position.unwrap().key();
+        } else if prev_order_position.is_some() && next_order_position.is_none() {
+            return prev_order_position.unwrap().next_order_position.is_none();
         } else if self.order_position_pointer.is_some() && next_order_position.is_some() {
             return self.order_position_pointer.unwrap() == next_order_position.unwrap().key();
         } else {
@@ -227,8 +229,11 @@ impl MarketPointer {
         &self,
         order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
-        (order_position.as_ref().is_some()
-            && order_position.as_ref().unwrap().order_type == self.order_type)
+        order_position.as_ref().is_some()
+            && ((order_position.as_ref().unwrap().order_type == Order::Bid
+                && self.order_type == Order::Sell)
+                || (order_position.as_ref().unwrap().order_type == Order::Ask
+                    && self.order_type == Order::Buy))
             || order_position.as_ref().is_none()
     }
 
@@ -286,7 +291,8 @@ impl MarketPointer {
         return self.market_order.is_none();
     }
 
-    pub fn is_valid_prev_order_position(
+    // what is this for?
+    pub fn _is_valid_prev_order_position(
         &self,
         prev_order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
@@ -306,7 +312,7 @@ impl MarketPointer {
                     != prev_order_position.unwrap().key();
         }
 
-        return prev_order_position.is_none();
+        return self.market_order.is_none();
     }
 
     pub fn is_valid_return(&self, owner: Pubkey) -> bool {
