@@ -20,6 +20,7 @@ import { MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
+import { CachedMarket } from "@/program/utils/types";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
@@ -93,13 +94,19 @@ export default function LimitOrder({
     // const total = BigInt(price) * BigInt(amount);
     // validate total against quote balance
 
+    // this should exist because creating and fetcing this data happens in the useMarkets
+    const nonce = JSON.parse(localStorage
+      .getItem(userWallet!.publicKey.toString())!)
+      .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)
+      .positionConfigNonce as string;
+
     const params = new URLSearchParams({
       "book_config": marketId.toString(),
       "signer": userWallet!.publicKey.toString(),
       "order_type": type,
       "price": price,
       "amount": amount,
-      "nonce": market!.user!.positionConfigNonce!.toString(),
+      "nonce": nonce,
     });
 
     if (type === "bid" && marketOrder.bidNextPointer !== null && marketOrder.bidNextPointer !== undefined) {

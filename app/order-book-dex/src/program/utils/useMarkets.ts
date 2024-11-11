@@ -1,7 +1,13 @@
 "use client"
 
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react"
+import { CANCEL_LIMIT_ORDER_EVENT, CLOSE_LIMIT_ORDER_EVENT, CREATE_ORDER_POSITION_EVENT, eventListner, OPEN_LIMIT_ORDER_EVENT } from "./events";
+import { PROGRAM_ID } from "./constants";
+import { CachedMarket } from "./types";
+import { useParams } from "next/navigation";
+import { Item } from "@radix-ui/react-dropdown-menu";
 
 // should place these under constants.ts file
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
@@ -11,6 +17,12 @@ export const useMarkets = () => {
     const [data, setData] = useState<Markets[]>([]);
     const [intervalId, setIntervalId] = useState<NodeJS.Timeout | undefined>()
     const [isLoading, setLoading] = useState(true);
+    const [eventId, setEventId] = useState<number | undefined>();
+    const userWallet = useAnchorWallet();
+    const { connection } = useConnection();
+    const params = useParams<{ marketId: string }>()
+
+    console.log(eventId)
 
     const load = async () => {
 
@@ -79,6 +91,193 @@ export const useMarkets = () => {
             console.log(err);
         }
     }
+
+    useEffect(() => {
+
+        if (userWallet === undefined || params.marketId === undefined) {
+            return
+        }
+
+        if (!localStorage.getItem(userWallet.publicKey.toString())) {
+            const data = {
+                markets: []
+            }
+
+            localStorage.setItem(
+                userWallet!.publicKey.toString(),
+                JSON.stringify(data),
+            )
+        }
+
+        const marketId = new PublicKey(params.marketId);
+
+        const expire = Date.now() / 1000 + (60 * 60 * 6);
+        if (!JSON.parse(localStorage
+            // fetch nonce if not in local storage
+
+            .getItem(userWallet.publicKey.toString())!)
+            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+
+            const user = JSON.parse(localStorage
+                .getItem(userWallet!.publicKey.toString())!);
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], PROGRAM_ID);
+
+            (async () => {
+                const positionConfigNonce = await (async () => {
+                    const account = await connection.getAccountInfo(positionConfigId)
+                    if (account !== null) {
+                        const offset = 32 * 4 + 8;
+                        return account.data.readBigUInt64LE(offset);
+                    }
+
+                    return BigInt(0);
+                })()
+
+                const data = {
+                    ...user,
+                    markets: [
+                        ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                        {
+                            marketId: marketId.toString(),
+                            positionConfigId: positionConfigId.toString(),
+                            positionConfigNonce: positionConfigNonce.toString(),
+                            expire,
+                        }
+                    ]
+                }
+
+                localStorage.setItem(
+                    userWallet!.publicKey.toString(),
+                    JSON.stringify(data),
+                )
+
+            })()
+
+
+        } else if (JSON.parse(localStorage
+            // need to fetch nonce if data in local storage is expired
+
+            .getItem(userWallet.publicKey.toString())!)
+            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId).expire < expire) {
+            const user = JSON.parse(localStorage
+                .getItem(userWallet!.publicKey.toString())!);
+
+            const [positionConfigId] = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey.toBuffer(),
+                marketId.toBuffer(),
+                Buffer.from("order-position-config"),
+            ], PROGRAM_ID);
+
+            (async () => {
+                const positionConfigNonce = await (async () => {
+                    const account = await connection.getAccountInfo(positionConfigId)
+                    if (account !== null) {
+                        const offset = 32 * 4 + 8;
+                        return account.data.readBigUInt64LE(offset);
+                    }
+
+                    return BigInt(0);
+                })()
+
+                const data = {
+                    ...user,
+                    markets: [
+                        ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                        {
+                            marketId: marketId.toString(),
+                            positionConfigId: positionConfigId.toString(),
+                            positionConfigNonce: positionConfigNonce.toString(),
+                            expire,
+                        }
+                    ]
+                }
+
+                localStorage.setItem(
+                    userWallet!.publicKey.toString(),
+                    JSON.stringify(data),
+                )
+
+            })()
+        }
+
+    }, [userWallet, params])
+
+    useEffect(() => {
+        if (eventId !== undefined) {
+            return () => {
+                connection.removeOnLogsListener(eventId)
+            }
+        }
+
+        if (userWallet === undefined) {
+            return
+        }
+
+        const id = eventListner(userWallet.publicKey, [
+            CREATE_ORDER_POSITION_EVENT,
+            CLOSE_LIMIT_ORDER_EVENT,
+            CANCEL_LIMIT_ORDER_EVENT,
+            OPEN_LIMIT_ORDER_EVENT,
+        ], (method, payload) => {
+
+            console.log(method, payload)
+
+            switch (method) {
+                case "create-order-position": {
+                    console.log("method", method)
+
+                    const { market, user } = (() => {
+                        const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
+
+
+                        const market = user!.markets
+                            .find((item: CachedMarket) => item.positionConfigId === payload.positionConfig!.toString());
+
+                        return { market, user }
+                    })();
+
+                    console.log("it worked :::::")
+
+                    console.log(user)
+
+                    console.log(market)
+
+                    const state = {
+                        ...user,
+                        markets: [
+                            {
+                                ...market,
+                                positionConfigNonce: payload.nonce!.toString(),
+                            },
+                            ...(user.markets.filter((item: CachedMarket) => item.positionConfigId !== payload.positionConfig!.toString()) || []),
+                        ]
+                    }
+
+
+                    localStorage.setItem(
+                        userWallet!.publicKey.toString(),
+                        JSON.stringify(state),
+                    );
+
+                    console.log(state)
+                    console.log(JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!));
+                    console.log("FIXNISHED :::::")
+
+
+                    break;
+                }
+
+            }
+        })
+
+        setEventId(id)
+
+    }, [eventId, userWallet])
 
     useEffect(() => {
         if (isLoading == false) {

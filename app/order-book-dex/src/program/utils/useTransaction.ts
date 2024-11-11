@@ -294,93 +294,6 @@ export const useTransaction = (marketId: PublicKey) => {
 
     const load = async (marketId: PublicKey, queue: Queue) => {
 
-
-        /*
-        
-            checking if user is cached
-            if not the create cache state
-            using local storage for now but should use indexedDB
-            should derive user data
-            state: 
-                markets
-                    marketId
-                    positionConfig
-        */
-
-        if (userWallet !== undefined && !localStorage.getItem(userWallet.publicKey.toString())) {
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID)
-
-            const positionConfigNonce = await (async () => {
-                const account = await connection.getAccountInfo(positionConfigId)
-
-                if (account !== null) {
-                    const offset = 32 * 4 + 8;
-                    return account.data.readBigUInt64LE(offset);
-                }
-
-                return BigInt(0);
-            })()
-
-            const data = {
-                markets: [{
-                    marketId: marketId.toString(),
-                    positionConfigId: positionConfigId.toString(),
-                    positionConfigNonce: positionConfigNonce.toString(),
-                }]
-            }
-
-            localStorage.setItem(
-                userWallet!.publicKey.toString(),
-                JSON.stringify(data),
-            )
-        }
-
-        if (userWallet !== undefined && !JSON.parse(localStorage
-            .getItem(userWallet.publicKey.toString())!)
-            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
-
-            const user = JSON.parse(localStorage
-                .getItem(userWallet!.publicKey.toString())!);
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID)
-
-            const positionConfigNonce = await (async () => {
-                const account = await connection.getAccountInfo(positionConfigId)
-                if (account !== null) {
-                    const offset = 32 * 4 + 8;
-                    return account.data.readBigUInt64LE(offset);
-                }
-
-                return BigInt(0);
-            })()
-
-            const data = {
-                ...user,
-                markets: [
-                    ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-                    {
-                        marketId: marketId.toString(),
-                        positionConfigId: positionConfigId.toString(),
-                        positionConfigNonce: positionConfigNonce.toString(),
-                    }
-                ]
-            }
-
-            localStorage.setItem(
-                userWallet!.publicKey.toString(),
-                JSON.stringify(data),
-            )
-        }
-
         const bookParams = new URLSearchParams();
         bookParams.append("book_config", marketId.toString());
 
@@ -458,10 +371,12 @@ export const useTransaction = (marketId: PublicKey) => {
                 const {
                     positionConfigId,
                     positionConfigNonce,
+                    // not sure if this is correct. since this is being updated async in useMarkets
                 } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
                     .markets!.find((item: CachedMarket) => marketId.toString() === item.marketId);
 
                 return {
+                    // or should I just store all this info in local storage
                     positionConfigId: new PublicKey(positionConfigId),
                     positionConfigNonce: BigInt(positionConfigNonce),
                     userCapitalA,
