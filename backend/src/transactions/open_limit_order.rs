@@ -51,7 +51,7 @@ pub async fn open_limit_order(
         market_pointer,
         prev_position,
         next_position,
-        // position_config,
+        position_config,
         is_reverse,
         ..
     } = models::open_limit_order(
@@ -70,6 +70,9 @@ pub async fn open_limit_order(
     println!("MARKET POINTER? :: {:?}", market_pointer);
     println!("READER? :: {:?}", market_pointer_read);
     println!("WRITER? :: {:?}", market_pointer_write);
+    println!("prev? :: {:?}", prev_position);
+    println!("next? :: {:?}", next_position);
+    println!("{:?}", market_pointer);
 
     let ixs = build_ixs(BuildIxsParams {
         signer: params.signer,
@@ -86,7 +89,7 @@ pub async fn open_limit_order(
         next_order_position: next_position,
 
         next_position_pointer: params.next_position_pointer,
-        is_first_interaction: params.nonce == 0,
+        is_first_interaction: position_config.is_none(),
         is_reverse,
 
         order_type: params.order_type,
@@ -286,6 +289,12 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint A, destination derived with mint B
         resolved_source = get_vault_account_pda(order_book_config, token_mint_a, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_b, signer);
+
+        println!("is_reverse {}", is_reverse);
+        println!("token_mint_a {}", token_mint_a);
+        println!("token_mint_b {}", token_mint_b);
+        println!("resolved_source {}", resolved_source);
+        println!("resolved_dest {}", resolved_dest);
     } else {
         // Capital source derived with mint B
         capital_source =
@@ -294,15 +303,15 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint B, destination derived with mint A
         resolved_source = get_vault_account_pda(order_book_config, token_mint_b, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_a, signer);
+
+        println!("is_reverse {}", is_reverse);
+        println!("token_mint_b {}", token_mint_b);
+        println!("token_mint_a {}", token_mint_a);
+        println!("resolved_source {}", resolved_source);
+        println!("resolved_dest {}", resolved_dest);
     }
 
     let order_position = get_order_position_pda(nonce, order_position_config, signer);
-
-    println!("NONCE: {}", nonce);
-    println!("ORDER POS CONFIG {}", order_position_config);
-    println!("SIGNER: {}", signer);
-    println!("{}", ORDER_POSITION_SEED);
-    println!("POSITION {}", order_position);
 
     ixs.push(Instruction {
         program_id,

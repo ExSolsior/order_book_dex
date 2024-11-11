@@ -73,6 +73,7 @@ pub struct OrderPosition {
     pub destination_vault: Pubkey,
     pub slot: u64,
     pub timestamp: u64,
+    pub is_head: bool,
 }
 
 pub struct RealTimeTrade {
@@ -165,9 +166,25 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
     .unwrap();
 }
 
+// slot and timestamp is set to 0.. need fix that
+// need implement logic to set the inserting order position as head or not
+// and if inserting a head position, need set current head to false
+// need update the events
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
     let query = sqlx::query(
         r#"
+                WITH head_change AS (
+                    UPDATE order_position AS p
+                    SET is_head = false
+                    WHERE 
+                    (($13::BOOLEAN IS TRUE AND p.is_head IS TRUE)
+                    OR
+                    ($13::BOOLEAN IS FALSE AND p.is_head IS NULL))
+                    AND 
+                    p.order_type = $7::order_type
+
+                )
+
                 INSERT INTO order_position (
                     "pubkey_id",
                     "book_config",
@@ -180,8 +197,10 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
                     "size",
                     "is_available",
                     "slot",
-                    "timestamp"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7::order_type, $8, $9, $10, 0, 0);
+                    "timestamp",
+                    "is_head"
+
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7::order_type, $8, $9, $10, $11, $12, $13);
             "#,
     )
     .bind(order_position.pubkey_id.to_string())
@@ -193,7 +212,6 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
     } else {
         query.bind(Option::<String>::None)
     };
-
     query
         .bind(order_position.source_vault.to_string())
         .bind(order_position.destination_vault.to_string())
@@ -203,6 +221,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
         .bind(order_position.is_available)
         .bind(order_position.slot as i64)
         .bind(order_position.timestamp as i64)
+        .bind(order_position.is_head)
         .execute(&app_state.pool)
         .await
         .unwrap();
@@ -1646,7 +1665,7 @@ pub async fn open_limit_order(
         "price {}, order_type {}, pubkey {}",
         price,
         order_type,
-        pubkey_id.to_string()
+        position_config.to_string()
     );
 
     let query = sqlx::query(
@@ -1981,7 +2000,9 @@ pub async fn open_limit_order(
                     node.prev_pubkey_id,
                     node.next_pubkey_id,
                     (SELECT price FROM head_ask) AS head_ask_price,
-                    (SELECT price FROM head_bid) AS head_bid_price
+                    (SELECT price FROM head_bid) AS head_bid_price,
+                    (SELECT pubkey_id FROM head_ask) AS head_ask_pubkey_id,
+                    (SELECT pubkey_id FROM head_bid) AS head_bid_pubkey_id
 
                 FROM trade_pair AS t
                 LEFT JOIN node ON node.book_config = t.pubkey_id
@@ -2051,7 +2072,7 @@ pub async fn open_limit_order(
                         };
 
                     let is_reverse =
-                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 1;
+                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 0;
                     (
                         book_config,
                         market_pointer,
@@ -2157,24 +2178,63 @@ pub async fn open_limit_order(
                     )
                 });
 
-            let data = order_book_data.unwrap();
+            let head_ask_pubkey_id = (!query.try_get_raw("head_ask_pubkey_id").unwrap().is_null())
+                .then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("head_ask_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
 
-            println!("{:?}", head_bid_price);
-            println!("{:?}", prev_pubkey_id);
-            println!("{:?}", head_ask_price);
-            println!("{:?}", price);
+            let head_bid_pubkey_id = (!query.try_get_raw("head_bid_pubkey_id").unwrap().is_null())
+                .then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("head_bid_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
+
+            let data = order_book_data.unwrap();
 
             let market_pointer = (
                 data.1,
-                (data.6 == Order::Bid
-                    && head_bid_price.is_none()
-                    && prev_pubkey_id.is_none()
-                    && (head_ask_price.is_none() || price < head_ask_price.unwrap()))
-                    || (data.6 == Order::Ask
-                        && head_ask_price.is_none()
-                        && prev_pubkey_id.is_none()
-                        && (head_bid_price.is_none() || price > head_bid_price.unwrap())),
+                (prev_pubkey_id.is_none()
+                    && ((head_bid_price.is_none() && head_bid_price.is_none())
+                        || (data.6 == Order::Ask
+                            && head_bid_price.is_none()
+                            && head_ask_price.is_some()
+                            && price < head_ask_price.unwrap())
+                        || (data.6 == Order::Bid
+                            && head_ask_price.is_none()
+                            && head_bid_price.is_some()
+                            && head_bid_price.unwrap() < price)
+                        || (head_bid_price.is_some()
+                            && head_ask_price.is_some()
+                            && head_bid_price.unwrap() < price
+                            && price < head_ask_price.unwrap()))),
             );
+
+            let next_pubkey_id = if next_pubkey_id.is_none() && data.6 == Order::Bid {
+                head_bid_pubkey_id
+            } else if prev_pubkey_id.is_none() && data.6 == Order::Ask {
+                head_ask_pubkey_id
+            } else {
+                next_pubkey_id
+            };
+
+            println!("{:?}", head_bid_price);
+            println!("{:?}", prev_pubkey_id);
+            println!("{:?}", next_pubkey_id);
+            println!("{:?}", head_ask_price);
+            println!("{:?}", price);
 
             Ok(OpenLimitOrder {
                 _book_config: data.0,

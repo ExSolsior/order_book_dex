@@ -430,6 +430,21 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
     let slot = get_slot(&data, &mut offset);
     let timestamp = get_timestamp(&data, &mut offset);
     let is_available = get_reverse(&data, &mut offset);
+    let is_head = get_head(&data, &mut offset);
+
+    println!("pos_pubkey :: {:?}", pos_pubkey);
+    println!("book_config :: {:?}", book_config);
+    println!("pos_config :: {:?}", pos_config);
+    println!("source :: {:?}", source);
+    println!("destination :: {:?}", destination);
+    println!("next_pos_pubkey :: {:?}", next_pos_pubkey);
+    println!("order_type :: {:?}", order_type);
+    println!("price :: {:?}", price);
+    println!("size :: {:?}", size);
+    println!("slot :: {:?}", slot);
+    println!("timestamp :: {:?}", timestamp);
+    println!("is_available :: {:?}", is_available);
+    println!("is_head :: {:?}", is_head);
 
     // should call OrderPosition as LimitOrder
     insert_order_position(
@@ -446,6 +461,7 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
             destination_vault: destination,
             slot: slot,
             timestamp: timestamp as u64,
+            is_head,
         },
         app_state,
     )
@@ -624,7 +640,15 @@ pub fn get_reverse(data: &[u8], offset: &mut u64) -> bool {
     let flag = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
 
-    flag != 1
+    flag != 0
+}
+
+pub fn get_head(data: &[u8], offset: &mut u64) -> bool {
+    let length = 1;
+    let flag = u8::from_be_bytes([data[*offset as usize]]);
+    *offset += length;
+
+    flag != 0
 }
 
 pub fn get_slot(data: &[u8], offset: &mut u64) -> u64 {
