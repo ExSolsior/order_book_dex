@@ -35,6 +35,8 @@ describe("order_book_dex", () => {
   const tokenMints = [];
   const orderBookConfigAddressList = [];
 
+  const connection = provider!.connection!;
+
 
   before(async () => {
 
@@ -45,7 +47,7 @@ describe("order_book_dex", () => {
 
           try {
             const mint = await createMint(
-              provider.connection,
+              connection,
               wallet.payer,
               wallet.publicKey,
               wallet.publicKey,
@@ -344,7 +346,6 @@ describe("order_book_dex", () => {
 
   })
 
-
   describe("Market Maker", () => {
 
     it("Create Order Position Config", async () => {
@@ -422,10 +423,21 @@ describe("order_book_dex", () => {
       bufNum.writeBigUInt64LE(num, 0);
       const [orderPosition] = PublicKey.findProgramAddressSync([
         bufNum,
+        orderPositionConfig.toBuffer(),
         signer.publicKey.toBuffer(),
-        // 'market-maker-order-position'
         Buffer.from('order-position'),
       ], program.programId);
+
+      const [orderPosition1] = PublicKey.findProgramAddressSync([
+        bufNum,
+        // orderPositionConfig.toBuffer(),
+        signer.publicKey.toBuffer(),
+        Buffer.from('order-position'),
+      ], program.programId);
+
+      console.log(orderPosition)
+      console.log(orderPosition1)
+
 
 
       const tx = await program.methods

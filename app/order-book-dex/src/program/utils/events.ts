@@ -74,10 +74,6 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
             const decoded = Buffer.from(eventData as string, 'base64');
             const discrimniator = decoded.subarray(0, 8)
 
-            console.log(decoded.length, discrimniator)
-            console.log(Array.from(decoded))
-            console.log(eventData)
-
             switch (discrimniator.toString()) {
                 case OPEN_LIMIT_ORDER_EVENT.toString():
                     openLimitOrderEvent(OPEN_LIMIT_ORDER_EVENT, listen, decoded, callback);
@@ -117,7 +113,6 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
 
                 default: console.log("invalid event discriminator");
             }
-
         }
 
     }, "processed")
@@ -134,8 +129,6 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         value: 8,
     }
 
-    console.log(offset, decoded.length)
-
     const data = {
         position: getPubkey(decoded, offset),
         bookConfig: getPubkey(decoded, offset),
@@ -149,6 +142,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
+        isHead: getIsHead(decoded, offset),
 
         tokenMintA: undefined,
         tokenMintB: undefined,
@@ -647,13 +641,7 @@ const getPubkey = (data: Buffer, offset: { value: number }) => {
 }
 
 const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
-    const optionFlag = (() => {
-        const { start, end } = updateOffset(offset, 1);
-        return data.subarray(start, end);
-    })();
-
-
-    if (!!optionFlag) {
+    if (!getbool(data, offset)) {
         return null
     }
 
@@ -688,14 +676,21 @@ const getDecimals = (data: Buffer, offset: { value: number }) => {
     return data.subarray(start, end).readUint8(0);
 }
 
-const getReverse = (data: Buffer, offset: { value: number }) => {
+const getbool = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 1);
-    return !!data.subarray(start, end).readUint8(0);
+    return data.subarray(start, end).readInt8(0) !== 0;
+}
+
+const getReverse = (data: Buffer, offset: { value: number }) => {
+    return getbool(data, offset);
 }
 
 const getIsAvailable = (data: Buffer, offset: { value: number }) => {
-    const { start, end } = updateOffset(offset, 1);
-    return !!data.subarray(start, end).readUint8(0);
+    return getbool(data, offset);
+}
+
+const getIsHead = (data: Buffer, offset: { value: number }) => {
+    return getbool(data, offset);
 }
 
 const getSlot = (data: Buffer, offset: { value: number }) => {

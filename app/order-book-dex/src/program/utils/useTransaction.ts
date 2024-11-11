@@ -45,8 +45,6 @@ class Queue {
     update(data: Market | null, setData: Dispatch<SetStateAction<Market | null>>) {
         this.data = data;
         this.setData = setData;
-
-        console.log(this.data)
     }
 
     push(data: Payload) {
@@ -63,7 +61,7 @@ class Queue {
     get() {
         if (this.current === "init") {
             this.run()
-            this.current = "a";
+            this.current = "b";
         }
 
         if (this.current === "a") {
@@ -76,7 +74,7 @@ class Queue {
         if (this.current === "b") {
             this.current = "a";
             const list = this.listB;
-            this.listA = [];
+            this.listB = [];
             return list;
         }
 
@@ -85,9 +83,7 @@ class Queue {
 
     run() {
 
-        console.log("START EVENT SCEDULER")
         setInterval(() => {
-            console.log("Running!", this.listA.length, this.listB.length)
             let data = this.get();
 
             if (data.length === 0) {
@@ -113,12 +109,10 @@ class Queue {
                 }
             })
 
-
         }, 10000)
     }
 
     set(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
-
         data.forEach(data => {
 
             if (data.order === 'ask' && asks.has(data.price)) {
@@ -208,7 +202,7 @@ class Queue {
             .entries()
             .toArray()
             .sort((a, b) => {
-                return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0;
+                return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
             }));
 
         asks
@@ -227,7 +221,7 @@ class Queue {
             .entries()
             .toArray()
             .sort((a, b) => {
-                return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0;
+                return a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0;
             }));
 
         bids
@@ -676,15 +670,19 @@ export const useTransaction = (marketId: PublicKey) => {
                         queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
                         });
+
+                        // need add to trade history list as well.
 
                         break;
                     }
 
                     case "complete-market-order": {
                         marketOrder.update(payload.orderType, null);
+
+                        // need to set the last price from here
 
                         break;
                     }
@@ -694,8 +692,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         queue.push({
                             method: "add",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
                         });
 
                         console.log("added to queue?", queue);
@@ -707,8 +705,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
                         });
 
                         break;
