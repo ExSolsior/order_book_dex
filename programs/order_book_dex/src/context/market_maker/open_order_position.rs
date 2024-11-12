@@ -35,7 +35,6 @@ pub struct OpenOrderPosition<'info> {
         constraint = market_pointer_read.order_position_pointer.is_some() 
             && (prev_order_position.is_some() 
                 || next_order_position.is_some()
-                    && next_order_position.is_some() 
                     && market_pointer_read
                     .order_position_pointer
                     .unwrap() != next_order_position.as_ref().unwrap().key()),
