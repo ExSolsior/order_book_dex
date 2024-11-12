@@ -52,6 +52,7 @@ pub struct OpenLimitOrderEvent {
     pub pos_config: Pubkey,
     pub source: Pubkey,
     pub destination: Pubkey,
+    pub parent_position: Option<Pubkey>,
     pub next_pos_pubkey: Option<Pubkey>,
     pub order_type: Order,
     pub price: u64,

@@ -126,6 +126,29 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         return
     }
 
+    const position = getPubkey(decoded, {
+        value: 8,
+    })
+    const conn = new Connection(NEXT_PUBLIC_API_SVM);
+    conn.getAccountInfo(position, "confirmed").then(account => {
+        console.log("POSITION:: ", position)
+        console.log("ACCOUNT:: ", account)
+
+    })
+
+    const parentPosition = getPubkey(decoded, {
+        value: 8 + 32 * 5,
+    })
+
+    console.log("PARENT POSITION:: ", parentPosition)
+
+
+
+    console.log("PARENT POSITION:: ", getIsHead(decoded, {
+        value: decoded.length - 1,
+    }), decoded.length)
+
+
     const offset = {
         value: 8,
     }
@@ -145,6 +168,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
+        // this is not being processed on client
         isHead: getIsHead(decoded, offset),
 
         tokenMintA: undefined,

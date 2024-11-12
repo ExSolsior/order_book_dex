@@ -368,17 +368,9 @@ export const useTransaction = (marketId: PublicKey) => {
                     })
                 })
 
-                const {
-                    positionConfigId,
-                    positionConfigNonce,
-                    // not sure if this is correct. since this is being updated async in useMarkets
-                } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                    .markets!.find((item: CachedMarket) => marketId.toString() === item.marketId);
+
 
                 return {
-                    // or should I just store all this info in local storage
-                    positionConfigId: new PublicKey(positionConfigId),
-                    positionConfigNonce: BigInt(positionConfigNonce),
                     userCapitalA,
                     userCapitalB,
                     userVaultA,
@@ -442,7 +434,8 @@ export const useTransaction = (marketId: PublicKey) => {
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
-                    positionConfigNonce: BigInt(user ? user.positionConfigNonce : 0),
+                    // will remove?
+                    positionConfigNonce: BigInt(0),
                     capitalABalance: BigInt(user ? user.capitalABalance : 0),
                     capitalBBalance: BigInt(user ? user.capitalBBalance : 0),
                 },
@@ -457,7 +450,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         tokenProgramA: new PublicKey(book.tokenProgramA),
                         tokenProgramB: new PublicKey(book.tokenProgramB),
                         userAddress: userWallet ? userWallet!.publicKey : undefined,
-                        userPositionConfig: userWallet ? user?.positionConfigId : undefined,
+                        // will remove?
+                        userPositionConfig: undefined,
                         userCapitalA: userWallet ? user?.userCapitalA : undefined,
                         userCapitalB: userWallet ? user?.userCapitalB : undefined,
                         userVaultA: userWallet ? user?.userVaultA : undefined,

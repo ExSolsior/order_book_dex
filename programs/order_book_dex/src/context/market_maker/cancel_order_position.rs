@@ -89,6 +89,13 @@ impl<'info> CancelOrderPosition<'info> {
             // If there's no previous order, this means the current order is at the head of the list
             // In this case, update the market pointer to point to the next order (or None if this was the only order)
             market_pointer.order_position_pointer = self.order_position.next_order_position;
+            // market_pointer.current_price = self.order_position.price;
+        }
+
+        if self.market_pointer_write.is_some() && self.next_order_position.is_some() {
+            self.market_pointer_write.as_mut().unwrap().current_price = self.next_order_position.as_ref().unwrap().price;
+        } else if self.market_pointer_write.is_some() {
+            self.market_pointer_write.as_mut().unwrap().current_price = 0;
         }
 
         // At this point, the current order has been removed from the linked list:

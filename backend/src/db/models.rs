@@ -2216,18 +2216,16 @@ pub async fn open_limit_order(
             let market_pointer = (
                 data.1,
                 (prev_pubkey_id.is_none()
-                    && ((head_bid_price.is_none() && head_bid_price.is_none())
-                        || (data.6 == Order::Ask
-                            && head_bid_price.is_none()
-                            && head_ask_price.is_some()
-                            && price < head_ask_price.unwrap())
-                        || (data.6 == Order::Bid
-                            && head_ask_price.is_none()
-                            && head_bid_price.is_some()
-                            && head_bid_price.unwrap() < price)
+                    && ((head_bid_price.is_none() && head_ask_price.is_none())
                         || (head_bid_price.is_some()
                             && head_ask_price.is_some()
                             && head_bid_price.unwrap() < price
+                            && price < head_ask_price.unwrap())
+                        || (data.6 == Order::Ask
+                            && head_bid_price.is_some()
+                            && head_bid_price.unwrap() < price)
+                        || (data.6 == Order::Bid
+                            && head_ask_price.is_some()
                             && price < head_ask_price.unwrap()))),
             );
 
@@ -2243,9 +2241,15 @@ pub async fn open_limit_order(
                 };
 
             println!("head_bid_pubkey_id {:?}", head_bid_pubkey_id);
+            println!("head_ask_pubkey_id {:?}", head_ask_pubkey_id);
+
             println!("prev_pubkey_id {:?}", prev_pubkey_id);
             println!("next_pubkey_id {:?}", next_pubkey_id);
             println!("head_ask_price {:?}", head_ask_price);
+            println!("market_pointer {:?}", market_pointer.0);
+            println!("contra_pointer {:?}", data.8);
+            println!("market_pointer_write? {:?}", market_pointer.1);
+
             println!("price {:?}", price);
 
             Ok(OpenLimitOrder {

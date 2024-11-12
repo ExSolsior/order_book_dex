@@ -182,127 +182,127 @@ export const useMarkets = () => {
         })
     }
 
-    // useEffect(() => {
+    useEffect(() => {
 
-    //     if (userWallet === undefined || params.marketId === undefined) {
-    //         return
-    //     }
+        if (userWallet === undefined || params.marketId === undefined) {
+            return
+        }
 
-    //     {
-    //         if (!localStorage.getItem(userWallet.publicKey.toString())) {
-    //             const data = {
-    //                 markets: []
-    //             }
+        {
+            if (!localStorage.getItem(userWallet.publicKey.toString())) {
+                const data = {
+                    markets: []
+                }
 
-    //             localStorage.setItem(
-    //                 userWallet!.publicKey.toString(),
-    //                 JSON.stringify(data),
-    //             )
-    //         }
+                localStorage.setItem(
+                    userWallet!.publicKey.toString(),
+                    JSON.stringify(data),
+                )
+            }
 
-    //         const marketId = new PublicKey(params.marketId);
+            const marketId = new PublicKey(params.marketId);
 
-    //         const expire = Date.now() / 1000 + (60 * 60 * 6);
-    //         if (!JSON.parse(localStorage
-    //             // fetch nonce if not in local storage
+            const expire = Date.now() / 1000 + (60 * 60 * 6);
+            if (!JSON.parse(localStorage
+                // fetch nonce if not in local storage
 
-    //             .getItem(userWallet.publicKey.toString())!)
-    //             .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
 
-    //             const user = JSON.parse(localStorage
-    //                 .getItem(userWallet!.publicKey.toString())!);
+                const user = JSON.parse(localStorage
+                    .getItem(userWallet!.publicKey.toString())!);
 
-    //             const [positionConfigId] = PublicKey.findProgramAddressSync([
-    //                 userWallet!.publicKey.toBuffer(),
-    //                 marketId.toBuffer(),
-    //                 Buffer.from("order-position-config"),
-    //             ], PROGRAM_ID);
+                const [positionConfigId] = PublicKey.findProgramAddressSync([
+                    userWallet!.publicKey.toBuffer(),
+                    marketId.toBuffer(),
+                    Buffer.from("order-position-config"),
+                ], PROGRAM_ID);
 
-    //             (async () => {
-    //                 const positionConfigNonce = await (async () => {
-    //                     const account = await connection.getAccountInfo(positionConfigId)
-    //                     if (account !== null) {
-    //                         const offset = 32 * 4 + 8;
-    //                         return account.data.readBigUInt64LE(offset);
-    //                     }
+                (async () => {
+                    const positionConfigNonce = await (async () => {
+                        const account = await connection.getAccountInfo(positionConfigId)
+                        if (account !== null) {
+                            const offset = 32 * 4 + 8;
+                            return account.data.readBigUInt64LE(offset);
+                        }
 
-    //                     return BigInt(0);
-    //                 })()
+                        return BigInt(0);
+                    })()
 
-    //                 const data = {
-    //                     ...user,
-    //                     markets: [
-    //                         ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-    //                         {
-    //                             marketId: marketId.toString(),
-    //                             positionConfigId: positionConfigId.toString(),
-    //                             positionConfigNonce: positionConfigNonce.toString(),
-    //                             expire,
-    //                         }
-    //                     ]
-    //                 }
+                    const data = {
+                        ...user,
+                        markets: [
+                            ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                            {
+                                marketId: marketId.toString(),
+                                positionConfigId: positionConfigId.toString(),
+                                positionConfigNonce: positionConfigNonce.toString(),
+                                expire,
+                            }
+                        ]
+                    }
 
-    //                 localStorage.setItem(
-    //                     userWallet!.publicKey.toString(),
-    //                     JSON.stringify(data),
-    //                 )
+                    localStorage.setItem(
+                        userWallet!.publicKey.toString(),
+                        JSON.stringify(data),
+                    )
 
-    //             })()
+                })()
 
 
-    //         } else if (JSON.parse(localStorage
-    //             // need to fetch nonce if data in local storage is expired
+            } else if (JSON.parse(localStorage
+                // need to fetch nonce if data in local storage is expired
 
-    //             .getItem(userWallet.publicKey.toString())!)
-    //             .markets.find((item: CachedMarket) => marketId.toString() === item.marketId).expire < expire) {
-    //             const user = JSON.parse(localStorage
-    //                 .getItem(userWallet!.publicKey.toString())!);
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId).expire < expire) {
+                const user = JSON.parse(localStorage
+                    .getItem(userWallet!.publicKey.toString())!);
 
-    //             const [positionConfigId] = PublicKey.findProgramAddressSync([
-    //                 userWallet!.publicKey.toBuffer(),
-    //                 marketId.toBuffer(),
-    //                 Buffer.from("order-position-config"),
-    //             ], PROGRAM_ID);
+                const [positionConfigId] = PublicKey.findProgramAddressSync([
+                    userWallet!.publicKey.toBuffer(),
+                    marketId.toBuffer(),
+                    Buffer.from("order-position-config"),
+                ], PROGRAM_ID);
 
-    //             (async () => {
-    //                 const positionConfigNonce = await (async () => {
-    //                     const account = await connection.getAccountInfo(positionConfigId)
-    //                     if (account !== null) {
-    //                         const offset = 32 * 4 + 8;
-    //                         return account.data.readBigUInt64LE(offset);
-    //                     }
+                (async () => {
+                    const positionConfigNonce = await (async () => {
+                        const account = await connection.getAccountInfo(positionConfigId)
+                        if (account !== null) {
+                            const offset = 32 * 4 + 8;
+                            return account.data.readBigUInt64LE(offset);
+                        }
 
-    //                     return BigInt(0);
-    //                 })()
+                        return BigInt(0);
+                    })()
 
-    //                 const data = {
-    //                     ...user,
-    //                     markets: [
-    //                         ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-    //                         {
-    //                             marketId: marketId.toString(),
-    //                             positionConfigId: positionConfigId.toString(),
-    //                             positionConfigNonce: positionConfigNonce.toString(),
-    //                             expire,
-    //                         }
-    //                     ]
-    //                 }
+                    const data = {
+                        ...user,
+                        markets: [
+                            ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                            {
+                                marketId: marketId.toString(),
+                                positionConfigId: positionConfigId.toString(),
+                                positionConfigNonce: positionConfigNonce.toString(),
+                                expire,
+                            }
+                        ]
+                    }
 
-    //                 localStorage.setItem(
-    //                     userWallet!.publicKey.toString(),
-    //                     JSON.stringify(data),
-    //                 )
+                    localStorage.setItem(
+                        userWallet!.publicKey.toString(),
+                        JSON.stringify(data),
+                    )
 
-    //             })()
-    //         }
+                })()
+            }
 
-    //     }
+        }
 
-    //     {
-    //         loadUser()
-    //     }
+        {
+            loadUser()
+        }
 
-    // }, [userWallet, params])
+    }, [userWallet, params])
 
     useEffect(() => {
         if (eventId !== undefined) {

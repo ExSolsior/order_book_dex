@@ -14,6 +14,8 @@ pub struct MarketPointer {
     pub order_type: Order,
     pub order_book_config: Pubkey,
     pub order_position_pointer: Option<Pubkey>,
+    // WIP
+    pub current_price: u64,
     pub timestamp: i64,
     pub slot: u64,
     pub market_order: Option<MarketOrder>,
@@ -25,7 +27,7 @@ impl MarketPointer {
         + Order::LEN
         + PUBKEY_BYTES
         + (BYTE + PUBKEY_BYTES)
-        + U64_BYTES * 2
+        + U64_BYTES * 3
         + (BYTE + MarketOrder::LEN)
         + (BYTE + ExecutionStats::LEN);
 
@@ -39,6 +41,7 @@ impl MarketPointer {
         self.order_type = order_type;
         self.order_book_config = order_book_config;
         self.order_position_pointer = None;
+        self.current_price = 0;
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.market_order = None;
@@ -121,6 +124,7 @@ impl MarketPointer {
             self.order_position_pointer = order_position.next();
         }
 
+        self.current_price = order_position.price;
         self.timestamp = unix_timestamp;
         self.slot = slot;
 
@@ -186,7 +190,10 @@ impl MarketPointer {
         prev_order_position: Option<&Account<'_, OrderPosition>>,
         next_order_position: Option<&Account<'_, OrderPosition>>,
     ) -> bool {
-        if prev_order_position.is_some() && next_order_position.is_some() {
+        if prev_order_position.is_some()
+            && next_order_position.is_some()
+            && prev_order_position.unwrap().next_order_position.is_some()
+        {
             return prev_order_position.unwrap().next_order_position.unwrap()
                 == next_order_position.unwrap().key();
         } else if prev_order_position.is_some() && next_order_position.is_none() {
@@ -348,6 +355,13 @@ impl MarketPointer {
             }
             Fill::Full => true,
         }
+    }
+
+    pub fn is_valid_contra(&self, order_position: &Account<'_, OrderPosition>) -> bool {
+        (self.order_position_pointer.is_some()
+            && ((self.order_type == Order::Sell && order_position.price > self.current_price)
+                || (self.order_type == Order::Buy && order_position.price < self.current_price)))
+            || self.order_position_pointer.is_none()
     }
 }
 
