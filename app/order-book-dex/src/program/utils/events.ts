@@ -136,6 +136,8 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         positionConfig: getPubkey(decoded, offset),
         source: getPubkey(decoded, offset),
         destination: getPubkey(decoded, offset),
+        // this is not being processed on client, it's okay, so the state is not in the interface
+        parentPosition: getOptionPubkey(decoded, offset),
         nextPosition: getOptionPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         price: getBN(decoded, offset),
