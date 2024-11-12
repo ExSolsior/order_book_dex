@@ -13,8 +13,7 @@ import {
 import { PROGRAM_ID } from "./constants";
 import { CachedMarket } from "./types";
 import { useParams } from "next/navigation";
-import { OrderType } from "../ProgramProvider";
-import { bigint } from "zod";
+
 
 // should place these under constants.ts file
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
@@ -22,6 +21,7 @@ const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 export const useMarkets = () => {
     const [markets, setMarkets] = useState<Markets[]>([]);
     const [openLimitOrders, setOpenLimitOrders] = useState<OpenOrder[]>([]);
+    const [isLoaded, setIsloaded] = useState(false);
     const [userBalance, setUserBalance] = useState<UserBalance>({
         capitalAAmount: BigInt(0),
         capitalBAmount: BigInt(0)
@@ -108,73 +108,26 @@ export const useMarkets = () => {
         const openPositionsURL = new URL("./get_open_positions?" + marketMakerParams.toString(), base);
 
         const repsonse = await fetch(openPositionsURL)
+
         // hack impl, need to fixed on server side but it works
-        const positions = repsonse.ok ? await repsonse.json() || [] : []
+        const positions = repsonse.ok ? await repsonse.json() || [] : [];
 
-
-        // need load balance, fetch account data
-        // need to derive vault and capital accounts
-        // const userCapitalA = await getAssociatedTokenAddress(
-        //     new PublicKey(book.tokenMintA),
-        //     userWallet!.publicKey!,
-        //     true,
-        //     new PublicKey(book.tokenProgramA),
-        // );
-
-        // const userCapitalB = await getAssociatedTokenAddress(
-        //     new PublicKey(book.tokenMintB),
-        //     userWallet!.publicKey!,
-        //     true,
-        //     new PublicKey(book.tokenProgramB),
-        // );
-
-        // const userVaultA = PublicKey.findProgramAddressSync([
-        //     new PublicKey(book.pubkeyId).toBuffer(),
-        //     new PublicKey(book.tokenMintA).toBuffer(),
-        //     userWallet!.publicKey!.toBuffer(),
-        //     Buffer.from("vault-account"),
-        // ], PROGRAM_ID)[0];
-
-        // const userVaultB = PublicKey.findProgramAddressSync([
-        //     new PublicKey(book.pubkeyId).toBuffer(),
-        //     new PublicKey(book.tokenMintB).toBuffer(),
-        //     userWallet!.publicKey!.toBuffer(),
-        //     Buffer.from("vault-account"),
-        // ], PROGRAM_ID)[0];
-
-        // const data = await Promise.allSettled([
-        //     getAccount(connection, userCapitalA),
-        //     getAccount(connection, userCapitalB),
-        //     getAccount(connection, userVaultA),
-        //     getAccount(connection, userVaultB),
-        // ]).then((results) => {
-        //     return results.map(data => {
-        //         return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
-        //     })
-        // })
+        console.log("positions from backend:: ", positions);
 
         // I wonder if this could cause issues, let's say event listner gets data first
         // then this loads data. data becomes mismatched and doesn't reflect the real state.
         // will come back to this later
         setOpenLimitOrders((prev: OpenOrder[]) => {
-            // 'positionId', p.pubkey_id,
-            // 'marketId', p.book_config,
-            // 'positionConfig', p.position_config,
-            // 'orderType', p.order_type,
-            // 'price', p.price,
-            // 'size', p.size,
-            // -- need filled total of size, currently not tracking
-            // 'slot', p.slot
             return [
                 ...prev,
-                ...(positions.map((position: any) => ({
+                ...(positions.map((position: ReceivedOpenLimitOrder) => ({
                     positionId: new PublicKey(position.positionId),
                     ticker: "",
                     OrderType: position.orderType,
-                    price: BigInt(position.pirce),
+                    price: BigInt(position.price),
                     amount: BigInt(position.size),
                     fillAmount: BigInt(0), // how to handle this?
-                    value: BigInt(position.pirce) * BigInt(position.size),
+                    value: BigInt(position.price) * BigInt(position.size),
                     valueUSD: BigInt(0), // need oracle to handle this
                     createAt: position.timestamp,
                 })))
@@ -298,11 +251,9 @@ export const useMarkets = () => {
 
         }
 
-        {
-            loadUser()
-        }
 
-    }, [userWallet, params])
+
+    }, [userWallet, params, connection])
 
     useEffect(() => {
         if (eventId !== undefined) {
@@ -395,7 +346,7 @@ export const useMarkets = () => {
 
         setEventId(id)
 
-    }, [eventId, userWallet])
+    }, [eventId, userWallet, connection])
 
     useEffect(() => {
         if (isLoading == false) {
@@ -411,7 +362,12 @@ export const useMarkets = () => {
 
     }, [isLoading, intervalId])
 
-    return { markets, openLimitOrders, userBalance }
+    if (userWallet !== undefined && !isLoaded) {
+        loadUser()
+        setIsloaded(true)
+    }
+
+    return { markets, openLimitOrders, userBalance, setUserBalance }
 }
 
 export type OpenOrder = {
@@ -501,3 +457,21 @@ export interface FetchedMarket {
 
 
 }
+
+type ReceivedOpenLimitOrder = {
+    // 'positionId', p.pubkey_id,
+    // 'marketId', p.book_config,
+    // 'positionConfig', p.position_config,
+    // 'orderType', p.order_type,
+    // 'price', p.price,
+    // 'size', p.size,
+    // -- need filled total of size, currently not tracking
+    // 'slot', p.slot
+    positionId: string,
+    ticker: string,
+    orderType: string,
+    // I think??
+    price: string,
+    size: string,
+    timestamp: number,
+};

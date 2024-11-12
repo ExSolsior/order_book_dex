@@ -20,7 +20,6 @@ import {
     useAnchorWallet,
     useConnection,
 } from "@solana/wallet-adapter-react";
-import { CachedMarket } from "./types";
 import { PROGRAM_ID } from "./constants";
 import { displayValue } from "./helper";
 
@@ -42,8 +41,7 @@ class Queue {
         this.listB = [];
     }
 
-    update(data: Market | null, setData: Dispatch<SetStateAction<Market | null>>) {
-        this.data = data;
+    update(setData: Dispatch<SetStateAction<Market | null>>) {
         this.setData = setData;
     }
 
@@ -84,22 +82,22 @@ class Queue {
     run() {
 
         setInterval(() => {
-            let data = this.get();
+            const data = this.get();
 
             if (data.length === 0) {
                 return
             }
 
-            let { asks, bids } = this.set(
+            const { asks, bids } = this.set(
                 this.data!.orderBook!.asks.feedData,
                 this.data!.orderBook!.bids.feedData,
                 data
             )
 
-            this.setData!({
-                ...this.data!,
+            this.setData!((prev) => ({
+                ...prev!,
                 orderBook: {
-                    ...this.data!.orderBook,
+                    ...prev!.orderBook,
                     bids: {
                         feedData: bids
                     },
@@ -107,7 +105,7 @@ class Queue {
                         feedData: asks,
                     }
                 }
-            })
+            }))
 
         }, 10000)
     }
@@ -274,12 +272,13 @@ export const useTransaction = (marketId: PublicKey) => {
     const [subscribeId, setSubscribeId] = useState<number | undefined>()
     const { connection } = useConnection();
     const userWallet = useAnchorWallet();
+
     const base = new URL("./api/", API_ENDPOINT)
 
-    queue.update(data, setData);
+    queue.update(setData);
 
     useEffect(() => {
-        if (subscribeId === undefined) {
+        if (subscribeId === undefined || connection === undefined) {
             return
         }
 
@@ -290,7 +289,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 .catch(error => console.log("error", error))
         }
 
-    }, [subscribeId])
+    }, [subscribeId, connection])
 
     const load = async (marketId: PublicKey, queue: Queue) => {
 
@@ -389,8 +388,8 @@ export const useTransaction = (marketId: PublicKey) => {
                 return { market: [] };
             })();
 
-            let asks = new Map<bigint, Order>();
-            let bids = new Map<bigint, Order>();
+            const asks = new Map<bigint, Order>();
+            const bids = new Map<bigint, Order>();
 
             // also need display format and real format
             book.book.asks.forEach((element: Order) => {
@@ -419,7 +418,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
             });
 
-            let feedData = queue.set(
+            const feedData = queue.set(
                 asks,
                 bids,
                 queue.get(),
@@ -557,7 +556,7 @@ export const useTransaction = (marketId: PublicKey) => {
         marketOrder.update("buy", null);
         marketOrder.update("sell", null);
 
-        let id = eventListner(
+        const id = eventListner(
             marketId,
             [
                 MARKET_ORDER_TRIGGER_EVENT,
@@ -644,7 +643,7 @@ const updateCandles = (candles: Candle[], decimalsA: number, decimalsB: number, 
     // not sure if this is correct deriving the decimals, will come back to this later
     // also need a simple algo to handle tuncation
 
-    let decimal = isReverse ? decimalsA : decimalsB;
+    const decimal = isReverse ? decimalsA : decimalsB;
     return candles.map((data: Candle) => ({
         time: Number(displayValue(BigInt(data.time), decimal)),
         open: Number(displayValue(BigInt(data.open), decimal)),
