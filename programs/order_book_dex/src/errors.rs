@@ -82,4 +82,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid Market Order")]
     InvalidMarketOrder,
+
+    #[msg("Invalid Market Write With Contra")]
+    InvalidMarketPointerWrite,
 }

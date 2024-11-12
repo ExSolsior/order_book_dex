@@ -13,35 +13,52 @@ const NEW_ORDER_POSITION_CONFIG_EVENT = Buffer.from([135, 248, 180, 220, 179, 22
 const OPEN_LIMIT_ORDER_EVENT = Buffer.from([106, 24, 71, 85, 57, 169, 158, 216]);
 
 interface ResponseData {
-    orderPositionPubkey: PublicKey | undefined,
-    orderBookConfigPubkey: PublicKey | undefined,
-    sourcePubkey: PublicKey | undefined,
-    destinationPubkey: PublicKey | undefined,
-    nextPositionPubkey: PublicKey | undefined | null,
-    tokenMintAPubkey: PublicKey | undefined,
-    tokenMintBPubkey: PublicKey | undefined,
-    tokenProgramAPubkey: PublicKey | undefined,
-    tokenProgramBPubkey: PublicKey | undefined,
-    sellMarketPointerPubkey: PublicKey | undefined,
+    position: PublicKey | undefined,
+    bookConfig: PublicKey | undefined,
+    source: PublicKey | undefined,
+    destination: PublicKey | undefined,
+    nextPosition: PublicKey | undefined | null,
+    tokenMintA: PublicKey | undefined,
+    tokenMintB: PublicKey | undefined,
+    tokenProgramA: PublicKey | undefined,
+    tokenProgramB: PublicKey | undefined,
+    sellMarketPointer: PublicKey | undefined,
 
-    buyMarketPointerPubkey: PublicKey | undefined,
-    orderPositionConfigPubkey: PublicKey | undefined,
-    marketMakerPubkey: PublicKey | undefined,
-    vaultAPubkey: PublicKey | undefined,
-    vaultBPubkey: PublicKey | undefined,
+    buyMarketPointer: PublicKey | undefined,
+    positionConfig: PublicKey | undefined,
+    marketMaker: PublicKey | undefined,
+    marketTaker: PublicKey | undefined,
+    capitalA: PublicKey | undefined,
+    capitalB: PublicKey | undefined,
+    vaultA: PublicKey | undefined,
+    vaultB: PublicKey | undefined,
 
-    nextPointerPubkey: PublicKey | undefined | null,
+    nextPointer: PublicKey | undefined | null,
+    capitalSource: PublicKey | undefined,
+    capitalDest: PublicKey | undefined,
+    capitalSourceMint: PublicKey | undefined,
+    capitalDestMint: PublicKey | undefined,
+
+    tokenSymbolA: string | undefined,
+    tokenSymbolB: string | undefined,
+
     orderType: string | undefined,
-    price: BN | undefined,
-    size: BN | undefined,
-    totalCost: BN | undefined,
-    totalAmount: BN | undefined,
+    price: bigint | BN | undefined,
+    size: bigint | BN | undefined,
+    amount: bigint | undefined,
+    totalCost: bigint | BN | undefined,
+    totalAmount: bigint | BN | undefined,
+
+    capitalSourceBalance: bigint | BN | undefined,
+    capitalDestBalance: bigint | BN | undefined,
+
+
     isReverse: boolean | undefined,
     isAvailable: boolean | undefined,
     isExecution: boolean | undefined,
-    nonce: bigint | undefined,
-    slot: bigint | undefined,
-    timestamp: bigint | undefined,
+    nonce: bigint | BN | undefined,
+    slot: bigint | BN | undefined,
+    timestamp: bigint | BN | undefined,
 
 
 }
@@ -97,7 +114,6 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
 
                 default: console.log("invalid event discriminator");
             }
-
         }
 
     }, "processed")
@@ -107,11 +123,30 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
 
 const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: Buffer, callback: (method: string, data: ResponseData) => void) => {
     if (!listen.some(item => discriminator.equals(item))) {
-        console.log("not listening")
         return
     }
 
-    console.log("is listening")
+    const position = getPubkey(decoded, {
+        value: 8,
+    })
+    const conn = new Connection(NEXT_PUBLIC_API_SVM);
+    conn.getAccountInfo(position, "confirmed").then(account => {
+        console.log("POSITION:: ", position)
+        console.log("ACCOUNT:: ", account)
+
+    })
+
+    const parentPosition = getPubkey(decoded, {
+        value: 8 + 32 * 5,
+    })
+
+    console.log("PARENT POSITION:: ", parentPosition)
+
+
+
+    console.log("PARENT POSITION:: ", getIsHead(decoded, {
+        value: decoded.length - 1,
+    }), decoded.length)
 
 
     const offset = {
@@ -119,35 +154,54 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
     }
 
     const data = {
-        orderPositionPubkey: getPubkey(decoded, offset),
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        orderPositionConfigPubkey: getPubkey(decoded, offset),
-        sourcePubkey: getPubkey(decoded, offset),
-        destinationPubkey: getPubkey(decoded, offset),
-        nextPositionPubkey: getOptionPubkey(decoded, offset),
+        position: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        positionConfig: getPubkey(decoded, offset),
+        source: getPubkey(decoded, offset),
+        destination: getPubkey(decoded, offset),
+        // this is not being processed on client, it's okay, so the state is not in the interface
+        parentPosition: getOptionPubkey(decoded, offset),
+        nextPosition: getOptionPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         price: getBN(decoded, offset),
         size: getBN(decoded, offset),
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
+        // this is not being processed on client
+        isHead: getIsHead(decoded, offset),
 
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         totalCost: undefined,
         totalAmount: undefined,
         nonce: undefined,
         isReverse: undefined,
         isExecution: undefined,
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
+        amount: undefined,
     }
+    console.log(offset, data)
+
 
     callback("open-limit-order", data)
 }
@@ -162,15 +216,15 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
     }
 
     const data = {
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        tokenMintAPubkey: getPubkey(decoded, offset),
-        tokenMintBPubkey: getPubkey(decoded, offset),
-        tokenProgramAPubkey: getPubkey(decoded, offset),
-        tokenProgramBPubkey: getPubkey(decoded, offset),
-        sellMarketPointerPubkey: getPubkey(decoded, offset),
-        buyMarketPointerPubkey: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        tokenMintA: getPubkey(decoded, offset),
+        tokenMintB: getPubkey(decoded, offset),
+        tokenProgramA: getPubkey(decoded, offset),
+        tokenProgramB: getPubkey(decoded, offset),
+        sellMarketPointer: getPubkey(decoded, offset),
+        buyMarketPointer: getPubkey(decoded, offset),
         tokenSymbolA: getSymbol(decoded, offset),
-        tokenSymboB: getSymbol(decoded, offset),
+        tokenSymbolB: getSymbol(decoded, offset),
         tokenDecimalsA: getDecimals(decoded, offset),
         tokenDecimalsB: getDecimals(decoded, offset),
         isReverse: getReverse(decoded, offset),
@@ -178,15 +232,17 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         timestamp: getTimestamp(decoded, offset),
 
         orderType: undefined,
-        orderPositionPubkey: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        orderPositionConfigPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+        position: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        positionConfig: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -194,6 +250,15 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         nonce: undefined,
         isAvailable: undefined,
         isExecution: undefined,
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
+        amount: undefined,
     }
 
     callback("new-order-book", data);
@@ -209,26 +274,28 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
     }
 
     const data = {
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        orderPositionConfigPubkey: getPubkey(decoded, offset),
-        marketMakerPubkey: getPubkey(decoded, offset),
-        vaultAPubkey: getPubkey(decoded, offset),
-        vaultBPubkey: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        positionConfig: getPubkey(decoded, offset),
+        marketMaker: getPubkey(decoded, offset),
+        capitalA: getPubkey(decoded, offset),
+        capitalB: getPubkey(decoded, offset),
+        vaultA: getPubkey(decoded, offset),
+        vaultB: getPubkey(decoded, offset),
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
         orderType: undefined,
-        orderPositionPubkey: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        nextPointerPubkey: undefined,
+        position: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        nextPointer: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -237,6 +304,18 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         isReverse: undefined,
         isAvailable: undefined,
         isExecution: undefined,
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("new-position-config", data);
@@ -252,25 +331,30 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
     }
 
     const data = {
-        marketMakerPubkey: getPubkey(decoded, offset),
-        orderPositionPubkey: getPubkey(decoded, offset),
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        orderPositionConfigPubkey: getPubkey(decoded, offset),
+        marketMaker: getPubkey(decoded, offset),
+        position: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        positionConfig: getPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         nonce: BigInt(getBN(decoded, offset).toString()),
+        capitalSourceBalance: getBN(decoded, offset),
+        capitalSourceMint: getPubkey(decoded, offset),
 
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -280,6 +364,16 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         isExecution: undefined,
         slot: undefined,
         timestamp: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("create-order-position", data);
@@ -295,26 +389,28 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
     }
 
     const data = {
-        orderPositionPubkey: getPubkey(decoded, offset),
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        orderPositionConfigPubkey: getPubkey(decoded, offset),
+        position: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        positionConfig: getPubkey(decoded, offset),
         amount: getBN(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
 
         orderType: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -324,6 +420,16 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         isExecution: undefined,
         slot: undefined,
         timestamp: undefined,
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
 
     }
 
@@ -340,24 +446,30 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
     }
 
     const data = {
-        orderPositionPubkey: getPubkey(decoded, offset),
-        orderBookConfigPubkey: getPubkey(decoded, offset),
-        orderPositionConfigPubkey: getPubkey(decoded, offset),
+        marketMaker: getPubkey(decoded, offset),
+        position: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        positionConfig: getPubkey(decoded, offset),
+        capitalSourceBalance: getBN(decoded, offset),
+        capitalSourceMint: getPubkey(decoded, offset),
+        capitalDestBalance: getBN(decoded, offset),
+        capitalDestMint: getPubkey(decoded, offset),
 
         orderType: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -368,6 +480,14 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         isExecution: undefined,
         slot: undefined,
         timestamp: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("close-limit-order", data);
@@ -383,29 +503,32 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
     }
 
     const data = {
-        marketPointerPubkey: getPubkey(decoded, offset),
-        orderBookPubkey: getPubkey(decoded, offset),
-        nextPointerPubkey: getOptionPubkey(decoded, offset),
+        marketPointer: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        capitalSource: getPubkey(decoded, offset),
+        capitalDest: getPubkey(decoded, offset),
+        source: getPubkey(decoded, offset),
+        destination: getPubkey(decoded, offset),
+        nextPointer: getOptionPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         isExecution: getIsAvailable(decoded, offset),
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
-        orderPositionPubkey: undefined,
-        orderBookConfigPubkey: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        orderPositionConfigPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
+        position: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        positionConfig: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
         price: undefined,
         size: undefined,
         totalCost: undefined,
@@ -413,6 +536,16 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("trigger-market-order", data);
@@ -428,9 +561,9 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
     }
 
     const data = {
-        marketPointerPubkey: getPubkey(decoded, offset),
-        orderBookPubkey: getPubkey(decoded, offset),
-        orderPositionPubkey: getPubkey(decoded, offset),
+        marketPointer: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        position: getPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         price: getBN(decoded, offset),
         total: getBN(decoded, offset),
@@ -440,27 +573,39 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
-        orderBookConfigPubkey: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        orderPositionConfigPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
-        nextPointerPubkey: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        positionConfig: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
+        nextPointer: undefined,
         size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
         nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
+
+        capitalSourceBalance: undefined,
+        capitalSourceMint: undefined,
+        capitalDestBalance: undefined,
+        capitalDestMint: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        marketTaker: undefined,
     }
 
     callback("fill-market-order", data);
@@ -476,9 +621,10 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
     }
 
     const data = {
-        marketPointerPubkey: getPubkey(decoded, offset),
-        orderBookPubkey: getPubkey(decoded, offset),
-        nextPointerPubkey: getOptionPubkey(decoded, offset),
+        marketTaker: getPubkey(decoded, offset),
+        marketPointer: getPubkey(decoded, offset),
+        bookConfig: getPubkey(decoded, offset),
+        nextPointer: getOptionPubkey(decoded, offset),
         orderType: getOrderType(decoded, offset),
         totalCost: getBN(decoded, offset),
         totalAmount: getBN(decoded, offset),
@@ -488,26 +634,39 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
 
-        orderPositionPubkey: undefined,
-        orderBookConfigPubkey: undefined,
-        sourcePubkey: undefined,
-        destinationPubkey: undefined,
-        nextPositionPubkey: undefined,
-        tokenMintAPubkey: undefined,
-        tokenMintBPubkey: undefined,
-        tokenProgramAPubkey: undefined,
-        tokenProgramBPubkey: undefined,
-        sellMarketPointerPubkey: undefined,
-        buyMarketPointerPubkey: undefined,
-        orderPositionConfigPubkey: undefined,
-        marketMakerPubkey: undefined,
-        vaultAPubkey: undefined,
-        vaultBPubkey: undefined,
+        capitalSourceBalance: getBN(decoded, offset),
+        capitalSourceMint: getPubkey(decoded, offset),
+        capitalDestBalance: getBN(decoded, offset),
+        capitalDestMint: getPubkey(decoded, offset),
+
+        position: undefined,
+        source: undefined,
+        destination: undefined,
+        nextPosition: undefined,
+        tokenMintA: undefined,
+        tokenMintB: undefined,
+        tokenProgramA: undefined,
+        tokenProgramB: undefined,
+        sellMarketPointer: undefined,
+        buyMarketPointer: undefined,
+        positionConfig: undefined,
+        marketMaker: undefined,
+        capitalA: undefined,
+        capitalB: undefined,
+        vaultA: undefined,
+        vaultB: undefined,
         price: undefined,
         size: undefined,
         nonce: undefined,
         isReverse: undefined,
         isAvailable: undefined,
+
+        tokenSymbolA: undefined,
+        tokenSymbolB: undefined,
+        capitalSource: undefined,
+        capitalDest: undefined,
+        amount: undefined,
+
     }
 
     callback("complete-market-order", data);
@@ -519,16 +678,11 @@ const getPubkey = (data: Buffer, offset: { value: number }) => {
 }
 
 const getOptionPubkey = (data: Buffer, offset: { value: number }) => {
-    const optionFlag = (() => {
-        const { start, end } = updateOffset(offset, 1);
-        return data.subarray(start, end);
-    })();
-
-    const { start, end } = updateOffset(offset, 32);
-    if (!optionFlag) {
+    if (!getbool(data, offset)) {
         return null
     }
 
+    const { start, end } = updateOffset(offset, 32);
     return new PublicKey(data.subarray(start, end));
 }
 
@@ -559,30 +713,36 @@ const getDecimals = (data: Buffer, offset: { value: number }) => {
     return data.subarray(start, end).readUint8(0);
 }
 
-const getReverse = (data: Buffer, offset: { value: number }) => {
+const getbool = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 1);
-    return !!data.subarray(start, end).readUint8(0);
+    return data.subarray(start, end).readInt8(0) !== 0;
+}
+
+const getReverse = (data: Buffer, offset: { value: number }) => {
+    return getbool(data, offset);
 }
 
 const getIsAvailable = (data: Buffer, offset: { value: number }) => {
-    const { start, end } = updateOffset(offset, 1);
-    return !!data.subarray(start, end).readUint8(0);
+    return getbool(data, offset);
+}
+
+const getIsHead = (data: Buffer, offset: { value: number }) => {
+    return getbool(data, offset);
 }
 
 const getSlot = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return data.subarray(start, end).readBigUint64BE(0)
+    return data.subarray(start, end).readBigInt64LE(0)
 }
 
 const getTimestamp = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return data.subarray(start, end).readBigInt64BE(0)
-
+    return data.subarray(start, end).readBigInt64LE(0)
 }
 
 const getBN = (data: Buffer, offset: { value: number }) => {
     const { start, end } = updateOffset(offset, 8);
-    return new BN(data.subarray(start, end));
+    return data.subarray(start, end).readBigInt64LE(0);
 }
 
 const updateOffset = (offset: { value: number }, inc: number) => {

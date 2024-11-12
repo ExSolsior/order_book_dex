@@ -20,6 +20,7 @@ pub async fn create_versioned_tx(
     payer: &Pubkey,
     ixs: &[Instruction],
 ) -> Result<VersionedTransaction, TransactionBuildError> {
+    // let rpc_endpoint = secrets.get("RPC_ENDPOINT").context("secret was not found")?;
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
     Ok(VersionedTransaction::try_new(
         VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),

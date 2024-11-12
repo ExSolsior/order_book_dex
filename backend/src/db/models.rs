@@ -13,6 +13,7 @@ use {
 pub struct OpenLimitOrder {
     pub _book_config: Pubkey,
     pub market_pointer: (Pubkey, bool),
+    pub contra_pointer: Pubkey,
     pub token_mint_a: Pubkey,
     pub token_mint_b: Pubkey,
     pub token_program_a: Pubkey,
@@ -66,6 +67,7 @@ pub struct OrderPosition {
     pub price: u64,
     pub size: u64,
     pub is_available: bool,
+    pub parent_position: Option<Pubkey>,
     pub next_position: Option<Pubkey>,
     pub position_config: Pubkey,
     pub book_config: Pubkey,
@@ -73,6 +75,7 @@ pub struct OrderPosition {
     pub destination_vault: Pubkey,
     pub slot: u64,
     pub timestamp: u64,
+    pub is_head: bool,
 }
 
 pub struct RealTimeTrade {
@@ -99,7 +102,7 @@ pub struct MarketOrderHistory {
     timestamp: i64,
 }
 
-pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
+pub async fn insert_trade_pair(trade_pair: TradePair, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_book_config (
@@ -137,15 +140,15 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: AppState) {
     .unwrap();
 }
 
-pub async fn insert_order_position_config(position_config: PositionConfig, app_state: AppState) {
+pub async fn insert_order_position_config(position_config: PositionConfig, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO order_position_config (
                     "pubkey_id",
                     "book_config",
                     "market_maker",
-                    "capital_a,
-                    "capital_b,
+                    "capital_a",
+                    "capital_b",
                     "vault_a",
                     "vault_b",
                     "nonce",
@@ -165,12 +168,30 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
     .unwrap();
 }
 
-pub async fn insert_order_position(order_position: OrderPosition, app_state: AppState) {
-    let query = sqlx::query(
+pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
+    sqlx::query(
         r#"
+                WITH head_change AS (
+                    UPDATE order_position AS p
+                    SET is_head = false
+                    WHERE 
+                    (($13::BOOLEAN IS TRUE AND p.is_head IS TRUE)
+                    OR
+                    ($13::BOOLEAN IS FALSE AND p.is_head IS NULL))
+                    AND 
+                    p.order_type = $7::order_type
+
+                ), parent AS (
+                    UPDATE order_position AS p
+                    SET next_position = $1
+                    WHERE p.pubkey_id = $14 -- parent position 
+                    AND p.pubkey_id IS NOT NULL 
+
+                )
+
                 INSERT INTO order_position (
                     "pubkey_id",
-                    "booK_config"
+                    "book_config",
                     "position_config",
                     "next_position",
                     "source_vault",
@@ -180,35 +201,42 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: App
                     "size",
                     "is_available",
                     "slot",
-                    "timestamp"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 0);
+                    "timestamp",
+                    "is_head"
+
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7::order_type, $8, $9, $10, $11, $12, $13);
             "#,
     )
     .bind(order_position.pubkey_id.to_string())
     .bind(order_position.book_config.to_string())
-    .bind(order_position.position_config.to_string());
-
-    let query = if order_position.next_position.is_some() {
-        query.bind(order_position.next_position.unwrap().to_string())
-    } else {
-        query.bind(Option::<String>::None)
-    };
-
-    query
-        .bind(order_position.source_vault.to_string())
-        .bind(order_position.destination_vault.to_string())
-        .bind(order_position.order_type.to_string())
-        .bind(order_position.price.to_string())
-        .bind(order_position.size.to_string())
-        .bind(order_position.is_available)
-        .bind(order_position.slot.to_string())
-        .bind(order_position.timestamp.to_string())
-        .execute(&app_state.pool)
-        .await
-        .unwrap();
+    .bind(order_position.position_config.to_string())
+    .bind(
+        order_position
+            .next_position
+            .is_some()
+            .then(|| order_position.next_position.unwrap().to_string()),
+    )
+    .bind(order_position.source_vault.to_string())
+    .bind(order_position.destination_vault.to_string())
+    .bind(order_position.order_type.to_string())
+    .bind(order_position.price as i64)
+    .bind(order_position.size as i64)
+    .bind(order_position.is_available)
+    .bind(order_position.slot as i64)
+    .bind(order_position.timestamp as i64)
+    .bind(order_position.is_head)
+    .bind(
+        order_position
+            .parent_position
+            .is_some()
+            .then(|| order_position.parent_position.unwrap().to_string()),
+    )
+    .execute(&app_state.pool)
+    .await
+    .unwrap();
 }
 
-pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: AppState) {
+pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
     sqlx::query(
         r#"
                 INSERT INTO real_time_trade_data (
@@ -979,6 +1007,8 @@ pub async fn get_trade_pair(
     position_config: &Option<Pubkey>,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    // there is something wrong with parts of this query,
+    // need to come back and fix... need to remove hard coded pubkey_id
     let query = sqlx::query(
         r#"
                 WITH trade_pair AS (
@@ -1239,14 +1269,14 @@ pub async fn get_trade_pair(
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
     )
-    .bind(pubkey_id.to_string());
-
-    let query = match position_config {
-        Some(pc) => query.bind(pc.to_string()),
-        None => query.bind(Option::<String>::None),
-    };
-
-    let query = query.fetch_one(&app_state.pool).await?;
+    .bind(pubkey_id.to_string())
+    .bind(
+        position_config
+            .is_some()
+            .then(|| position_config.unwrap().to_string()),
+    )
+    .fetch_one(&app_state.pool)
+    .await?;
 
     let mut data: Box<Value> = serde_json::from_str(
         query
@@ -1393,7 +1423,6 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    println!("this");
     let query = sqlx::query(
         r#"
                 -- can't do this like this
@@ -1486,8 +1515,6 @@ pub async fn get_market_order_history(
     .fetch_one(&app_state.pool)
     .await?;
 
-    println!("working?");
-
     let data: Box<Value> = serde_json::from_str(
         query
             .try_get_raw("json_build_object")
@@ -1497,12 +1524,65 @@ pub async fn get_market_order_history(
     )
     .unwrap();
 
-    println!("fail?");
+    Ok(data)
+}
+
+// has a bug when empty?
+pub async fn get_open_positions(
+    market_maker: Pubkey,
+    app_state: web::Data<AppState>,
+) -> Result<Option<Box<Value>>, sqlx::Error> {
+    let query = sqlx::query(
+        r#"
+            WITH positions AS (
+                SELECT
+                    json_build_object(
+                        'positionId', p.pubkey_id,
+                        'marketId', p.book_config,
+                        'ticker', b.ticker,
+                        'positionConfig', p.position_config,
+                        'orderType', p.order_type,
+                        'price', p.price,
+                        'size', p.size,
+                        'fill', p.fill,
+                        'slot', p.slot,
+                        'timestamp', p.timestamp
+                    ) AS "data"
+
+                FROM order_position_config AS c
+                JOIN order_position AS p ON p.position_config = c.pubkey_id
+                JOIN order_book_config AS b ON b.pubkey_id = p.book_config
+                WHERE c.market_maker = $1 AND p.size != p.fill
+                ORDER BY p.book_config DESC, p.slot DESC
+                
+            )
+
+            SELECT
+                array_agg(
+                    p.data
+                ) AS "data"
+
+            FROM positions AS p;
+        "#,
+    )
+    .bind(market_maker.to_string())
+    .fetch_one(&app_state.pool)
+    .await?;
+
+    // maybe handle as fetch option, if None send as empty array
+    let data = query.try_get_raw("data")?.as_str();
+    let data: Option<Box<Value>> = match data {
+        Ok(data) => serde_json::from_str(data).unwrap(),
+        Err(error) => {
+            println!(" LN: 1580 error {}", error);
+            None
+        }
+    };
 
     Ok(data)
 }
 
-pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
+pub async fn delete_order_position(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position
@@ -1516,7 +1596,7 @@ pub async fn delete_order_position(pubkey_id: String, app_state: AppState) {
 }
 
 // functionality not implemented yet
-pub async fn _delete_position_config(pubkey_id: String, app_state: AppState) {
+pub async fn _delete_position_config(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_position_config
@@ -1530,7 +1610,7 @@ pub async fn _delete_position_config(pubkey_id: String, app_state: AppState) {
 }
 
 // functionality not implemented yet
-pub async fn _delete_order_book_config(pubkey_id: String, app_state: AppState) {
+pub async fn _delete_order_book_config(pubkey_id: String, app_state: &AppState) {
     sqlx::query(
         r#"
                 DELETE FROM order_book_config
@@ -1558,20 +1638,26 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     .await
     {
         Ok(data) => println!("DELETE REAL TRADE: {:?}", data),
-        Err(error) => println!("DELETE REALE TRADE ERROR: {}", error),
+        Err(error) => println!("DELETE REAL TRADE ERROR: {}", error),
     }
 }
 
-pub async fn update_order_position(id: String, size: u64, is_available: bool, app_state: AppState) {
+pub async fn update_order_position(
+    id: Pubkey,
+    size: u64,
+    is_available: bool,
+    app_state: &AppState,
+) {
     sqlx::query(
         r#"
-                UPDATE order_position SET "is_available" = $1, "size" = $2
+                UPDATE order_position AS p SET "is_available" = $1, "fill" = p.size - $2
                 WHERE pubkey_id = $3
+                -- need implement delete when fill == size
             "#,
     )
     .bind(&is_available)
-    .bind(&size.to_string())
-    .bind(&id)
+    .bind(size as i64)
+    .bind(&id.to_string())
     .execute(&app_state.pool)
     .await
     .unwrap();
@@ -1580,6 +1666,7 @@ pub async fn update_order_position(id: String, size: u64, is_available: bool, ap
 // need add the position config id, right now it's just jank
 pub async fn open_limit_order(
     pubkey_id: Pubkey,
+    position_config: Pubkey,
     order_type: &Order,
     price: u64,
     app_state: web::Data<AppState>,
@@ -1595,7 +1682,7 @@ pub async fn open_limit_order(
         "price {}, order_type {}, pubkey {}",
         price,
         order_type,
-        pubkey_id.to_string()
+        position_config.to_string()
     );
 
     let query = sqlx::query(
@@ -1720,18 +1807,12 @@ pub async fn open_limit_order(
                             WHEN order_type = 'bid' 
                             AND ((
                                 min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NOT NULL)
+                                AND max_pubkey_id IS NOT NULL )
                             OR (
                                 min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NULL
-                                AND min_next_position IS NULL))
+                                AND max_pubkey_id IS NULL ))
                                     THEN min_pubkey_id
-
-                            WHEN order_type = 'bid'
-                            AND min_pubkey_id IS NULL
-                            AND max_pubkey_id IS NOT NULL
-                            AND NOT (max_pubkey_id = (SELECT pubkey_id FROM head_bid))
-                                THEN max_pubkey_id
+  
 
                             WHEN order_type = 'ask'  
                             AND ((
@@ -1743,11 +1824,6 @@ pub async fn open_limit_order(
                                 AND max_next_position IS NULL))
                                     THEN max_pubkey_id
 
-                            WHEN order_type = 'ask'  
-                            AND min_pubkey_id IS NOT NULL
-                            AND max_pubkey_id IS NULL
-                            AND NOT (min_pubkey_id = (SELECT pubkey_id FROM head_ask))
-                                THEN min_pubkey_id
                             
                             ELSE NULL
                         END AS prev_pubkey_id,
@@ -1758,30 +1834,19 @@ pub async fn open_limit_order(
                                 min_pubkey_id IS NOT NULL
                                 AND max_pubkey_id IS NOT NULL)
                             OR (
-                                max_pubkey_id = (SELECT pubkey_id FROM head_bid)
-                                AND (SELECT price FROM input) < (SELECT price FROM head_ask)))
+                                min_pubkey_id IS NULL
+                                AND max_pubkey_id IS NOT NULL ))
                                     THEN max_pubkey_id
 
-                            WHEN order_type = 'bid' 
-                            AND min_pubkey_id IS NOT NULL
-                            AND min_next_position IS NOT NULL
-                            AND max_pubkey_id IS NULL
-                                THEN min_pubkey_id
 
                             WHEN order_type = 'ask'  
-                            AND ( 
+                            AND (( 
                                 min_pubkey_id IS NOT NULL
                                 AND max_pubkey_id IS NOT NULL)
                             OR (
-                                min_pubkey_id = (SELECT pubkey_id FROM head_ask)
-                                AND (SELECT price FROM input) > (SELECT price FROM head_bid))
+                                min_pubkey_id IS NOT NULL
+                                AND max_pubkey_id IS NULL))
                                     THEN min_pubkey_id
-
-                            WHEN order_type = 'ask'  
-                            AND max_pubkey_id IS NOT NULL
-                            AND max_next_position IS NOT NULL
-                            AND min_pubkey_id IS NULL
-                                THEN max_pubkey_id
                             
                             ELSE NULL
                         END AS next_pubkey_id
@@ -1790,6 +1855,7 @@ pub async fn open_limit_order(
                         SELECT
                             min_price.order_type AS order_type,
                             max_price.slot AS slot,
+
                             min_price.pubkey_id AS min_pubkey_id, 
                             min_price.price AS min_price,
                             min_price.next_position AS min_next_position, 
@@ -1800,6 +1866,11 @@ pub async fn open_limit_order(
                             max_price.next_position AS max_next_position, 
                             max_price.slot AS max_slot
                         FROM min_price, max_price
+                        WHERE ( min_price.order_type = 'bid'::order_type
+                            AND min_price.next_position = max_price.pubkey_id )
+                        OR 
+                            ( max_price.order_type = 'ask'::order_type
+                            AND max_price.next_position = min_price.pubkey_id )
 
                         UNION
                         SELECT
@@ -1811,25 +1882,21 @@ pub async fn open_limit_order(
                             min_price.next_position AS min_next_position, 
                             min_price.slot AS min_slot,
 
-                            max_price.pubkey_id  AS max_pubkey_id, 
+                            NULL AS max_pubkey_id, 
                             NULL AS max_price,
                             NULL AS max_next_position, 
                             NULL AS max_slot
                         FROM ledger
                         LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
                         LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-                        WHERE min_price.pubkey_id IS NOT NULL 
+                        WHERE min_price.pubkey_id IS NOT NULL AND max_price.pubkey_id IS NULL
                         AND ((
                             ledger.order_type = 'bid'::order_type
-                            AND max_price.pubkey_id IS NULL
                             AND min_price.next_position IS NULL
-                        ) 
-                        OR (
+                        ) OR (
                             ledger.order_type = 'ask'::order_type
-                            AND max_price.pubkey_id IS NULL
-                            AND ((SELECT price FROM input) > min_price.price
-                            OR (SELECT pubkey_id FROM head_ask) = min_price.pubkey_id
-                            AND (SELECT price FROM input) > (SELECT price FROM head_bid))
+                            AND (SELECT pubkey_id FROM head_ask) = min_price.pubkey_id
+                            AND (SELECT price FROM input) < min_price.price
                         ))
 
                         UNION
@@ -1850,18 +1917,14 @@ pub async fn open_limit_order(
                         FROM ledger
                         LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
                         LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-                        WHERE max_price.pubkey_id IS NOT NULL 
+                        WHERE max_price.pubkey_id IS NOT NULL AND min_price.pubkey_id IS NULL
                         AND ((
-                            ledger.order_type = 'bid'::order_type
-                            AND min_price.pubkey_id IS NULL
-                            AND ((SELECT price FROM input) < max_price.price
-                            OR (SELECT pubkey_id FROM head_bid) = max_price.pubkey_id
-                            AND (SELECT price FROM input) < (SELECT price FROM head_ask))
-                        ) 
-                        OR (
                             ledger.order_type = 'ask'::order_type
-                            AND min_price.pubkey_id IS NULL
                             AND max_price.next_position IS NULL
+                        ) OR (
+                            ledger.order_type = 'bid'::order_type
+                            AND (SELECT pubkey_id FROM head_bid) = max_price.pubkey_id
+                            AND (SELECT price FROM input) > max_price.price
                         ))
                     )
 
@@ -1875,6 +1938,7 @@ pub async fn open_limit_order(
                         AND min_next_position = max_pubkey_id
                         
                     ) OR (
+                        -- not sure -> set head
                         min_pubkey_id IS NULL
                         AND max_pubkey_id IS NOT NULL
                         AND (max_next_position IS NULL
@@ -1890,6 +1954,7 @@ pub async fn open_limit_order(
                         AND max_next_position = min_pubkey_id
 
                     ) OR (
+                        -- not sure -> set head
                         max_pubkey_id IS NULL
                         AND min_pubkey_id IS NOT NULL
                         AND (min_next_position IS NULL
@@ -1898,21 +1963,26 @@ pub async fn open_limit_order(
                     ) OR (
                         min_pubkey_id IS NULL
                         AND max_pubkey_id IS NOT NULL
-                        AND (SELECT price FROM input) > (SELECT price FROM head_bid)
-                        AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
-
                     ))
-
                 )
 
                 SELECT 
                     t.pubkey_id AS book_config,
+
                     CASE 
                         WHEN (SELECT order_type FROM input) = 'bid'::order_type
                             THEN t.sell_market
                         WHEN (SELECT order_type FROM input) = 'ask'::order_type
                             THEN t.buy_market
                     END AS market_pointer,
+
+                    CASE 
+                        WHEN (SELECT order_type FROM input) = 'bid'::order_type
+                            THEN t.buy_market
+                        WHEN (SELECT order_type FROM input) = 'ask'::order_type
+                            THEN t.sell_market
+                    END AS contra_pointer,
+
                     (SELECT order_type FROM input) as order_type,
                     t.token_mint_a,
                     t.token_mint_b,
@@ -1929,8 +1999,11 @@ pub async fn open_limit_order(
                     pc.reference,
                     node.prev_pubkey_id,
                     node.next_pubkey_id,
+
                     (SELECT price FROM head_ask) AS head_ask_price,
-                    (SELECT price FROM head_bid) AS head_bid_price
+                    (SELECT price FROM head_bid) AS head_bid_price,
+                    (SELECT pubkey_id FROM head_ask) AS head_ask_pubkey_id,
+                    (SELECT pubkey_id FROM head_bid) AS head_bid_pubkey_id
 
                 FROM trade_pair AS t
                 LEFT JOIN node ON node.book_config = t.pubkey_id
@@ -1952,7 +2025,7 @@ pub async fn open_limit_order(
         "#,
     )
     .bind(&pubkey_id.to_string())
-    .bind(&pubkey_id.to_string())
+    .bind(&position_config.to_string())
     .bind(price as i64)
     .bind(&order_type)
     .fetch_one(&app_state.pool)
@@ -1971,6 +2044,13 @@ pub async fn open_limit_order(
                         .as_str()
                         .unwrap();
                     let market_pointer = Pubkey::from_str(data).unwrap();
+
+                    let data = query
+                        .try_get_raw("contra_pointer")
+                        .unwrap()
+                        .as_str()
+                        .unwrap();
+                    let contra_pointer = Pubkey::from_str(data).unwrap();
 
                     let data = query.try_get_raw("token_mint_a").unwrap().as_str().unwrap();
                     let token_mint_a = Pubkey::from_str(data).unwrap();
@@ -2000,7 +2080,7 @@ pub async fn open_limit_order(
                         };
 
                     let is_reverse =
-                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 1;
+                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 0;
                     (
                         book_config,
                         market_pointer,
@@ -2010,6 +2090,7 @@ pub async fn open_limit_order(
                         token_program_b,
                         order_type,
                         is_reverse,
+                        contra_pointer,
                     )
                 });
 
@@ -2106,23 +2187,75 @@ pub async fn open_limit_order(
                     )
                 });
 
+            let head_ask_pubkey_id = (!query.try_get_raw("head_ask_pubkey_id").unwrap().is_null())
+                .then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("head_ask_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
+
+            let head_bid_pubkey_id = (!query.try_get_raw("head_bid_pubkey_id").unwrap().is_null())
+                .then(|| {
+                    Pubkey::from_str(
+                        query
+                            .try_get_raw("head_bid_pubkey_id")
+                            .unwrap()
+                            .as_str()
+                            .unwrap(),
+                    )
+                    .unwrap()
+                });
+
             let data = order_book_data.unwrap();
 
             let market_pointer = (
                 data.1,
-                (data.6 == Order::Bid
-                    && head_bid_price.is_none()
-                    && prev_pubkey_id.is_none()
-                    && (head_ask_price.is_none() || price < head_ask_price.unwrap()))
-                    || (data.6 == Order::Ask
-                        && head_ask_price.is_none()
-                        && prev_pubkey_id.is_none()
-                        && (head_bid_price.is_none() || price > head_bid_price.unwrap())),
+                (prev_pubkey_id.is_none()
+                    && ((head_bid_price.is_none() && head_ask_price.is_none())
+                        || (head_bid_price.is_some()
+                            && head_ask_price.is_some()
+                            && head_bid_price.unwrap() < price
+                            && price < head_ask_price.unwrap())
+                        || (data.6 == Order::Ask
+                            && head_bid_price.is_some()
+                            && head_bid_price.unwrap() < price)
+                        || (data.6 == Order::Bid
+                            && head_ask_price.is_some()
+                            && price < head_ask_price.unwrap()))),
             );
+
+            println!("next_pubkey_id {:?}", next_pubkey_id);
+
+            let next_pubkey_id =
+                if prev_pubkey_id.is_none() && next_pubkey_id.is_none() && data.6 == Order::Bid {
+                    head_bid_pubkey_id
+                } else if prev_pubkey_id.is_none() && data.6 == Order::Ask {
+                    head_ask_pubkey_id
+                } else {
+                    next_pubkey_id
+                };
+
+            println!("head_bid_pubkey_id {:?}", head_bid_pubkey_id);
+            println!("head_ask_pubkey_id {:?}", head_ask_pubkey_id);
+
+            println!("prev_pubkey_id {:?}", prev_pubkey_id);
+            println!("next_pubkey_id {:?}", next_pubkey_id);
+            println!("head_ask_price {:?}", head_ask_price);
+            println!("market_pointer {:?}", market_pointer.0);
+            println!("contra_pointer {:?}", data.8);
+            println!("market_pointer_write? {:?}", market_pointer.1);
+
+            println!("price {:?}", price);
 
             Ok(OpenLimitOrder {
                 _book_config: data.0,
                 market_pointer,
+                contra_pointer: data.8,
                 token_mint_a: data.2,
                 token_mint_b: data.3,
                 token_program_a: data.4,

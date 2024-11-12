@@ -9,6 +9,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Market, Order } from "../../program/utils/useTransaction";
+import { displayValue } from "@/program/utils/helper";
 
 // need to set to correct locale string for bids and asks
 // last price needs to be updated to reflect token currency correctly
@@ -22,7 +23,8 @@ export default function Book({ market }: { market: Market | null }) {
 
   const {
     decimalsA,
-    // decimalsB 
+    decimalsB,
+    isReverse,
   } = market!.orderBook!.marketDetails;
   const { lastPrice } = market!.orderBook!.marketData;
   const { feedData: asks } = market!.orderBook!.asks;
@@ -35,23 +37,19 @@ export default function Book({ market }: { market: Market | null }) {
         <TableBody>
           {asks.values().toArray().reverse().map((ask: Order) => (
             <TableRow
-              key={ask.price}
+              key={ask.id}
               className="text-xs"
             >
               <TableCell className="text-red-500 font-mono">
-                {/* {ask.price.toLocaleString()} */}
-                {(Number(ask.price.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+                {displayValue(ask.price, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {/* {ask.size.toLocaleString()} */}
-                {(Number(ask.size.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+                {displayValue(ask.size, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {/* {ask.depth.toLocaleString()} */}
-                {/* {(ask.depth * ask.price).toLocaleString()} */}
-                {(Number((ask.depth * ask.price).toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+                {displayValue(ask.depth, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
             </TableRow>
@@ -60,6 +58,7 @@ export default function Book({ market }: { market: Market | null }) {
       </Table>
 
       <div className="font-mono font-semibold px-2 py-1 border-t-2 border-b-2 text-green-500">
+        {/* this is being handled incorrectly */}
         {lastPrice.toLocaleString('en-US', {
           style: "currency",
           currency: "USD",
@@ -73,22 +72,21 @@ export default function Book({ market }: { market: Market | null }) {
         <TableBody>
           {bids.values().toArray().map((bid: Order) => (
             <TableRow
-              key={bid.price.toLocaleString()}
+              key={bid.id}
               className="text-xs"
             >
               <TableCell className="text-green-500 font-mono">
-                {/* {bid.price.toLocaleString()} */}
-                {(Number(bid.price.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
-              </TableCell>
-              <TableCell className="text-right font-mono">
-                {/* {bid.size.toLocaleString()} */}
-                {(Number(bid.size.toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+                {displayValue(bid.price, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {/* {bid.depth.toLocaleString()} */}
-                {/* {(bid.depth * bid.price).toLocaleString()} */}
-                {(Number((bid.depth * bid.price).toString()) / 10 ** decimalsA).toFixed(decimalsA)}
+                {displayValue(bid.size, !isReverse ? decimalsA : decimalsB)}
+
+
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {displayValue(bid.depth, !isReverse ? decimalsA : decimalsB)}
+
               </TableCell>
             </TableRow>
           ))}

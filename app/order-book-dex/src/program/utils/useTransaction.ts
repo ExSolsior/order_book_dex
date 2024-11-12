@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import {
     getAccount,
@@ -11,27 +11,38 @@ import {
     OPEN_LIMIT_ORDER_EVENT,
     CANCEL_LIMIT_ORDER_EVENT,
     MARKET_ORDER_FILL_EVENT,
+    // CLOSE_LIMIT_ORDER_EVENT,
+    // CREATE_ORDER_POSITION_EVENT,
+    MARKET_ORDER_TRIGGER_EVENT,
+    MARKET_ORDER_COMPLETE_EVENT,
 } from "./events"
 import {
     useAnchorWallet,
     useConnection,
 } from "@solana/wallet-adapter-react";
-import { CachedMarket } from "./types";
 import { PROGRAM_ID } from "./constants";
+import { displayValue } from "./helper";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
 
+// LimitOrderQueue
 class Queue {
     current: string;
     listA: Payload[];
     listB: Payload[];
+    data: Market | null | undefined;
+    setData: Dispatch<SetStateAction<Market | null>> | undefined;
 
     constructor() {
         this.current = "init";
         this.listA = [];
         this.listB = [];
+    }
+
+    update(setData: Dispatch<SetStateAction<Market | null>>) {
+        this.setData = setData;
     }
 
     push(data: Payload) {
@@ -47,8 +58,8 @@ class Queue {
 
     get() {
         if (this.current === "init") {
-            // set schedular
-            this.current = "a";
+            this.run()
+            this.current = "b";
         }
 
         if (this.current === "a") {
@@ -60,15 +71,173 @@ class Queue {
 
         if (this.current === "b") {
             this.current = "a";
-            const list = this.listA;
-            this.listA = [];
+            const list = this.listB;
+            this.listB = [];
             return list;
         }
 
         return this.listA;
     }
+
+    run() {
+
+        setInterval(() => {
+            const data = this.get();
+
+            if (data.length === 0) {
+                return
+            }
+
+            const { asks, bids } = this.set(
+                this.data!.orderBook!.asks.feedData,
+                this.data!.orderBook!.bids.feedData,
+                data
+            )
+
+            this.setData!((prev) => ({
+                ...prev!,
+                orderBook: {
+                    ...prev!.orderBook,
+                    bids: {
+                        feedData: bids
+                    },
+                    asks: {
+                        feedData: asks,
+                    }
+                }
+            }))
+
+        }, 10000)
+    }
+
+    set(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
+        data.forEach(data => {
+
+            if (data.order === 'ask' && asks.has(data.price)) {
+
+                const ask = asks.get(data.price)!;
+
+                asks.set(data.price, {
+                    ...ask,
+                    size: data.method === 'add'
+                        ? ask.size + data.size
+                        : ask.size - data.size,
+                });
+
+                if (ask.size === BigInt(0)) {
+                    asks.delete(data.price);
+                } else if (ask.size < BigInt(0)) {
+                    // data out of sync, need to resync
+                }
+
+
+            } else if (data.order === 'ask') {
+                asks.set(data.price, {
+                    id: crypto.randomUUID(),
+                    price: data.price,
+                    size: data.size,
+                    depth: BigInt(0),
+                });
+
+            } else if (data.order === 'bid' && bids.has(data.price)) {
+
+                const bid = bids.get(data.price)!;
+
+                bids.set(data.price, {
+                    ...bid,
+                    size: data.method === 'add'
+                        ? bid.size + data.size
+                        : bid.size - data.size,
+                });
+
+                if (bid.size === BigInt(0)) {
+                    bids.delete(data.price);
+                } else if (bid.size < BigInt(0)) {
+                    // data out of sync, need to resync
+                }
+
+
+
+            } else if (data.order === 'bid') {
+                bids.set(data.price, {
+                    id: crypto.randomUUID(),
+                    price: data.price,
+                    size: data.size,
+                    depth: BigInt(0),
+                });
+
+            } else if (data.order === 'sell' && bids.has(data.price)) {
+                const bid = bids.get(data.price)!;
+
+                if (bid.size === data.size) {
+                    bids.delete(data.price);
+                } else {
+                    bids.set(data.price, {
+                        ...bid,
+                        size: bid.size - data.size,
+                    });
+                }
+
+            } else if (data.order === 'buy' && asks.has(data.price)) {
+                const ask = asks.get(data.price)!;
+
+                if (ask.size === data.size) {
+                    asks.delete(data.price);
+                } else {
+                    asks.set(data.price, {
+                        ...ask,
+                        size: ask.size - data.size,
+                    });
+                }
+
+            } else {
+                // data is out of sync and need to resolve it some how
+            }
+        })
+
+        let askDepth = BigInt(0);
+        asks = new Map<bigint, Order>(asks
+            .entries()
+            .toArray()
+            .sort((a, b) => {
+                return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+            }));
+
+        asks
+            .values()
+            .forEach((data: Order) => {
+                askDepth += data.size;
+                data.depth = askDepth;
+
+                asks.set(data.price, {
+                    ...data,
+                });
+            });
+
+        let bidDepth = BigInt(0);
+        bids = new Map<bigint, Order>(bids
+            .entries()
+            .toArray()
+            .sort((a, b) => {
+                return a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0;
+            }));
+
+        bids
+            .values()
+            .forEach((data: Order) => {
+                bidDepth += data.size;
+                data.depth = bidDepth;
+
+                bids.set(data.price, {
+                    ...data,
+                });
+            });
+
+        return { asks, bids }
+    }
 }
 
+// MarketOrderQueue
 export class MarketOrderState {
     bidNextPointer: PublicKey | undefined | null;
     askNextPointer: PublicKey | undefined | null;
@@ -91,6 +260,8 @@ export class MarketOrderState {
 
 }
 
+const queue = new Queue();
+
 // I wonder if this could cause some issues
 const marketOrder = new MarketOrderState();
 
@@ -98,106 +269,29 @@ const marketOrder = new MarketOrderState();
 // need to handle if get no data, could use default empty state instead of null
 export const useTransaction = (marketId: PublicKey) => {
     const [data, setData] = useState<Market | null>(null);
+    const [subscribeId, setSubscribeId] = useState<number | undefined>()
     const { connection } = useConnection();
     const userWallet = useAnchorWallet();
+
     const base = new URL("./api/", API_ENDPOINT)
 
+    queue.update(setData);
+
+    useEffect(() => {
+        if (subscribeId === undefined || connection === undefined) {
+            return
+        }
+
+        return () => {
+            connection
+                .removeOnLogsListener(subscribeId!)
+                .then(() => console.log("logs ended"))
+                .catch(error => console.log("error", error))
+        }
+
+    }, [subscribeId, connection])
+
     const load = async (marketId: PublicKey, queue: Queue) => {
-
-
-        /*
-        
-            checking if user is cached
-            if not the create cache state
-            using local storage for now but should use indexedDB
-            should derive user data
-            state: 
-                markets
-                    marketId
-                    positionConfig
-        */
-
-        if (userWallet !== undefined && !localStorage.getItem(userWallet.publicKey.toString())) {
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID)
-
-            const positionConfigNonce = await (async () => {
-                const account = await connection.getAccountInfo(positionConfigId)
-
-                console.log(account)
-                if (account !== null) {
-                    const offset = 32 * 4 + 8;
-                    return account.data.readBigUInt64LE(offset);
-                }
-
-                return BigInt(0);
-            })()
-
-            const data = {
-                markets: [{
-                    marketId: marketId.toString(),
-                    positionConfigId: positionConfigId.toString(),
-                    positionConfigNonce: positionConfigNonce.toString(),
-                }]
-            }
-
-            localStorage.setItem(
-                userWallet!.publicKey.toString(),
-                JSON.stringify(data),
-            )
-        }
-
-        if (userWallet !== undefined && !JSON.parse(localStorage
-            .getItem(userWallet.publicKey.toString())!)
-            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
-
-            console.log(JSON.parse(localStorage
-                .getItem(userWallet.publicKey.toString())!))
-
-            console.log(JSON.parse(localStorage
-                .getItem(userWallet.publicKey.toString())!)
-                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId))
-
-            const user = JSON.parse(localStorage
-                .getItem(userWallet!.publicKey.toString())!);
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID)
-
-            const positionConfigNonce = await (async () => {
-                const account = await connection.getAccountInfo(positionConfigId)
-                if (account !== null) {
-                    const offset = 32 * 4 + 8;
-                    return account.data.readBigUInt64LE(offset);
-                }
-
-                return BigInt(0);
-            })()
-
-            const data = {
-                ...user,
-                markets: [
-                    ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-                    {
-                        marketId: marketId.toString(),
-                        positionConfigId: positionConfigId.toString(),
-                        positionConfigNonce: positionConfigNonce.toString(),
-                    }
-                ]
-            }
-
-            localStorage.setItem(
-                userWallet!.publicKey.toString(),
-                JSON.stringify(data),
-            )
-        }
 
         const bookParams = new URLSearchParams();
         bookParams.append("book_config", marketId.toString());
@@ -206,7 +300,6 @@ export const useTransaction = (marketId: PublicKey) => {
         candleParams.append("book_config", marketId.toString());
         candleParams.append("limit", (1000).toString());
         candleParams.append("offset", (0).toString());
-
 
         const orderBookURL = new URL("./market_order_book?" + bookParams.toString(), base);
         const candleDataURL = new URL("./market_history?" + candleParams.toString(), base);
@@ -274,15 +367,9 @@ export const useTransaction = (marketId: PublicKey) => {
                     })
                 })
 
-                const {
-                    positionConfigId,
-                    positionConfigNonce,
-                } = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!)
-                    .markets!.find((item: CachedMarket) => marketId.toString() === item.marketId);
+
 
                 return {
-                    positionConfigId: new PublicKey(positionConfigId),
-                    positionConfigNonce: BigInt(positionConfigNonce),
                     userCapitalA,
                     userCapitalB,
                     userVaultA,
@@ -301,14 +388,15 @@ export const useTransaction = (marketId: PublicKey) => {
                 return { market: [] };
             })();
 
-            let asks = new Map<bigint, Order>();
-            let bids = new Map<bigint, Order>();
+            const asks = new Map<bigint, Order>();
+            const bids = new Map<bigint, Order>();
 
             // also need display format and real format
             book.book.asks.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
                 asks.set(price, {
+                    id: crypto.randomUUID(),
                     price: price,
                     size: asks.has(price)
                         ? asks.get(price)!.size + BigInt(element.size)
@@ -321,6 +409,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
                 const price = BigInt(element.price);
                 bids.set(price, {
+                    id: crypto.randomUUID(),
                     price: price,
                     size: bids.has(price)
                         ? bids.get(price)!.size + BigInt(element.size)
@@ -329,137 +418,23 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
             });
 
-            queue.get().forEach(data => {
-
-                if (data.order === 'ask' && asks.has(data.price)) {
-
-                    const ask = asks.get(data.price)!;
-
-                    asks.set(data.price, {
-                        ...ask,
-                        size: data.method === 'add'
-                            ? ask.size + data.size
-                            : ask.size - data.size,
-                    });
-
-                    if (ask.size === BigInt(0)) {
-                        asks.delete(data.price);
-                    } else if (ask.size < BigInt(0)) {
-                        // data out of sync, need to resync
-                    }
-
-
-                } else if (data.order === 'ask') {
-                    asks.set(data.price, {
-                        price: data.price,
-                        size: data.size,
-                        depth: BigInt(0),
-                    });
-
-                } else if (data.order === 'bid' && bids.has(data.price)) {
-
-                    const bid = bids.get(data.price)!;
-
-                    bids.set(data.price, {
-                        ...bid,
-                        size: data.method === 'add'
-                            ? bid.size + data.size
-                            : bid.size - data.size,
-                    });
-
-                    if (bid.size === BigInt(0)) {
-                        bids.delete(data.price);
-                    } else if (bid.size < BigInt(0)) {
-                        // data out of sync, need to resync
-                    }
-
-
-
-                } else if (data.order === 'bid') {
-                    bids.set(data.price, {
-                        price: data.price,
-                        size: data.size,
-                        depth: BigInt(0),
-                    });
-
-                } else if (data.order === 'sell' && bids.has(data.price)) {
-                    const bid = bids.get(data.price)!;
-
-                    if (bid.size === data.size) {
-                        bids.delete(data.price);
-                    } else {
-                        bids.set(data.price, {
-                            ...bid,
-                            size: bid.size - data.size,
-                        });
-                    }
-
-                } else if (data.order === 'buy' && asks.has(data.price)) {
-                    const ask = asks.get(data.price)!;
-
-                    if (ask.size === data.size) {
-                        asks.delete(data.price);
-                    } else {
-                        asks.set(data.price, {
-                            ...ask,
-                            size: ask.size - data.size,
-                        });
-                    }
-
-                } else {
-                    // data is out of sync and need to resolve it some how
-                }
-            })
-
-            let askDepth = BigInt(0);
-            asks = new Map<bigint, Order>(asks
-                .entries()
-                .toArray()
-                .sort((a, b) => {
-                    return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0;
-                }));
-
-            asks
-                .values()
-                .forEach((data: Order) => {
-                    askDepth += data.size;
-                    data.depth = askDepth;
-
-                    asks.set(data.price, {
-                        ...data,
-                    });
-                });
-
-            let bidDepth = BigInt(0);
-            bids = new Map<bigint, Order>(bids
-                .entries()
-                .toArray()
-                .sort((a, b) => {
-                    return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0;
-                }));
-
-            bids
-                .values()
-                .forEach((data: Order) => {
-                    bidDepth += data.size;
-                    data.depth = bidDepth;
-
-                    bids.set(data.price, {
-                        ...data,
-                    });
-                });
-
+            const feedData = queue.set(
+                asks,
+                bids,
+                queue.get(),
+            )
 
             const store = {
                 // how to handle including image?
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
                 image: "",
                 page: 0,
-                candles: updateCandles(candles.market)
+                candles: updateCandles(candles.market, book.decimalsA, book.decimalsB, book.isReverse)
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
-                    positionConfigNonce: BigInt(user ? user.positionConfigNonce : 0),
+                    // will remove?
+                    positionConfigNonce: BigInt(0),
                     capitalABalance: BigInt(user ? user.capitalABalance : 0),
                     capitalBBalance: BigInt(user ? user.capitalBBalance : 0),
                 },
@@ -474,7 +449,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         tokenProgramA: new PublicKey(book.tokenProgramA),
                         tokenProgramB: new PublicKey(book.tokenProgramB),
                         userAddress: userWallet ? userWallet!.publicKey : undefined,
-                        userPositionConfig: userWallet ? user?.positionConfigId : undefined,
+                        // will remove?
+                        userPositionConfig: undefined,
                         userCapitalA: userWallet ? user?.userCapitalA : undefined,
                         userCapitalB: userWallet ? user?.userCapitalB : undefined,
                         userVaultA: userWallet ? user?.userVaultA : undefined,
@@ -501,18 +477,19 @@ export const useTransaction = (marketId: PublicKey) => {
 
                     trades: book.trades.map((data: Trade) => {
                         return {
-                            price: Number(data.price),
-                            qty: Number(data.qty),
+                            id: crypto.randomUUID(),
+                            price: BigInt(data.price),
+                            qty: BigInt(data.qty),
                             action: String(data.action),
                             time: Number(data.time),
                         } as Trade
                     }),
 
                     asks: {
-                        feedData: asks,
+                        feedData: feedData.asks,
                     },
                     bids: {
-                        feedData: bids,
+                        feedData: feedData.bids,
                     },
                 }
             }
@@ -530,6 +507,7 @@ export const useTransaction = (marketId: PublicKey) => {
         params.append("book_config", marketId.toString());
         params.append("offset", offset.toString());
         params.append("limit", (1000).toString());
+        // need to fetch interval
 
         const candleDataURL = new URL(`./market_history?${params.toString()}`, base);
 
@@ -538,10 +516,12 @@ export const useTransaction = (marketId: PublicKey) => {
             const response = await fetch(candleDataURL);
             const candles = await response.json();
 
+            const { isReverse, decimalsA, decimalsB } = data!.orderBook.marketDetails;
+
             setData({
                 ...data!,
                 page: data!.page! + 1,
-                candles: updateCandles(candles.market)
+                candles: updateCandles(candles.market, decimalsA, decimalsB, isReverse)
                     .concat(data!.candles!)
                     .sort((a: Candle, b: Candle) => a.time - b.time)
             });
@@ -559,12 +539,14 @@ export const useTransaction = (marketId: PublicKey) => {
         // and doesn't fetch again... interesting issue
         // how to resolve?... for now the user is forced to have a wallet
         // until I can find some clever way to handle this
-        if (userWallet === undefined || connection === undefined || data !== null) {
+        if (userWallet === undefined || connection === undefined || data !== null || subscribeId !== undefined) {
             // need to cache and return id
+
             return {
                 data,
                 marketOrder,
                 getCandleData,
+                subscribeId,
             }
         }
 
@@ -574,155 +556,100 @@ export const useTransaction = (marketId: PublicKey) => {
         marketOrder.update("buy", null);
         marketOrder.update("sell", null);
 
-        const queue = new Queue();
-
-        // returns id but for now not handling it
-        eventListner(
+        const id = eventListner(
             marketId,
             [
+                MARKET_ORDER_TRIGGER_EVENT,
+                MARKET_ORDER_FILL_EVENT,
+                MARKET_ORDER_COMPLETE_EVENT,
                 OPEN_LIMIT_ORDER_EVENT,
                 CANCEL_LIMIT_ORDER_EVENT,
-                MARKET_ORDER_FILL_EVENT,
             ],
             (method, payload) => {
 
                 switch (method) {
-                    case "create-market-order": {
-                        marketOrder.update(payload.orderType, payload.nextPointerPubkey);
+                    case "trigger-market-order": {
+                        marketOrder.update(payload.orderType, payload.nextPointer);
+
                         break;
                     }
 
                     case "fill-market-order": {
-                        const data = {
+                        queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
-                        }
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
+                        });
 
-                        queue.push(data);
+                        // need add to trade history list as well.
+
                         break;
                     }
 
                     case "complete-market-order": {
                         marketOrder.update(payload.orderType, null);
-                        break;
-                    }
 
-                    case "create-limit-order": {
-
-                        if (userWallet === undefined || payload.marketMakerPubkey !== userWallet.publicKey) {
-                            break;
-                        }
-
-                        const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-                        const { positionConfigNonce, market } = (() => {
-                            const data = user!.markets
-                                .find((id: string) => marketId.toString() === id);
-
-                            return {
-                                positionConfigNonce: BigInt(data.positionConfigNonce),
-                                market: data,
-                            }
-                        })();
-
-                        const data = {
-                            ...user,
-                            markets: [
-                                ...user.markets.filter((item: CachedMarket) => item.marketId !== marketId.toString()),
-                                {
-                                    ...market,
-                                    positionConfigNonce: payload.nonce!.toString(),
-                                }
-                            ]
-                        }
-
-                        localStorage.setItem(
-                            userWallet!.publicKey.toString(),
-                            JSON.parse(data),
-                        );
-
-                        setData({
-                            ...data!,
-                            user: {
-                                ...data!.user,
-                                positionConfigNonce: positionConfigNonce + BigInt(1),
-                            }
-                        })
+                        // need to set the last price from here
 
                         break;
                     }
 
                     case "open-limit-order": {
-                        const input = {
+                        console.log(payload)
+                        queue.push({
                             method: "add",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
-                        }
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
+                        });
 
-
-                        queue.push(input);
-                        console.log(input)
-                        console.log(queue)
-
-                        // setData({
-                        //     ...data!,
-                        //     orderBook{
-                        //         ...data.orderBook,
-                        //         bids: {
-                        //             ...data
-                        //         }
-                        //     }
-                        //     user: {
-                        //         ...data!.user,
-                        //         positionConfigNonce: positionConfigNonce + BigInt(1),
-                        //     }
-                        // })
+                        console.log("added to queue?", queue);
 
                         break;
                     }
 
                     case "cancel-limit-order": {
-                        const data = {
+                        queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: BigInt(payload.price!.toString()),
-                            size: BigInt(payload.size!.toString()),
-                        }
+                            price: payload.price! as bigint,
+                            size: payload.size! as bigint,
+                        });
 
-                        queue.push(data);
                         break;
                     }
                 }
             });
 
-        // wait 5 seconds?
+        setSubscribeId(id);
+        setTimeout(() => {
+            load(marketId, queue);
 
-        load(marketId, queue);
+        }, 4000);
 
         return {
             data,
             marketOrder,
             getCandleData,
+            subscribeId,
         }
     }
 
     return run();
 }
 
-const updateCandles = (candles: Candle[]) => {
-    return candles.map((data: Candle) => ({
-        time: Number(data.time),
-        open: Number(data.open),
-        high: Number(data.high),
-        low: Number(data.low),
-        close: Number(data.close),
+const updateCandles = (candles: Candle[], decimalsA: number, decimalsB: number, isReverse: boolean) => {
+    // not sure if this is correct deriving the decimals, will come back to this later
+    // also need a simple algo to handle tuncation
 
-        // open: BigInt(data.open),
-        // high: BigInt(data.high),
-        // low: BigInt(data.low),
-        // close: BigInt(data.close),
+    const decimal = isReverse ? decimalsA : decimalsB;
+    return candles.map((data: Candle) => ({
+        time: Number(displayValue(BigInt(data.time), decimal)),
+        open: Number(displayValue(BigInt(data.open), decimal)),
+        high: Number(displayValue(BigInt(data.high), decimal)),
+        low: Number(displayValue(BigInt(data.low), decimal)),
+        close: Number(displayValue(BigInt(data.close), decimal)),
     }));
 }
 
@@ -734,6 +661,7 @@ interface Payload {
 };
 
 export interface Order {
+    id: string,
     price: bigint;
     size: bigint;
     depth: bigint;
@@ -748,8 +676,9 @@ export type Candle = {
 };
 
 export type Trade = {
-    price: number;
-    qty: number;
+    id: string,
+    price: bigint;
+    qty: bigint;
     time: number;
     action: "buy" | "sell";
 };
@@ -763,6 +692,8 @@ export interface Market {
         capitalABalance: bigint,
         capitalBBalance: bigint,
     },
+    // WIP
+    // openPositions: Position[],
     orderBook: {
         accounts: {
             marketId: PublicKey,
@@ -801,6 +732,12 @@ export interface Market {
             feedData: Map<bigint, Order>,
         }
     },
+}
+
+export interface Position {
+    orderType: string,
+    price: bigint,
+    size: bigint,
 }
 
 

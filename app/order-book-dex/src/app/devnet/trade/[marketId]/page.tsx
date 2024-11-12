@@ -32,6 +32,11 @@ export default function Page({ params }: { params: { marketId: string } }) {
       </div>
       <Separator />
       <div className="flex">
+        {/* 
+          need add an id to candles
+          and need to figure out how to use bigint? or 
+          use a very percise way to handle number values?
+        */}
         <CandlestickChart data={candles!} />
         <OrderBook market={market} />
         <Trade

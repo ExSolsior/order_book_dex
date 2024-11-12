@@ -13,8 +13,9 @@ pub struct OpenOrderPosition<'info> {
     #[account(
         constraint = MarketPointer::validate_mutable_status(market_pointer_read.as_ref(), market_pointer_write.as_ref())
             @ ErrorCode::InvalidMarketPointer,
+        constraint = (market_pointer_write.is_some() && contra_pointer.is_some()) || market_pointer_read.is_some()
     )]
-    pub order_book_config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Box<Account<'info, OrderBookConfig>>,
 
     #[account(
         constraint = market_pointer_read.is_valid_order_book_config(order_book_config.key())
@@ -25,12 +26,21 @@ pub struct OpenOrderPosition<'info> {
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_read.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
             @ ErrorCode::InvalidOrderPositionAdd,
-        constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        // constraint = market_pointer_read.is_valid_prev_order_position(prev_order_position.as_ref())
+        //     @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_read.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
             @ ErrorCode::InvalidLedgerSection,
         constraint = order_position.is_valid_order_type_match(&market_pointer_read)
             @ ErrorCode::InvalidOrderType,
+        constraint = market_pointer_read.order_position_pointer.is_some() 
+            && (prev_order_position.is_some() 
+                || next_order_position.is_some()
+                    && market_pointer_read
+                    .order_position_pointer
+                    .unwrap() != next_order_position.as_ref().unwrap().key()),
+        // edge case if no limit orders exist, then its forced to use writer
+        // will come back to improve this
+        // does writer need it's own version of this?
     )]
     pub market_pointer_read: Option<Account<'info, MarketPointer>>,
 
@@ -43,15 +53,23 @@ pub struct OpenOrderPosition<'info> {
         constraint = market_pointer_write.is_valid_order_type_match(next_order_position.as_ref())
             @ ErrorCode::InvalidOrderType,
         constraint = market_pointer_write.is_valid_position_add(prev_order_position.as_ref(), next_order_position.as_ref())
+        // what's causing this constrait to trigger?
             @ ErrorCode::InvalidOrderPositionAdd,
-        constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
-            @ ErrorCode::InvalidOrderPosition,
+        // constraint = market_pointer_write.is_valid_prev_order_position(prev_order_position.as_ref())
+        //     @ ErrorCode::InvalidOrderPosition,
         constraint = market_pointer_write.is_valid_open_position_section(&order_position, next_position_pointer.as_ref())
             @ ErrorCode::InvalidLedgerSection,
         constraint = order_position.is_valid_order_type_match(&market_pointer_write)
             @ ErrorCode::InvalidOrderType,
     )]
     pub market_pointer_write: Option<Account<'info, MarketPointer>>,
+
+    #[account(
+        // add
+        constraint = contra_pointer.is_valid_contra(&order_position)
+            @ ErrorCode::InvalidMarketPointerWrite,
+    )]
+    pub contra_pointer: Option<Account<'info, MarketPointer>>,
 
     #[account(
         mut,
@@ -113,6 +131,10 @@ impl<'info> OpenOrderPosition<'info> {
             self.order_position.next_order_position = None;
         };
 
+        if self.market_pointer_write.is_some() {
+            self.market_pointer_write.as_mut().unwrap().current_price = self.order_position.price;
+        };
+
         let Clock {
             slot,
             unix_timestamp,
@@ -125,6 +147,11 @@ impl<'info> OpenOrderPosition<'info> {
             pos_config: self.order_position_config.key(),
             source: self.order_position.source.key(),
             destination: self.order_position.destination.key(),
+            parent_position: self.prev_order_position.as_ref().is_some().then(|| self
+                .prev_order_position
+                .as_ref()
+                .unwrap()
+                .key()),
             next_pos_pubkey: self.order_position.next_order_position,
             order_type: self.order_position.order_type.clone(),
             price: self.order_position.price,
@@ -132,6 +159,7 @@ impl<'info> OpenOrderPosition<'info> {
             slot: slot,
             timestamp: unix_timestamp,
             is_available: self.order_position.is_available,
+            is_head: self.market_pointer_write.is_some(),
         });
 
         Ok(())

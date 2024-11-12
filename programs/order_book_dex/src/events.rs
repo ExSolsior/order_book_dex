@@ -33,6 +33,7 @@ pub struct NewOrderPositionConfigEvent {
 }
 
 #[event]
+// should rename CreateLimitOrderEvent
 pub struct CreateOrderPositionEvent {
     pub market_maker: Pubkey,
     pub pos_pubkey: Pubkey,
@@ -40,6 +41,8 @@ pub struct CreateOrderPositionEvent {
     pub pos_config: Pubkey,
     pub order_type: Order,
     pub next_nonce: u64,
+    pub capital_source_balance: u64,
+    pub capital_source_mint: Pubkey,
 }
 
 #[event]
@@ -49,6 +52,7 @@ pub struct OpenLimitOrderEvent {
     pub pos_config: Pubkey,
     pub source: Pubkey,
     pub destination: Pubkey,
+    pub parent_position: Option<Pubkey>,
     pub next_pos_pubkey: Option<Pubkey>,
     pub order_type: Order,
     pub price: u64,
@@ -56,6 +60,7 @@ pub struct OpenLimitOrderEvent {
     pub slot: u64,
     pub timestamp: i64,
     pub is_available: bool,
+    pub is_head: bool,
 }
 
 #[event]
@@ -69,9 +74,14 @@ pub struct CancelLimitOrderEvent {
 
 #[event]
 pub struct CloseLimitOrderEvent {
+    pub market_maker: Pubkey,
     pub pos_pubkey: Pubkey,
     pub book_config: Pubkey,
     pub pos_config: Pubkey,
+    pub capital_source_balance: u64,
+    pub capital_source_mint: Pubkey,
+    pub capital_dest_balance: u64,
+    pub capital_dest_mint: Pubkey,
 }
 
 #[event]
@@ -108,6 +118,7 @@ pub struct MarketOrderFillEvent {
 
 #[event]
 pub struct MarketOrderCompleteEvent {
+    pub market_taker: Pubkey,
     pub market_pointer: Pubkey,
     pub book_config: Pubkey,
     pub new_pointer: Option<Pubkey>,
@@ -119,4 +130,8 @@ pub struct MarketOrderCompleteEvent {
     pub is_available: bool,
     pub slot: u64,
     pub timestamp: i64,
+    pub capital_source_balance: u64,
+    pub capital_source_mint: Pubkey,
+    pub capital_dest_balance: u64,
+    pub capital_dest_mint: Pubkey,
 }

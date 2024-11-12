@@ -42,15 +42,13 @@ pub struct ReturnExecutionMarketOrder<'info> {
         mut,
         constraint = market_pointer.execution_stats.as_ref().unwrap().capital_source == capital_source.key(),
     )]
-    /// CHECKED: Don't need the data, only pubkey
-    pub capital_source: UncheckedAccount<'info>,
+    pub capital_source: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
         constraint = market_pointer.execution_stats.as_ref().unwrap().capital_dest == capital_dest.key(),
     )]
-    /// CHECKED: Don't need the data, only pubkey
-    pub capital_dest: UncheckedAccount<'info>,
+    pub capital_dest: InterfaceAccount<'info, TokenAccount>,
 
     pub token_mint_source: InterfaceAccount<'info, Mint>,
     pub token_mint_dest: InterfaceAccount<'info, Mint>,
@@ -115,6 +113,7 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
         } = Clock::get()?;
 
         emit!(MarketOrderCompleteEvent {
+            market_taker: market_data.owner,
             market_pointer: self.market_pointer.key(),
             book_config: self.order_book_config.key(),
             new_pointer: self.market_pointer.order_position_pointer,
@@ -125,6 +124,11 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
             is_available: self.market_pointer.market_order.is_none(),
             slot: slot,
             timestamp: unix_timestamp,
+
+            capital_dest_balance: self.capital_dest.amount,
+            capital_dest_mint: self.capital_dest.mint,
+            capital_source_balance: self.capital_source.amount,
+            capital_source_mint: self.capital_source.mint,
         });
 
         Ok(())

@@ -6,6 +6,7 @@ import Balance from "./balance";
 import CustomTabsTrigger from "./custom-tabs-trigger";
 import LimitOrder from "./limit-order";
 import MarketOrder from "./market-order";
+import { displayValue } from "@/program/utils/helper";
 
 export default function OrderDetails({
   market,
@@ -17,13 +18,17 @@ export default function OrderDetails({
   type: "buy" | "sell" | "ask" | "bid";
 }) {
 
-  const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
-  const { capitalABalance, capitalBBalance } = market!.user!;
   const userWallet = useAnchorWallet();
 
   if (!userWallet) {
     return <WalletPrompt />;
   }
+
+  const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
+  const { capitalABalance, capitalBBalance } = market!.user!;
+  const displayABalance = displayValue(capitalABalance, decimalsA);
+  const displayBBalance = displayValue(capitalBBalance, decimalsB);
+
 
   return (
     <Tabs
@@ -40,10 +45,9 @@ export default function OrderDetails({
       >
         <Balance
           token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
-          // need better way to format number
           balance={(type === "buy" ? !isReverse
-            ? capitalBBalance : capitalABalance : !isReverse
-            ? capitalABalance : capitalBBalance).toString()}
+            ? displayBBalance : displayABalance : !isReverse
+            ? displayABalance : displayBBalance).toString()}
         />
         <LimitOrder
           market={market}
@@ -57,10 +61,9 @@ export default function OrderDetails({
       >
         <Balance
           token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
-          // need better way to format number
           balance={(type === "buy" ? !isReverse
-            ? capitalBBalance : capitalABalance : !isReverse
-            ? capitalABalance : capitalBBalance).toString()}
+            ? displayBBalance : displayABalance : !isReverse
+            ? displayABalance : displayBBalance).toString()}
         />
         <MarketOrder
           market={market}
@@ -70,3 +73,5 @@ export default function OrderDetails({
     </Tabs>
   );
 }
+
+

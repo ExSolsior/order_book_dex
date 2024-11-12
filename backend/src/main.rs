@@ -6,8 +6,8 @@ use {
     clokwerk::{AsyncScheduler, TimeUnits},
     futures_util::StreamExt,
     services::{
-        cancel_limit_order, execute_market_order, logs_handler, market_history, market_list,
-        market_order_book, open_limit_order, sanity_check, scheduled_process,
+        cancel_limit_order, execute_market_order, get_open_positions, logs_handler, market_history,
+        market_list, market_order_book, open_limit_order, sanity_check, scheduled_process,
     },
     shuttle_actix_web::ShuttleActixWeb,
     shuttle_runtime::SecretStore,
@@ -16,11 +16,7 @@ use {
     solana_sdk::commitment_config::CommitmentConfig,
     sqlx::{postgres::PgPoolOptions, Pool, Postgres},
     std::{sync::Arc, time::Duration},
-    tokio::{
-        // used with events... but for now not using this part
-        // io::AsyncReadExt,
-        sync::{mpsc::unbounded_channel, OnceCell},
-    },
+    tokio::sync::{mpsc::unbounded_channel, OnceCell},
 };
 
 mod db;
@@ -190,6 +186,7 @@ async fn main(
                 .service(market_order_book)
                 .service(market_list)
                 .service(market_history)
+                .service(get_open_positions)
                 .service(open_limit_order)
                 .service(cancel_limit_order)
                 .service(execute_market_order)

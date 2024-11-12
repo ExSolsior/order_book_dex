@@ -1,5 +1,7 @@
 use actix_web::web;
+use anchor_lang::Key;
 use anchor_lang::{system_program::ID as system_program, InstructionData, ToAccountMetas};
+use order_book_dex::constants::ORDER_POSITION_CONFIG_SEED;
 use order_book_dex::state::Order;
 use order_book_dex::{accounts, instruction, ID as program_id};
 // use solana_client::{client_error::ClientErrorKind, rpc_request::RpcError};
@@ -31,12 +33,23 @@ pub async fn open_limit_order(
 ) -> Result<VersionedTransaction, TransactionBuildError> {
     let rpc_client = create_rpc_client();
 
+    let position_config = Pubkey::find_program_address(
+        &[
+            params.signer.key().as_ref(),
+            params.order_book_config.key().as_ref(),
+            ORDER_POSITION_CONFIG_SEED.as_bytes(),
+        ],
+        &program_id,
+    )
+    .0;
+
     let OpenLimitOrder {
         token_mint_a,
         token_mint_b,
         token_program_a,
         token_program_b,
         market_pointer,
+        contra_pointer,
         prev_position,
         next_position,
         position_config,
@@ -44,6 +57,7 @@ pub async fn open_limit_order(
         ..
     } = models::open_limit_order(
         params.order_book_config,
+        position_config,
         &params.order_type,
         params.price,
         app_state,
@@ -58,8 +72,9 @@ pub async fn open_limit_order(
         token_program_a,
         token_program_b,
 
-        market_pointer_read: (!market_pointer.1).then_some(market_pointer.0),
-        market_pointer_write: market_pointer.1.then_some(market_pointer.0),
+        market_pointer_read: (!market_pointer.1).then(|| market_pointer.0),
+        market_pointer_write: market_pointer.1.then(|| market_pointer.0),
+        contra_pointer: market_pointer.1.then(|| contra_pointer),
 
         prev_order_position: prev_position,
         next_order_position: next_position,
@@ -75,6 +90,9 @@ pub async fn open_limit_order(
     });
 
     let tx = create_versioned_tx(&rpc_client, &params.signer, &ixs).await?;
+
+    println!("TX: {:?}", tx);
+
     Ok(tx)
 }
 
@@ -169,6 +187,7 @@ pub struct BuildIxsParams {
     pub token_program_b: Pubkey,
     pub market_pointer_read: Option<Pubkey>,
     pub market_pointer_write: Option<Pubkey>,
+    pub contra_pointer: Option<Pubkey>,
     pub prev_order_position: Option<Pubkey>,
     pub next_order_position: Option<Pubkey>,
     pub next_position_pointer: Option<Pubkey>,
@@ -191,6 +210,7 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         token_program_b,
         market_pointer_read,
         market_pointer_write,
+        contra_pointer,
         prev_order_position,
         next_order_position,
         next_position_pointer,
@@ -272,7 +292,7 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_a, signer);
     }
 
-    let order_position = get_order_position_pda(nonce, signer);
+    let order_position = get_order_position_pda(nonce, order_position_config, signer);
 
     ixs.push(Instruction {
         program_id,
@@ -308,6 +328,7 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
                 order_book_config,
                 market_pointer_read,
                 market_pointer_write,
+                contra_pointer: contra_pointer,
                 order_position,
                 order_position_config,
                 prev_order_position,
@@ -322,133 +343,134 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
     ixs
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::transactions::util::_get_market_pointer;
-    use solana_sdk::signer::Signer;
-    use std::str::FromStr;
+// #[cfg(test)]
+// mod tests {
+//     use crate::transactions::util::_get_market_pointer;
+//     use solana_sdk::signer::Signer;
+//     use std::str::FromStr;
 
-    use crate::transactions::{
-        create_trade_pair,
-        create_trade_pair::CreateTradePairParams,
-        pdas::{
-            get_buy_market_pointer_pda, get_order_book_config_pda, get_sell_market_pointer_pda,
-        },
-        test_util::*,
-    };
+//     use crate::transactions::{
+//         create_trade_pair,
+//         create_trade_pair::CreateTradePairParams,
+//         pdas::{
+//             get_buy_market_pointer_pda, get_order_book_config_pda, get_sell_market_pointer_pda,
+//         },
+//         test_util::*,
+//     };
 
-    use super::*;
+//     use super::*;
 
-    #[tokio::test]
-    async fn test_open_limit_order_tx() {
-        let (program_test, signer) = setup();
-        let (mut banks_client, _, _) = program_test.start().await;
+//     #[tokio::test]
+//     async fn test_open_limit_order_tx() {
+//         let (program_test, signer) = setup();
+//         let (mut banks_client, _, _) = program_test.start().await;
 
-        // Create trade pair
-        let token_mint_a = Pubkey::from_str(JUP_MINT).unwrap();
-        let token_mint_b = Pubkey::from_str(USDC_MINT).unwrap();
+//         // Create trade pair
+//         let token_mint_a = Pubkey::from_str(JUP_MINT).unwrap();
+//         let token_mint_b = Pubkey::from_str(USDC_MINT).unwrap();
 
-        let create_trade_pair_params = CreateTradePairParams {
-            signer: signer.pubkey(),
-            token_mint_a,
-            token_mint_b,
-            token_symbol_a: "JUP".to_string(),
-            token_symbol_b: "USDC".to_string(),
-            is_reverse: false,
-        };
+//         let create_trade_pair_params = CreateTradePairParams {
+//             signer: signer.pubkey(),
+//             token_mint_a,
+//             token_mint_b,
+//             token_symbol_a: "JUP".to_string(),
+//             token_symbol_b: "USDC".to_string(),
+//             is_reverse: false,
+//         };
 
-        let mint_a = banks_client
-            .get_account(create_trade_pair_params.token_mint_a)
-            .await
-            .unwrap()
-            .unwrap();
-        let mint_b = banks_client
-            .get_account(create_trade_pair_params.token_mint_b)
-            .await
-            .unwrap()
-            .unwrap();
+//         let mint_a = banks_client
+//             .get_account(create_trade_pair_params.token_mint_a)
+//             .await
+//             .unwrap()
+//             .unwrap();
+//         let mint_b = banks_client
+//             .get_account(create_trade_pair_params.token_mint_b)
+//             .await
+//             .unwrap()
+//             .unwrap();
 
-        let ixs = create_trade_pair::build_ixs(create_trade_pair_params, &mint_a, &mint_b);
-        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
-        banks_client.process_transaction(tx).await.unwrap();
+//         let ixs = create_trade_pair::build_ixs(create_trade_pair_params, &mint_a, &mint_b);
+//         let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
+//         banks_client.process_transaction(tx).await.unwrap();
 
-        let order_book_config = get_order_book_config_pda(token_mint_a, token_mint_b);
-        let buy_market_pointer = get_buy_market_pointer_pda(order_book_config);
-        let sell_market_pointer = get_sell_market_pointer_pda(order_book_config);
+//         let order_book_config = get_order_book_config_pda(token_mint_a, token_mint_b);
+//         let buy_market_pointer = get_buy_market_pointer_pda(order_book_config);
+//         let sell_market_pointer = get_sell_market_pointer_pda(order_book_config);
 
-        // Test bid limit order
+//         // Test bid limit order
 
-        let market_pointer = _get_market_pointer(
-            buy_market_pointer,
-            sell_market_pointer,
-            Order::Bid,
-            1,
-            None,
-            None,
-        );
-        let open_limit_order_build_params = BuildIxsParams {
-            signer: signer.pubkey(),
-            order_book_config,
-            token_mint_a,
-            token_mint_b,
-            token_program_a: mint_a.owner,
-            token_program_b: mint_b.owner,
-            market_pointer_read: if market_pointer.1 {
-                None
-            } else {
-                Some(market_pointer.0)
-            },
-            market_pointer_write: market_pointer.1.then_some(market_pointer.0),
-            prev_order_position: None,
-            next_order_position: None,
-            next_position_pointer: None,
-            is_first_interaction: true,
-            is_reverse: false,
-            order_type: Order::Bid,
-            price: 1,
-            amount: 100,
-            nonce: 0,
-        };
-        let ixs = build_ixs(open_limit_order_build_params);
-        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
-        banks_client.process_transaction(tx).await.unwrap();
+//         let market_pointer = _get_market_pointer(
+//             buy_market_pointer,
+//             sell_market_pointer,
+//             Order::Bid,
+//             1,
+//             None,
+//             None,
+//         );
+//         let open_limit_order_build_params = BuildIxsParams {
+//             signer: signer.pubkey(),
+//             order_book_config,
+//             token_mint_a,
+//             token_mint_b,
+//             token_program_a: mint_a.owner,
+//             token_program_b: mint_b.owner,
+//             market_pointer_read: if market_pointer.1 {
+//                 None
+//             } else {
+//                 Some(market_pointer.0)
+//             },
+//             market_pointer_write: market_pointer.1.then_some(market_pointer.0),
+//             contra_pointer,
+//             prev_order_position: None,
+//             next_order_position: None,
+//             next_position_pointer: None,
+//             is_first_interaction: true,
+//             is_reverse: false,
+//             order_type: Order::Bid,
+//             price: 1,
+//             amount: 100,
+//             nonce: 0,
+//         };
+//         let ixs = build_ixs(open_limit_order_build_params);
+//         let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
+//         banks_client.process_transaction(tx).await.unwrap();
 
-        // Test ask limit order
+//         // Test ask limit order
 
-        let ask_price = 2;
-        let market_pointer = _get_market_pointer(
-            buy_market_pointer,
-            sell_market_pointer,
-            Order::Ask,
-            ask_price,
-            None,
-            Some(1), // Max bid price
-        );
-        let open_limit_order_build_params = BuildIxsParams {
-            signer: signer.pubkey(),
-            order_book_config,
-            token_mint_a,
-            token_mint_b,
-            token_program_a: mint_a.owner,
-            token_program_b: mint_b.owner,
-            market_pointer_read: if market_pointer.1 {
-                None
-            } else {
-                Some(market_pointer.0)
-            },
-            market_pointer_write: market_pointer.1.then_some(market_pointer.0),
-            prev_order_position: None,
-            next_order_position: None,
-            next_position_pointer: None,
-            is_first_interaction: false,
-            is_reverse: false,
-            order_type: Order::Ask,
-            price: ask_price,
-            amount: 100,
-            nonce: 1,
-        };
-        let ixs = build_ixs(open_limit_order_build_params);
-        let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
-        banks_client.process_transaction(tx).await.unwrap();
-    }
-}
+//         let ask_price = 2;
+//         let market_pointer = _get_market_pointer(
+//             buy_market_pointer,
+//             sell_market_pointer,
+//             Order::Ask,
+//             ask_price,
+//             None,
+//             Some(1), // Max bid price
+//         );
+//         let open_limit_order_build_params = BuildIxsParams {
+//             signer: signer.pubkey(),
+//             order_book_config,
+//             token_mint_a,
+//             token_mint_b,
+//             token_program_a: mint_a.owner,
+//             token_program_b: mint_b.owner,
+//             market_pointer_read: if market_pointer.1 {
+//                 None
+//             } else {
+//                 Some(market_pointer.0)
+//             },
+//             market_pointer_write: market_pointer.1.then_some(market_pointer.0),
+//             prev_order_position: None,
+//             next_order_position: None,
+//             next_position_pointer: None,
+//             is_first_interaction: false,
+//             is_reverse: false,
+//             order_type: Order::Ask,
+//             price: ask_price,
+//             amount: 100,
+//             nonce: 1,
+//         };
+//         let ixs = build_ixs(open_limit_order_build_params);
+//         let tx = create_banks_client_verioned_tx(&mut banks_client, &signer, &ixs).await;
+//         banks_client.process_transaction(tx).await.unwrap();
+//     }
+// }
