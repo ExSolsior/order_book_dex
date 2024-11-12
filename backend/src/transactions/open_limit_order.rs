@@ -1,7 +1,7 @@
 use actix_web::web;
 use anchor_lang::Key;
 use anchor_lang::{system_program::ID as system_program, InstructionData, ToAccountMetas};
-use order_book_dex::constants::{ORDER_POSITION_CONFIG_SEED, ORDER_POSITION_SEED};
+use order_book_dex::constants::ORDER_POSITION_CONFIG_SEED;
 use order_book_dex::state::Order;
 use order_book_dex::{accounts, instruction, ID as program_id};
 // use solana_client::{client_error::ClientErrorKind, rpc_request::RpcError};
@@ -62,17 +62,6 @@ pub async fn open_limit_order(
         app_state,
     )
     .await?;
-
-    let market_pointer_read = (!market_pointer.1).then(|| market_pointer.0);
-    let market_pointer_write = market_pointer.1.then(|| market_pointer.0);
-
-    println!("POSITION CONFIG? :: {:?}", position_config);
-    println!("MARKET POINTER? :: {:?}", market_pointer);
-    println!("READER? :: {:?}", market_pointer_read);
-    println!("WRITER? :: {:?}", market_pointer_write);
-    println!("prev? :: {:?}", prev_position);
-    println!("next? :: {:?}", next_position);
-    println!("{:?}", market_pointer);
 
     let ixs = build_ixs(BuildIxsParams {
         signer: params.signer,
@@ -289,12 +278,6 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint A, destination derived with mint B
         resolved_source = get_vault_account_pda(order_book_config, token_mint_a, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_b, signer);
-
-        println!("is_reverse {}", is_reverse);
-        println!("token_mint_a {}", token_mint_a);
-        println!("token_mint_b {}", token_mint_b);
-        println!("resolved_source {}", resolved_source);
-        println!("resolved_dest {}", resolved_dest);
     } else {
         // Capital source derived with mint B
         capital_source =
@@ -303,12 +286,6 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint B, destination derived with mint A
         resolved_source = get_vault_account_pda(order_book_config, token_mint_b, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_a, signer);
-
-        println!("is_reverse {}", is_reverse);
-        println!("token_mint_b {}", token_mint_b);
-        println!("token_mint_a {}", token_mint_a);
-        println!("resolved_source {}", resolved_source);
-        println!("resolved_dest {}", resolved_dest);
     }
 
     let order_position = get_order_position_pda(nonce, order_position_config, signer);

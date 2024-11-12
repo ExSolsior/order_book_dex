@@ -423,6 +423,7 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
     let pos_config = get_pubkey(&data, &mut offset);
     let source = get_pubkey(&data, &mut offset);
     let destination = get_pubkey(&data, &mut offset);
+    let parent_position = get_option_pubkey(&data, &mut offset);
     let next_pos_pubkey = get_option_pubkey(&data, &mut offset);
     let order_type = get_order_type(&data, &mut offset);
     let price = get_slot(&data, &mut offset);
@@ -431,20 +432,6 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
     let timestamp = get_timestamp(&data, &mut offset);
     let is_available = get_reverse(&data, &mut offset);
     let is_head = get_head(&data, &mut offset);
-
-    println!("pos_pubkey :: {:?}", pos_pubkey);
-    println!("book_config :: {:?}", book_config);
-    println!("pos_config :: {:?}", pos_config);
-    println!("source :: {:?}", source);
-    println!("destination :: {:?}", destination);
-    println!("next_pos_pubkey :: {:?}", next_pos_pubkey);
-    println!("order_type :: {:?}", order_type);
-    println!("price :: {:?}", price);
-    println!("size :: {:?}", size);
-    println!("slot :: {:?}", slot);
-    println!("timestamp :: {:?}", timestamp);
-    println!("is_available :: {:?}", is_available);
-    println!("is_head :: {:?}", is_head);
 
     // should call OrderPosition as LimitOrder
     insert_order_position(
@@ -455,6 +442,7 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
             price: price,
             size: size,
             is_available: is_available,
+            parent_position,
             next_position: next_pos_pubkey,
             position_config: pos_config,
             source_vault: source,
@@ -519,7 +507,7 @@ pub async fn parse_market_order_fill_event(data: &[u8], app_state: &AppState) {
 
     let is_available = if new_size == 0 { false } else { true };
 
-    update_order_position(pos_pubkey.to_string(), new_size, is_available, app_state).await;
+    update_order_position(pos_pubkey, new_size, is_available, app_state).await;
 }
 
 // insert -> other?
@@ -550,13 +538,6 @@ pub async fn parse_market_order_complete_event(data: &[u8], app_state: &AppState
         app_state,
     )
     .await;
-
-    // need a way to track time to update market order history
-    // at an interval of every min
-    // has to do for all trade pairs... ewww help me
-    // or just encapsulate for a single trade pair?
-    // new idea, implement a schedular to handle all this
-    // insted of doing the logic here
 }
 
 pub fn get_pubkey(data: &[u8], offset: &mut u64) -> Pubkey {
@@ -604,6 +585,7 @@ pub fn get_order_type(data: &[u8], offset: &mut u64) -> String {
     let index = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;
 
+    // need to conert to enum Order type and impl to_string on the Order tyep
     match index {
         0 => String::from("buy"),
         1 => String::from("sell"),
