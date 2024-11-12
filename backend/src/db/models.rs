@@ -13,6 +13,7 @@ use {
 pub struct OpenLimitOrder {
     pub _book_config: Pubkey,
     pub market_pointer: (Pubkey, bool),
+    pub contra_pointer: Pubkey,
     pub token_mint_a: Pubkey,
     pub token_mint_b: Pubkey,
     pub token_program_a: Pubkey,
@@ -168,7 +169,7 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
 }
 
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
-    let query = sqlx::query(
+    sqlx::query(
         r#"
                 WITH head_change AS (
                     UPDATE order_position AS p
@@ -208,34 +209,31 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
     )
     .bind(order_position.pubkey_id.to_string())
     .bind(order_position.book_config.to_string())
-    .bind(order_position.position_config.to_string());
-
-    let query = if order_position.next_position.is_some() {
-        query.bind(order_position.next_position.unwrap().to_string())
-    } else {
-        query.bind(Option::<String>::None)
-    };
-
-    query
-        .bind(order_position.source_vault.to_string())
-        .bind(order_position.destination_vault.to_string())
-        .bind(order_position.order_type.to_string())
-        .bind(order_position.price as i64)
-        .bind(order_position.size as i64)
-        .bind(order_position.is_available)
-        .bind(order_position.slot as i64)
-        .bind(order_position.timestamp as i64)
-        .bind(order_position.is_head)
-        // will this work?
-        .bind(
-            order_position
-                .parent_position
-                .is_some()
-                .then(|| order_position.parent_position.unwrap().to_string()),
-        )
-        .execute(&app_state.pool)
-        .await
-        .unwrap();
+    .bind(order_position.position_config.to_string())
+    .bind(
+        order_position
+            .next_position
+            .is_some()
+            .then(|| order_position.next_position.unwrap().to_string()),
+    )
+    .bind(order_position.source_vault.to_string())
+    .bind(order_position.destination_vault.to_string())
+    .bind(order_position.order_type.to_string())
+    .bind(order_position.price as i64)
+    .bind(order_position.size as i64)
+    .bind(order_position.is_available)
+    .bind(order_position.slot as i64)
+    .bind(order_position.timestamp as i64)
+    .bind(order_position.is_head)
+    .bind(
+        order_position
+            .parent_position
+            .is_some()
+            .then(|| order_position.parent_position.unwrap().to_string()),
+    )
+    .execute(&app_state.pool)
+    .await
+    .unwrap();
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
@@ -1271,14 +1269,14 @@ pub async fn get_trade_pair(
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
     )
-    .bind(pubkey_id.to_string());
-
-    let query = match position_config {
-        Some(pc) => query.bind(pc.to_string()),
-        None => query.bind(Option::<String>::None),
-    };
-
-    let query = query.fetch_one(&app_state.pool).await?;
+    .bind(pubkey_id.to_string())
+    .bind(
+        position_config
+            .is_some()
+            .then(|| position_config.unwrap().to_string()),
+    )
+    .fetch_one(&app_state.pool)
+    .await?;
 
     let mut data: Box<Value> = serde_json::from_str(
         query
@@ -1970,12 +1968,21 @@ pub async fn open_limit_order(
 
                 SELECT 
                     t.pubkey_id AS book_config,
+
                     CASE 
                         WHEN (SELECT order_type FROM input) = 'bid'::order_type
                             THEN t.sell_market
                         WHEN (SELECT order_type FROM input) = 'ask'::order_type
                             THEN t.buy_market
                     END AS market_pointer,
+
+                    CASE 
+                        WHEN (SELECT order_type FROM input) = 'bid'::order_type
+                            THEN t.buy_market
+                        WHEN (SELECT order_type FROM input) = 'ask'::order_type
+                            THEN t.sell_market
+                    END AS contra_pointer,
+
                     (SELECT order_type FROM input) as order_type,
                     t.token_mint_a,
                     t.token_mint_b,
@@ -2038,6 +2045,13 @@ pub async fn open_limit_order(
                         .unwrap();
                     let market_pointer = Pubkey::from_str(data).unwrap();
 
+                    let data = query
+                        .try_get_raw("contra_pointer")
+                        .unwrap()
+                        .as_str()
+                        .unwrap();
+                    let contra_pointer = Pubkey::from_str(data).unwrap();
+
                     let data = query.try_get_raw("token_mint_a").unwrap().as_str().unwrap();
                     let token_mint_a = Pubkey::from_str(data).unwrap();
 
@@ -2076,6 +2090,7 @@ pub async fn open_limit_order(
                         token_program_b,
                         order_type,
                         is_reverse,
+                        contra_pointer,
                     )
                 });
 
@@ -2236,6 +2251,7 @@ pub async fn open_limit_order(
             Ok(OpenLimitOrder {
                 _book_config: data.0,
                 market_pointer,
+                contra_pointer: data.8,
                 token_mint_a: data.2,
                 token_mint_b: data.3,
                 token_program_a: data.4,
