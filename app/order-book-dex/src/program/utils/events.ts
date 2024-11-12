@@ -45,6 +45,7 @@ interface ResponseData {
     orderType: string | undefined,
     price: bigint | BN | undefined,
     size: bigint | BN | undefined,
+    amount: bigint | undefined,
     totalCost: bigint | BN | undefined,
     totalAmount: bigint | BN | undefined,
 
@@ -171,6 +172,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
+        amount: undefined,
     }
     console.log(offset, data)
 
@@ -230,7 +232,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
-
+        amount: undefined,
     }
 
     callback("new-order-book", data);
@@ -286,6 +288,8 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("new-position-config", data);
@@ -342,6 +346,8 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("create-order-position", data);
@@ -454,6 +460,8 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
+        amount: undefined,
+
     }
 
     callback("close-limit-order", data);
@@ -510,6 +518,7 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         tokenSymbolA: undefined,
         tokenSymbolB: undefined,
         marketTaker: undefined,
+        amount: undefined,
 
     }
 
@@ -630,6 +639,8 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         tokenSymbolB: undefined,
         capitalSource: undefined,
         capitalDest: undefined,
+        amount: undefined,
+
     }
 
     callback("complete-market-order", data);

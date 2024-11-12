@@ -9,7 +9,7 @@ import { Market } from "@/lib/markets";
 import { useContext } from "react";
 
 export default function Home() {
-  const allMarkets = useContext(MarketContext)
+  const { markets } = useContext(MarketContext)
 
   return (
     <div className="container space-y-6">
@@ -18,7 +18,7 @@ export default function Home() {
       <div className="container">
         <MarketsTable
           columns={columns}
-          data={allMarkets!.map(data => {
+          data={markets!.map(data => {
             return {
               marketId: data.accounts.marketId.toString(),
               // baseToken

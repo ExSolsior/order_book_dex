@@ -15,7 +15,7 @@ import { MarketContext } from "../provider/market-provider";
 
 export function MainNav({ isDemo }: { isDemo: boolean }) {
   const pathname = usePathname();
-  const markets = useContext(MarketContext);
+  const { markets } = useContext(MarketContext);
 
   // implement to find default marekt -> BTC / USDC | ETH / USDC | SOL / USDC
   // implement if markets is empty disable trade link

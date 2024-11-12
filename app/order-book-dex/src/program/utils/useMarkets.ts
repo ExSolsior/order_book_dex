@@ -3,26 +3,35 @@
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useEffect, useState } from "react"
-import { CANCEL_LIMIT_ORDER_EVENT, CLOSE_LIMIT_ORDER_EVENT, CREATE_ORDER_POSITION_EVENT, eventListner, OPEN_LIMIT_ORDER_EVENT } from "./events";
+import {
+    eventListner,
+    CLOSE_LIMIT_ORDER_EVENT,
+    CREATE_ORDER_POSITION_EVENT,
+    MARKET_ORDER_FILL_EVENT,
+    OPEN_LIMIT_ORDER_EVENT
+} from "./events";
 import { PROGRAM_ID } from "./constants";
 import { CachedMarket } from "./types";
 import { useParams } from "next/navigation";
-import { Item } from "@radix-ui/react-dropdown-menu";
+import { OrderType } from "../ProgramProvider";
+import { bigint } from "zod";
 
 // should place these under constants.ts file
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
-// const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
 
 export const useMarkets = () => {
-    const [data, setData] = useState<Markets[]>([]);
+    const [markets, setMarkets] = useState<Markets[]>([]);
+    const [openLimitOrders, setOpenLimitOrders] = useState<OpenOrder[]>([]);
+    const [userBalance, setUserBalance] = useState<UserBalance>({
+        capitalAAmount: BigInt(0),
+        capitalBAmount: BigInt(0)
+    });
     const [intervalId, setIntervalId] = useState<NodeJS.Timeout | undefined>()
     const [isLoading, setLoading] = useState(true);
     const [eventId, setEventId] = useState<number | undefined>();
     const userWallet = useAnchorWallet();
     const { connection } = useConnection();
     const params = useParams<{ marketId: string }>()
-
-    console.log(eventId)
 
     const load = async () => {
 
@@ -39,7 +48,7 @@ export const useMarkets = () => {
 
             // set empty state
             if (data === null) {
-                setData([])
+                setMarkets([])
                 return
             }
 
@@ -85,11 +94,92 @@ export const useMarkets = () => {
                 }
             })
 
-            setData(list)
+            setMarkets(list)
 
         } catch (err) {
             console.log(err);
         }
+    }
+
+    const loadUser = async () => {
+        const base = new URL("./api/", API_ENDPOINT)
+        const marketMakerParams = new URLSearchParams();
+        marketMakerParams.append("market_maker", userWallet!.publicKey.toString());
+        const openPositionsURL = new URL("./get_open_positions?" + marketMakerParams.toString(), base);
+
+        const repsonse = await fetch(openPositionsURL)
+        // hack impl, need to fixed on server side but it works
+        const positions = repsonse.ok ? await repsonse.json() || [] : []
+
+
+        // need load balance, fetch account data
+        // need to derive vault and capital accounts
+        // const userCapitalA = await getAssociatedTokenAddress(
+        //     new PublicKey(book.tokenMintA),
+        //     userWallet!.publicKey!,
+        //     true,
+        //     new PublicKey(book.tokenProgramA),
+        // );
+
+        // const userCapitalB = await getAssociatedTokenAddress(
+        //     new PublicKey(book.tokenMintB),
+        //     userWallet!.publicKey!,
+        //     true,
+        //     new PublicKey(book.tokenProgramB),
+        // );
+
+        // const userVaultA = PublicKey.findProgramAddressSync([
+        //     new PublicKey(book.pubkeyId).toBuffer(),
+        //     new PublicKey(book.tokenMintA).toBuffer(),
+        //     userWallet!.publicKey!.toBuffer(),
+        //     Buffer.from("vault-account"),
+        // ], PROGRAM_ID)[0];
+
+        // const userVaultB = PublicKey.findProgramAddressSync([
+        //     new PublicKey(book.pubkeyId).toBuffer(),
+        //     new PublicKey(book.tokenMintB).toBuffer(),
+        //     userWallet!.publicKey!.toBuffer(),
+        //     Buffer.from("vault-account"),
+        // ], PROGRAM_ID)[0];
+
+        // const data = await Promise.allSettled([
+        //     getAccount(connection, userCapitalA),
+        //     getAccount(connection, userCapitalB),
+        //     getAccount(connection, userVaultA),
+        //     getAccount(connection, userVaultB),
+        // ]).then((results) => {
+        //     return results.map(data => {
+        //         return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
+        //     })
+        // })
+
+        // I wonder if this could cause issues, let's say event listner gets data first
+        // then this loads data. data becomes mismatched and doesn't reflect the real state.
+        // will come back to this later
+        setOpenLimitOrders((prev: OpenOrder[]) => {
+            // 'positionId', p.pubkey_id,
+            // 'marketId', p.book_config,
+            // 'positionConfig', p.position_config,
+            // 'orderType', p.order_type,
+            // 'price', p.price,
+            // 'size', p.size,
+            // -- need filled total of size, currently not tracking
+            // 'slot', p.slot
+            return [
+                ...prev,
+                ...(positions.map((position: any) => ({
+                    positionId: new PublicKey(position.positionId),
+                    ticker: "",
+                    OrderType: position.orderType,
+                    price: BigInt(position.pirce),
+                    amount: BigInt(position.size),
+                    fillAmount: BigInt(0), // how to handle this?
+                    value: BigInt(position.pirce) * BigInt(position.size),
+                    valueUSD: BigInt(0), // need oracle to handle this
+                    createAt: position.timestamp,
+                })))
+            ] as OpenOrder[]
+        })
     }
 
     useEffect(() => {
@@ -98,111 +188,118 @@ export const useMarkets = () => {
             return
         }
 
-        if (!localStorage.getItem(userWallet.publicKey.toString())) {
-            const data = {
-                markets: []
+        {
+            if (!localStorage.getItem(userWallet.publicKey.toString())) {
+                const data = {
+                    markets: []
+                }
+
+                localStorage.setItem(
+                    userWallet!.publicKey.toString(),
+                    JSON.stringify(data),
+                )
             }
 
-            localStorage.setItem(
-                userWallet!.publicKey.toString(),
-                JSON.stringify(data),
-            )
+            const marketId = new PublicKey(params.marketId);
+
+            const expire = Date.now() / 1000 + (60 * 60 * 6);
+            if (!JSON.parse(localStorage
+                // fetch nonce if not in local storage
+
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
+
+                const user = JSON.parse(localStorage
+                    .getItem(userWallet!.publicKey.toString())!);
+
+                const [positionConfigId] = PublicKey.findProgramAddressSync([
+                    userWallet!.publicKey.toBuffer(),
+                    marketId.toBuffer(),
+                    Buffer.from("order-position-config"),
+                ], PROGRAM_ID);
+
+                (async () => {
+                    const positionConfigNonce = await (async () => {
+                        const account = await connection.getAccountInfo(positionConfigId)
+                        if (account !== null) {
+                            const offset = 32 * 4 + 8;
+                            return account.data.readBigUInt64LE(offset);
+                        }
+
+                        return BigInt(0);
+                    })()
+
+                    const data = {
+                        ...user,
+                        markets: [
+                            ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                            {
+                                marketId: marketId.toString(),
+                                positionConfigId: positionConfigId.toString(),
+                                positionConfigNonce: positionConfigNonce.toString(),
+                                expire,
+                            }
+                        ]
+                    }
+
+                    localStorage.setItem(
+                        userWallet!.publicKey.toString(),
+                        JSON.stringify(data),
+                    )
+
+                })()
+
+
+            } else if (JSON.parse(localStorage
+                // need to fetch nonce if data in local storage is expired
+
+                .getItem(userWallet.publicKey.toString())!)
+                .markets.find((item: CachedMarket) => marketId.toString() === item.marketId).expire < expire) {
+                const user = JSON.parse(localStorage
+                    .getItem(userWallet!.publicKey.toString())!);
+
+                const [positionConfigId] = PublicKey.findProgramAddressSync([
+                    userWallet!.publicKey.toBuffer(),
+                    marketId.toBuffer(),
+                    Buffer.from("order-position-config"),
+                ], PROGRAM_ID);
+
+                (async () => {
+                    const positionConfigNonce = await (async () => {
+                        const account = await connection.getAccountInfo(positionConfigId)
+                        if (account !== null) {
+                            const offset = 32 * 4 + 8;
+                            return account.data.readBigUInt64LE(offset);
+                        }
+
+                        return BigInt(0);
+                    })()
+
+                    const data = {
+                        ...user,
+                        markets: [
+                            ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
+                            {
+                                marketId: marketId.toString(),
+                                positionConfigId: positionConfigId.toString(),
+                                positionConfigNonce: positionConfigNonce.toString(),
+                                expire,
+                            }
+                        ]
+                    }
+
+                    localStorage.setItem(
+                        userWallet!.publicKey.toString(),
+                        JSON.stringify(data),
+                    )
+
+                })()
+            }
+
         }
 
-        const marketId = new PublicKey(params.marketId);
-
-        const expire = Date.now() / 1000 + (60 * 60 * 6);
-        if (!JSON.parse(localStorage
-            // fetch nonce if not in local storage
-
-            .getItem(userWallet.publicKey.toString())!)
-            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId)) {
-
-            const user = JSON.parse(localStorage
-                .getItem(userWallet!.publicKey.toString())!);
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID);
-
-            (async () => {
-                const positionConfigNonce = await (async () => {
-                    const account = await connection.getAccountInfo(positionConfigId)
-                    if (account !== null) {
-                        const offset = 32 * 4 + 8;
-                        return account.data.readBigUInt64LE(offset);
-                    }
-
-                    return BigInt(0);
-                })()
-
-                const data = {
-                    ...user,
-                    markets: [
-                        ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-                        {
-                            marketId: marketId.toString(),
-                            positionConfigId: positionConfigId.toString(),
-                            positionConfigNonce: positionConfigNonce.toString(),
-                            expire,
-                        }
-                    ]
-                }
-
-                localStorage.setItem(
-                    userWallet!.publicKey.toString(),
-                    JSON.stringify(data),
-                )
-
-            })()
-
-
-        } else if (JSON.parse(localStorage
-            // need to fetch nonce if data in local storage is expired
-
-            .getItem(userWallet.publicKey.toString())!)
-            .markets.find((item: CachedMarket) => marketId.toString() === item.marketId).expire < expire) {
-            const user = JSON.parse(localStorage
-                .getItem(userWallet!.publicKey.toString())!);
-
-            const [positionConfigId] = PublicKey.findProgramAddressSync([
-                userWallet!.publicKey.toBuffer(),
-                marketId.toBuffer(),
-                Buffer.from("order-position-config"),
-            ], PROGRAM_ID);
-
-            (async () => {
-                const positionConfigNonce = await (async () => {
-                    const account = await connection.getAccountInfo(positionConfigId)
-                    if (account !== null) {
-                        const offset = 32 * 4 + 8;
-                        return account.data.readBigUInt64LE(offset);
-                    }
-
-                    return BigInt(0);
-                })()
-
-                const data = {
-                    ...user,
-                    markets: [
-                        ...user.markets.filter((list: CachedMarket) => list.positionConfigId !== positionConfigId.toString()),
-                        {
-                            marketId: marketId.toString(),
-                            positionConfigId: positionConfigId.toString(),
-                            positionConfigNonce: positionConfigNonce.toString(),
-                            expire,
-                        }
-                    ]
-                }
-
-                localStorage.setItem(
-                    userWallet!.publicKey.toString(),
-                    JSON.stringify(data),
-                )
-
-            })()
+        {
+            loadUser()
         }
 
     }, [userWallet, params])
@@ -219,33 +316,40 @@ export const useMarkets = () => {
         }
 
         const id = eventListner(userWallet.publicKey, [
+            MARKET_ORDER_FILL_EVENT,
             CREATE_ORDER_POSITION_EVENT,
             CLOSE_LIMIT_ORDER_EVENT,
-            CANCEL_LIMIT_ORDER_EVENT,
             OPEN_LIMIT_ORDER_EVENT,
         ], (method, payload) => {
 
-            console.log(method, payload)
-
             switch (method) {
-                case "create-order-position": {
-                    console.log("method", method)
 
+                case "fill-market-order": {
+                    setOpenLimitOrders((prev: OpenOrder[]) => {
+                        const order = prev.find((order: OpenOrder) => order.positionId === payload.position)
+
+                        order!.fillAmount += payload.amount!;
+                        return [
+                            order,
+                            ...(prev.filter((order: OpenOrder) => order.positionId !== payload.position)),
+                        ] as OpenOrder[]
+                    })
+
+                    // need to update balance info
+                }
+
+                case "complete-market-order": {
+                    // update balance info
+                }
+
+                case "create-order-position": {
                     const { market, user } = (() => {
                         const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-
-
                         const market = user!.markets
                             .find((item: CachedMarket) => item.positionConfigId === payload.positionConfig!.toString());
 
                         return { market, user }
                     })();
-
-                    console.log("it worked :::::")
-
-                    console.log(user)
-
-                    console.log(market)
 
                     const state = {
                         ...user,
@@ -258,20 +362,34 @@ export const useMarkets = () => {
                         ]
                     }
 
-
                     localStorage.setItem(
                         userWallet!.publicKey.toString(),
                         JSON.stringify(state),
                     );
 
-                    console.log(state)
-                    console.log(JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!));
-                    console.log("FIXNISHED :::::")
-
-
                     break;
                 }
 
+                case "open-limit-order": {
+                    const state = {
+                        positionId: payload.position,
+                        ticker: "ticker... need include in event or derive from book config",
+                        orderType: payload.orderType,
+                        price: payload.price,
+                        amount: payload.size, // size
+                        fillAmount: BigInt(0),
+                        value: (payload.price as bigint) * (payload.size as bigint),
+                        valueUSD: BigInt(0), // need oracle to make this work
+                        createdAt: Date.now(),
+                    }
+
+                    setOpenLimitOrders((prev: OpenOrder[]) => [state, ...prev] as OpenOrder[])
+                }
+
+                case "close-limit-order": {
+                    setOpenLimitOrders((prev: OpenOrder[]) => prev
+                        .filter((order: OpenOrder) => order.positionId !== payload.position))
+                }
             }
         })
 
@@ -284,6 +402,7 @@ export const useMarkets = () => {
             return () => clearInterval(intervalId);
         }
 
+        // update every minute
         const id = setInterval(() => load(), 60000)
 
         setLoading(false);
@@ -292,151 +411,24 @@ export const useMarkets = () => {
 
     }, [isLoading, intervalId])
 
-    return { data }
+    return { markets, openLimitOrders, userBalance }
 }
 
-const event = () => {
-    // signer event listner
-    // eventListner(
-    //     userWallet.publicKey,
-    //     [
-    //         // MARKET_ORDER_COMPLETE_EVENT,
-    //         CREATE_ORDER_POSITION_EVENT,
-    //         CLOSE_LIMIT_ORDER_EVENT,
-    //         // OPEN_LIMIT_ORDER_EVENT,
-    //     ],
-    //     async (method, payload) => {
+export type OpenOrder = {
+    positionId: PublicKey,
+    ticker: string, // pair
+    orderType: "bid" | "ask",
+    price: bigint,
+    amount: bigint, // size
+    fillAmount: bigint,
+    value: bigint,
+    valueUSD: bigint, // need oracle to make this work
+    createdAt: number,
+}
 
-    //         switch (method) {
-
-    //             case "complete-market-order": {
-    //                 marketOrder.update(payload.orderType, null);
-
-    //                 (async () => {
-
-
-    //                     if (userWallet === undefined || payload.marketTaker !== userWallet.publicKey) {
-    //                         return;
-    //                     }
-
-    //                     setData({
-    //                         ...queue.data!,
-    //                         user: {
-    //                             ...queue.data!.user,
-    //                             capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
-    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalABalance,
-    //                             capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
-    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalBBalance,
-    //                         }
-    //                     })
-
-    //                 })();
-
-    //                 break;
-    //             }
-
-    //             case "create-limit-order": {
-
-    //                 (async () => {
-
-    //                     if (userWallet === undefined || payload.marketMaker !== userWallet.publicKey) {
-    //                         return;
-    //                     }
-
-    //                     const { market, user } = (() => {
-    //                         const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-    //                         const market = user!.markets
-    //                             .find((id: string) => marketId.toString() === id);
-
-    //                         return { market, user }
-    //                     })();
-
-    //                     const state = {
-    //                         ...user,
-    //                         markets: [
-    //                             {
-    //                                 ...market,
-    //                                 positionConfigNonce: payload.nonce!.toString(),
-    //                             },
-    //                             ...user.markets.filter((item: CachedMarket) => item.marketId !== marketId.toString()),
-    //                         ]
-    //                     }
-
-    //                     localStorage.setItem(
-    //                         userWallet!.publicKey.toString(),
-    //                         JSON.parse(state),
-    //                     );
-
-    //                     setData({
-    //                         ...queue.data!,
-    //                         user: {
-    //                             ...queue.data!.user,
-    //                             positionConfigNonce: payload.nonce!,
-    //                             capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
-    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalABalance,
-    //                             capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
-    //                                 BigInt(payload.capitalSourceBalance!.toString()) : queue.data!.user.capitalBBalance,
-    //                         }
-    //                     })
-
-    //                 })();
-
-    //                 break;
-    //             }
-
-    //             case "open-limit-order": {
-
-
-    //                 // not going to process this here
-    //                 (() => {
-
-    //                     if (userWallet === undefined || payload.marketMaker !== userWallet.publicKey) {
-    //                         return;
-    //                     }
-
-    //                     const user = JSON.parse(localStorage.getItem(userWallet!.publicKey.toString())!);
-
-    //                     const state = {
-    //                         ...user,
-    //                         positions: [
-    //                             {
-    //                                 marketId: payload.bookConfig,
-    //                                 positionConfigId: payload.positionConfig,
-    //                                 positionId: payload.position,
-    //                                 price: payload.price?.toString(),
-    //                                 size: payload.size?.toString(),
-    //                             },
-    //                             ...user.positions,
-    //                         ]
-    //                     }
-
-    //                     localStorage.setItem(
-    //                         userWallet!.publicKey.toString(),
-    //                         JSON.parse(state),
-    //                     );
-    //                 })
-
-    //                 break;
-    //             }
-
-    //             case "close-limit-order": {
-
-    //                 // not correct, need to use a user State hook
-    //                 setData({
-    //                     ...queue.data!,
-    //                     user: {
-    //                         ...queue.data!.user,
-    //                         capitalABalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintA ?
-    //                             BigInt(payload.capitalSourceBalance!.toString())
-    //                             : BigInt(payload.capitalDestBalance!.toString()),
-    //                         capitalBBalance: payload.capitalSourceMint === queue.data!.orderBook.accounts.tokenMintB ?
-    //                             BigInt(payload.capitalSourceBalance!.toString())
-    //                             : BigInt(payload.capitalDestBalance!.toString()),
-    //                     }
-    //                 })
-    //             }
-    //         }
-    //     })
+export type UserBalance = {
+    capitalAAmount: bigint,
+    capitalBAmount: bigint,
 }
 
 export type Markets = {
