@@ -1,10 +1,11 @@
+// TODO! NEED CONVERT NUMBER TO TEXT WHERE EVER I CAN AND MAKES SENSE
 use {
     crate::AppState,
     actix_web::web,
     chrono::prelude::*,
     order_book_dex::state::Order,
     serde::{Deserialize, Serialize},
-    serde_json::{value::Value, Number},
+    serde_json::{json, value::Value, Number},
     solana_sdk::pubkey::Pubkey,
     sqlx::{prelude::FromRow, Pool, Postgres, Row, ValueRef},
     std::str::FromStr,
@@ -103,7 +104,7 @@ pub struct MarketOrderHistory {
 }
 
 pub async fn insert_trade_pair(trade_pair: TradePair, app_state: &AppState) {
-    sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
                 INSERT INTO order_book_config (
                     "pubkey_id",
@@ -119,29 +120,31 @@ pub async fn insert_trade_pair(trade_pair: TradePair, app_state: &AppState) {
                     "token_symbol_b",
                     "ticker",
                     "is_reverse"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13);
+                ) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', {}, {}, '{}', '{}', '{}', {}::BOOLEAN);
             "#,
-    )
-    .bind(&trade_pair.pubkey_id.to_string())
-    .bind(&trade_pair.token_mint_a.to_string())
-    .bind(&trade_pair.token_mint_b.to_string())
-    .bind(&trade_pair.token_program_a.to_string())
-    .bind(&trade_pair.token_program_b.to_string())
-    .bind(&trade_pair.sell_market.to_string())
-    .bind(&trade_pair.buy_market.to_string())
-    .bind(trade_pair.token_decimals_a as i16)
-    .bind(trade_pair.token_decimals_b as i16)
-    .bind(&trade_pair.token_symbol_a)
-    .bind(&trade_pair.token_symbol_b)
-    .bind(&trade_pair.ticker)
-    .bind(&trade_pair.is_reverse)
+        trade_pair.pubkey_id.to_string(),
+        trade_pair.token_mint_a.to_string(),
+        trade_pair.token_mint_b.to_string(),
+        trade_pair.token_program_a.to_string(),
+        trade_pair.token_program_b.to_string(),
+        trade_pair.sell_market.to_string(),
+        trade_pair.buy_market.to_string(),
+        trade_pair.token_decimals_a as i16,
+        trade_pair.token_decimals_b as i16,
+        trade_pair.token_symbol_a,
+        trade_pair.token_symbol_b,
+        trade_pair.ticker,
+        trade_pair.is_reverse.to_string(),
+    ))
     .execute(&app_state.pool)
-    .await
-    .unwrap();
+    .await {
+        Ok(_) => println!("INSERT TRADE PAIR SUCCESS"),
+        Err(_) => println!("INSERT TRADE PAIR FAIL"),
+    };
 }
 
 pub async fn insert_order_position_config(position_config: PositionConfig, app_state: &AppState) {
-    sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
                 INSERT INTO order_position_config (
                     "pubkey_id",
@@ -153,38 +156,42 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
                     "vault_b",
                     "nonce",
                     "reference"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0);
+                ) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', 0, 0);
             "#,
-    )
-    .bind(&position_config.pubkey_id.to_string())
-    .bind(&position_config.book_config.to_string())
-    .bind(&position_config.market_maker.to_string())
-    .bind(&position_config.capital_a.to_string())
-    .bind(&position_config.capital_b.to_string())
-    .bind(&position_config.vault_a.to_string())
-    .bind(&position_config.vault_b.to_string())
+        position_config.pubkey_id.to_string(),
+        position_config.book_config.to_string(),
+        position_config.market_maker.to_string(),
+        position_config.capital_a.to_string(),
+        position_config.capital_b.to_string(),
+        position_config.vault_a.to_string(),
+        position_config.vault_b.to_string(),
+    ))
     .execute(&app_state.pool)
     .await
-    .unwrap();
+    {
+        Ok(success) => println!("INSERT ORDER POSITION CONFIG SUCCESS :: {:?}", success),
+        Err(error) => println!("INSERT ORDER POSITION CONFIG FAIL :: {}", error),
+    };
 }
 
+// issue with prepared statement
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
-    sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
                 WITH head_change AS (
                     UPDATE order_position AS p
                     SET is_head = false
                     WHERE 
-                    (($13::BOOLEAN IS TRUE AND p.is_head IS TRUE)
+                    (({is_head}::BOOLEAN IS TRUE AND p.is_head IS TRUE)
                     OR
-                    ($13::BOOLEAN IS FALSE AND p.is_head IS NULL))
+                    ({is_head}::BOOLEAN IS FALSE AND p.is_head IS NULL))
                     AND 
-                    p.order_type = $7::order_type
+                    p.order_type = '{order_type}'::order_type
 
                 ), parent AS (
                     UPDATE order_position AS p
-                    SET next_position = $1
-                    WHERE p.pubkey_id = $14 -- parent position 
+                    SET next_position = '{next_position}'
+                    WHERE p.pubkey_id = '{parent_id}' -- parent position 
                     AND p.pubkey_id IS NOT NULL 
 
                 )
@@ -204,64 +211,78 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
                     "timestamp",
                     "is_head"
 
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7::order_type, $8, $9, $10, $11, $12, $13);
+                ) VALUES (
+                    '{pubkey_id}', 
+                    '{book_config}', 
+                    '{position_config}', 
+                    '{next_position}', 
+                    '{source_vault}', 
+                    '{destination_vault}', 
+                    '{order_type}'::order_type, 
+                    {price}, 
+                    {size}, 
+                    {is_available}, 
+                    {slot}, 
+                    {timestamp}, 
+                    {is_head}
+                 );
             "#,
-    )
-    .bind(order_position.pubkey_id.to_string())
-    .bind(order_position.book_config.to_string())
-    .bind(order_position.position_config.to_string())
-    .bind(
-        order_position
-            .next_position
-            .is_some()
-            .then(|| order_position.next_position.unwrap().to_string()),
-    )
-    .bind(order_position.source_vault.to_string())
-    .bind(order_position.destination_vault.to_string())
-    .bind(order_position.order_type.to_string())
-    .bind(order_position.price as i64)
-    .bind(order_position.size as i64)
-    .bind(order_position.is_available)
-    .bind(order_position.slot as i64)
-    .bind(order_position.timestamp as i64)
-    .bind(order_position.is_head)
-    .bind(
-        order_position
+        parent_id = order_position
             .parent_position
-            .is_some()
-            .then(|| order_position.parent_position.unwrap().to_string()),
-    )
+            .map_or(String::from(""), |v| v.to_string()),
+        pubkey_id = order_position.pubkey_id.to_string(),
+        book_config = order_position.book_config.to_string(),
+        position_config = order_position.position_config.to_string(),
+        next_position = order_position
+            .next_position
+            .map_or(String::from(""), |v| v.to_string()),
+        source_vault = order_position.source_vault.to_string(),
+        destination_vault = order_position.destination_vault.to_string(),
+        order_type = order_position.order_type.to_string(),
+        price = order_position.price.to_string(),
+        size = order_position.size.to_string(),
+        is_available = order_position.is_available,
+        slot = order_position.slot.to_string(),
+        timestamp = order_position.timestamp.to_string(),
+        is_head = order_position.is_head,
+    ))
     .execute(&app_state.pool)
     .await
-    .unwrap();
+    {
+        Ok(success) => println!("INSERT ORDER POSITION SUCCESS :: {:?}", success),
+        Err(error) => println!("INSERT ORDER POSITION FAIL :: {}", error),
+    };
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
-    sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
-                INSERT INTO real_time_trade_data (
-                    "book_config",
-                    "order_type",
-                    "last_price",
-                    "avg_price",
-                    "amount",
-                    "turnover",
-                    "timestamp",
-                    "slot"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
-            "#,
-    )
-    .bind(&trade.book_config)
-    .bind(&trade.order_type)
-    .bind(&trade.last_price.to_string())
-    .bind(&trade.avg_price.to_string())
-    .bind(&trade.amount.to_string())
-    .bind(&trade.turnover.to_string())
-    .bind(&trade.timestamp.to_string())
-    .bind(&trade.slot.to_string())
+        INSERT INTO real_time_trade_data (
+            "book_config",
+            "order_type",
+            "last_price",
+            "avg_price",
+            "amount",
+            "turnover",
+            "timestamp",
+            "slot"
+        ) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');
+    "#,
+        trade.book_config,
+        trade.order_type,
+        trade.last_price.to_string(),
+        trade.avg_price.to_string(),
+        trade.amount.to_string(),
+        trade.turnover.to_string(),
+        trade.timestamp.to_string(),
+        trade.slot.to_string()
+    ))
     .execute(&app_state.pool)
     .await
-    .unwrap();
+    {
+        Ok(success) => println!("INSERT REAL TIME TRADE SUCCESS :: {:?}", success),
+        Err(error) => println!("INSERT REAL TIME TRADE FAIL :: {}", error),
+    };
 }
 
 // handled by a scheduler
@@ -1007,13 +1028,17 @@ pub async fn get_trade_pair(
     position_config: &Option<Pubkey>,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    // there is something wrong with parts of this query,
-    // need to come back and fix... need to remove hard coded pubkey_id
-    let query = sqlx::query(
+    let query = sqlx::raw_sql(&format!(
         r#"
-                WITH trade_pair AS (
+                WITH input AS (
+                    SELECT * FROM (
+                    VALUES  (
+                        '{}',
+                        '{}'
+                    )) AS t ("book_config", "position_config")
+                ), trade_pair AS (
                     SELECT * FROM order_book_config AS obc
-                    WHERE obc.pubkey_id = $1
+                    WHERE obc.pubkey_id = (SELECT book_config FROM input)
 
                 ), position AS (
                     SELECT
@@ -1113,7 +1138,7 @@ pub async fn get_trade_pair(
 
                 ), agg_bids AS (
                     SELECT 
-                        $1 AS "pubkey_id",
+                        (SELECT book_config FROM input) AS "pubkey_id",
                         array_agg(
                             json_build_object(
                                 'pubkeyId', b.pubkey_id,
@@ -1121,22 +1146,22 @@ pub async fn get_trade_pair(
                                 'nextPosition', b.next_position,
                                 'marketMaker', b.market_maker,
                                 'orderType', b.order_type,
-                                'price', b.price,
-                                'size', b.size,
+                                'price', b.price::TEXT,
+                                'size', b.size::TEXT,
                                 'isAvailable', b.is_available,
                                 'sourceCapital', b.capital_source,
                                 'destinationCapital', b.capital_destination,
                                 'sourceVault', b.source,
                                 'destinationVault', b.destination,
-                                'slot', b.slot,
-                                'timestamp', b.timestamp
+                                'slot', b.slot::TEXT,
+                                'timestamp', b.timestamp::TEXT
                             )
                         ) AS bids
                     FROM bids AS b
 
                 ), agg_asks AS (
                     SELECT 
-                        $1 AS "pubkey_id",
+                       (SELECT book_config FROM input) AS "pubkey_id",
                         array_agg(
                             json_build_object(
                                 'pubkeyId', a.pubkey_id,
@@ -1144,15 +1169,15 @@ pub async fn get_trade_pair(
                                 'nextPosition', a.next_position,
                                 'marketMaker', a.market_maker,
                                 'orderType', a.order_type,
-                                'price', a.price,
-                                'size', a.size,
+                                'price', a.price::TEXT,
+                                'size', a.size::TEXT,
                                 'isAvailable', a.is_available,
                                 'sourceCapital', a.capital_source,
                                 'destinationCapital', a.capital_destination,
                                 'sourceVault', a.source,
                                 'destinationVault', a.destination,
-                                'slot', a.slot,
-                                'timestamp', a.timestamp
+                                'slot', a.slot::TEXT,
+                                'timestamp', a.timestamp::TEXT
                             )
                         ) AS asks
                     FROM asks AS a
@@ -1165,18 +1190,18 @@ pub async fn get_trade_pair(
                         "timestamp"
                         
                     FROM real_time_trade_data
-                    WHERE book_config = 'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK'
+                    WHERE book_config = (SELECT book_config FROM input)
                     ORDER BY slot DESC
                     LIMIT 200
 
                 ), trade_history_agg AS (
                     SELECT
-                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        (SELECT book_config FROM input) AS book_config,
                         json_agg(
                             json_build_object(
                                 'action', h.order_type,
-                                'price', h.last_price,
-                                'qty', h.amount,
+                                'price', h.last_price::TEXT,
+                                'qty', h.amount::TEXT,
                                 'time', h.timestamp
                             )
                         ) as trades
@@ -1185,7 +1210,7 @@ pub async fn get_trade_pair(
 
                 ), market_data AS (
                     SELECT
-                        'BqN7dPo4LheezCRC2kSX5PEyXBRNswvBzLzH7P5w2PWK' AS book_config,
+                        (SELECT book_config FROM input) AS book_config,
                         CASE WHEN t.last_price IS NOT NULL 
                             THEN t.last_price
                             ELSE 0 
@@ -1217,7 +1242,7 @@ pub async fn get_trade_pair(
                         END AS "timestamp"
 
                     FROM trade_data_24_hour AS t 
-                    WHERE book_config = $1
+                    WHERE book_config = (SELECT book_config FROM input)
                     ORDER BY t.timestamp DESC 
                     LIMIT 1
                     
@@ -1242,7 +1267,7 @@ pub async fn get_trade_pair(
                         'positionConfig', (
                             SELECT pubkey_id
                             FROM order_position_config
-                            WHERE pubkey_id = $2
+                            WHERE pubkey_id = (SELECT position_config FROM input)
                         ),
 
                         'book', json_build_object(
@@ -1253,12 +1278,12 @@ pub async fn get_trade_pair(
                         'trades', h.trades,
 
                         'marketData', json_build_object(
-                            'lastPrice', md.last_price,
-                            'volume', md.volume,
-                            'turnover', md.turnover,
-                            'changeDelta', md.change_delta,
-                            'prevLastPrice', md.prev_last_price,
-                            'time', md.timestamp
+                            'lastPrice', md.last_price::TEXT,
+                            'volume', md.volume::TEXT,
+                            'turnover', md.turnover::TEXT,
+                            'changeDelta', md.change_delta::TEXT,
+                            'prevLastPrice', md.prev_last_price::TEXT,
+                            'time', md.timestamp::TEXT
                         )
                     )
 
@@ -1268,14 +1293,11 @@ pub async fn get_trade_pair(
                 FULL JOIN agg_asks AS book_asks ON book_asks.pubkey_id = t.pubkey_id
                 FULL JOIN agg_bids AS book_bids ON book_bids.pubkey_id = t.pubkey_id;
         "#,
-    )
-    .bind(pubkey_id.to_string())
-    .bind(
-        position_config
-            .is_some()
-            .then(|| position_config.unwrap().to_string()),
-    )
+        pubkey_id.to_string(),
+        position_config.map_or(String::from(""), |v| v.to_string())
+    ))
     .fetch_one(&app_state.pool)
+    // need to handle this
     .await?;
 
     let mut data: Box<Value> = serde_json::from_str(
@@ -1326,79 +1348,86 @@ pub async fn get_trade_pair_list(
         dt.timestamp() / 60 * 60
     };
 
-    let query = sqlx::query(
+    let query = sqlx::raw_sql(&format!(
         r#"
-                WITH config AS (
-                    SELECT * FROM order_book_config
-                    LIMIT $1
-                    OFFSET $2
-                    
-                ), market_data AS (
-                    SELECT * FROM trade_data_24_hour as td
-                    WHERE td.timestamp = $3
+            WITH input AS (
+                SELECT * FROM (
+                VALUES  (
+                    {},
+                    {},
+                    {}
+                )) AS t ("limit", "offset", "time")
 
-                )
+            ), config AS (
+                SELECT * FROM order_book_config
+                LIMIT (SELECT "limit" FROM input)
+                OFFSET (SELECT "offset" FROM input)
+                
+            ), market_data AS (
+                SELECT * FROM trade_data_24_hour as td
+                WHERE td.timestamp = (SELECT "time" FROM input)
 
-                SELECT
-                    json_agg(
-                        json_build_object(
-                            'pubkeyId', "pubkey_id",
-                            'tokenMintA', "token_mint_a", 
-                            'tokenMintB', "token_mint_b", 
-                            'tokenProgramA', "token_program_a", 
-                            'tokenProgramB', "token_program_b", 
-                            'sellMarketPointer', "sell_market", 
-                            'buyMarketPointer', "buy_market",
-                            'tokenDecimalsA', "token_decimals_a",
-                            'tokenDecimalsB', "token_decimals_b",
-                            'tokenSymbolA', "token_symbol_a",
-                            'tokenSymbolB', "token_symbol_b",
-                            'ticker', "ticker",
-                            'isReverse', "is_reverse",
+            )
 
-                            -- need to fix some of these names
-                            'marketData', json_build_object(
-                                'lastPrice',
-                                    CASE WHEN m.last_price IS NOT NULL
-                                        THEN m.last_price
-                                        ELSE 0
-                                    END,
-                                'volume',
-                                    CASE WHEN "24_hour_volume" IS NOT NULL
-                                        THEN "24_hour_volume"
-                                        ELSE 0
-                                    END,
-                                'turnover',
-                                    CASE WHEN "24_hour_turnover" IS NOT NULL
-                                        THEN "24_hour_turnover"
-                                        ELSE 0
-                                    END,
-                                'changeDelta',
-                                    CASE WHEN "24_hour_price_change" IS NOT NULL
-                                        THEN "24_hour_price_change"
-                                        ELSE 0
-                                    END,
-                                'prevLastPrice',
-                                    CASE WHEN "24_hour_prev_last_price" IS NOT NULL
-                                        THEN "24_hour_prev_last_price"
-                                        ELSE 0
-                                    END,
-                                'timestamp', 
-                                    CASE WHEN m.timestamp IS NOT NULL
-                                        THEN m.timestamp
-                                        ELSE $3
-                                    END
-                            )
+            SELECT
+                json_agg(
+                    json_build_object(
+                        'pubkeyId', "pubkey_id",
+                        'tokenMintA', "token_mint_a", 
+                        'tokenMintB', "token_mint_b", 
+                        'tokenProgramA', "token_program_a", 
+                        'tokenProgramB', "token_program_b", 
+                        'sellMarketPointer', "sell_market", 
+                        'buyMarketPointer', "buy_market",
+                        'tokenDecimalsA', "token_decimals_a",
+                        'tokenDecimalsB', "token_decimals_b",
+                        'tokenSymbolA', "token_symbol_a",
+                        'tokenSymbolB', "token_symbol_b",
+                        'ticker', "ticker",
+                        'isReverse', "is_reverse",
+
+                        'marketData', json_build_object(
+                            'lastPrice',
+                                CASE WHEN m.last_price IS NOT NULL
+                                    THEN m.last_price
+                                    ELSE 0
+                                END,
+                            'volume',
+                                CASE WHEN "24_hour_volume" IS NOT NULL
+                                    THEN "24_hour_volume"
+                                    ELSE 0
+                                END,
+                            'turnover',
+                                CASE WHEN "24_hour_turnover" IS NOT NULL
+                                    THEN "24_hour_turnover"
+                                    ELSE 0
+                                END,
+                            'changeDelta',
+                                CASE WHEN "24_hour_price_change" IS NOT NULL
+                                    THEN "24_hour_price_change"
+                                    ELSE 0
+                                END,
+                            'prevLastPrice',
+                                CASE WHEN "24_hour_prev_last_price" IS NOT NULL
+                                    THEN "24_hour_prev_last_price"
+                                    ELSE 0
+                                END,
+                            'timestamp', 
+                                CASE WHEN m.timestamp IS NOT NULL
+                                    THEN m.timestamp
+                                    ELSE (SELECT "time" FROM input)
+                                END
                         )
-                    ) as data
+                    )
+                ) as data
 
-                From config
-                LEFT JOIN market_data AS m ON m.book_config = config.pubkey_id;
+            From config
+            LEFT JOIN market_data AS m ON m.book_config = config.pubkey_id;
         "#,
-    )
-    .bind(limit as i64)
-    .bind(offset as i64)
-    .bind(time as i64)
+        limit.to_string(),
+        offset.to_string(),
+        time.to_string()
+    ))
     .fetch_one(&app_state.pool)
     .await?;
 
@@ -1414,7 +1443,6 @@ pub async fn get_trade_pair_list(
     Ok(data)
 }
 
-// need handle has optional
 pub async fn get_market_order_history(
     pubkey_id: Pubkey,
     // interval: PgInterval,
@@ -1423,20 +1451,28 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    let query = sqlx::query(
+    let query = sqlx::raw_sql(&format!(
         r#"
                 -- can't do this like this
                 -- SET intervalstyle = iso_8601;
 
-                WITH market AS (
+                WITH input AS (
+                    SELECT * FROM (
+                    VALUES  (
+                        '{}',
+                        '{}',
+                        {}, 
+                        {}
+                    )) AS t ("book_config", "interval", "limit", "offset")
+                ), market AS (
                     SELECT 
                         *
                     FROM market_order_history AS m 
-                    WHERE m.book_config = $1
+                    WHERE m.book_config = (SELECT "book_config" FROM input)
                     AND m.interval = '1m'::interval
                     ORDER BY m.timestamp DESC
-                    LIMIT $3
-                    OFFSET $4
+                    LIMIT (SELECT "limit" FROM input)
+                    OFFSET (SELECT "offset" FROM input)
 
                 ), agg AS (
                     SELECT 
@@ -1455,7 +1491,7 @@ pub async fn get_market_order_history(
                             ) AS "data"
 
                     FROM market AS m 
-                    WHERE m.book_config = $1
+                    WHERE m.book_config = (SELECT "book_config" FROM input)
                     GROUP BY m.book_config
 
                 ), p AS (
@@ -1492,8 +1528,8 @@ pub async fn get_market_order_history(
                         END AS interval
 
                     FROM market_order_history AS m 
-                    WHERE m.book_config = $1
-                    AND m.interval = $2::interval
+                    WHERE m.book_config = (SELECT "book_config" FROM input)
+                    AND m.interval = (SELECT "interval" FROM input)::interval
                     
                 )
 
@@ -1507,16 +1543,25 @@ pub async fn get_market_order_history(
                 FROM agg AS m
                 JOIN p ON p.book_config = m.book_config;
             "#,
-    )
-    .bind(pubkey_id.to_string())
-    .bind(interval)
-    .bind(limit as i64)
-    .bind(offset as i64)
+        pubkey_id.to_string(),
+        interval,
+        limit,
+        offset,
+    ))
     .fetch_one(&app_state.pool)
-    .await?;
+    .await;
+
+    if query.is_err() {
+        println!(
+            "error being cleaned to empty array:: {}",
+            query.unwrap_err()
+        );
+        return Ok(Box::new(Value::Null));
+    }
 
     let data: Box<Value> = serde_json::from_str(
         query
+            .unwrap()
             .try_get_raw("json_build_object")
             .unwrap()
             .as_str()
@@ -1527,14 +1572,18 @@ pub async fn get_market_order_history(
     Ok(data)
 }
 
-// has a bug when empty?
 pub async fn get_open_positions(
     market_maker: Pubkey,
     app_state: web::Data<AppState>,
 ) -> Result<Option<Box<Value>>, sqlx::Error> {
-    let query = sqlx::query(
+    let query = sqlx::raw_sql(&format!(
         r#"
-            WITH positions AS (
+            WITH input AS (
+                SELECT * FROM (
+                VALUES  (
+                    {}
+                )) AS t ("market_maker")
+            ), positions AS (
                 SELECT
                     json_build_object(
                         'positionId', p.pubkey_id,
@@ -1552,7 +1601,8 @@ pub async fn get_open_positions(
                 FROM order_position_config AS c
                 JOIN order_position AS p ON p.position_config = c.pubkey_id
                 JOIN order_book_config AS b ON b.pubkey_id = p.book_config
-                WHERE c.market_maker = $1 AND p.size != p.fill
+                WHERE c.market_maker = (SELECT market_maker FROM input) 
+                AND p.size != p.fill
                 ORDER BY p.book_config DESC, p.slot DESC
                 
             )
@@ -1564,35 +1614,46 @@ pub async fn get_open_positions(
 
             FROM positions AS p;
         "#,
-    )
-    .bind(market_maker.to_string())
+        market_maker.to_string()
+    ))
     .fetch_one(&app_state.pool)
-    .await?;
+    .await;
 
-    // maybe handle as fetch option, if None send as empty array
+    if query.is_err() {
+        println!(
+            "error being cleaned to empty array:: {}",
+            query.unwrap_err()
+        );
+        return Ok(Some(Box::new(json!([]))));
+    }
+
+    let query = query.unwrap();
     let data = query.try_get_raw("data")?.as_str();
     let data: Option<Box<Value>> = match data {
         Ok(data) => serde_json::from_str(data).unwrap(),
         Err(error) => {
-            println!(" LN: 1580 error {}", error);
-            None
+            println!("error being cleaned to empty array:: {}", error);
+            return Ok(Some(Box::new(json!([]))));
         }
     };
 
     Ok(data)
 }
 
-pub async fn delete_order_position(pubkey_id: String, app_state: &AppState) {
-    sqlx::query(
+pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
+    match sqlx::raw_sql(&format!(
         r#"
                 DELETE FROM order_position
-                WHERE pubkey_id == $1;
+                WHERE pubkey_id == '{}';
             "#,
-    )
-    .bind(&pubkey_id)
+        pubkey_id.to_string()
+    ))
     .execute(&app_state.pool)
     .await
-    .unwrap();
+    {
+        Ok(data) => println!("DELETE ORDER POSIITON: {:?}", data),
+        Err(error) => println!("DELETE ORDER POSIITON ERROR: {}", error),
+    };
 }
 
 // functionality not implemented yet
@@ -1648,19 +1709,22 @@ pub async fn update_order_position(
     is_available: bool,
     app_state: &AppState,
 ) {
-    sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
-                UPDATE order_position AS p SET "is_available" = $1, "fill" = p.size - $2
-                WHERE pubkey_id = $3
+                UPDATE order_position AS p SET "is_available" = {}, "fill" = p.size - {}
+                WHERE p.pubkey_id = '{}'
                 -- need implement delete when fill == size
             "#,
-    )
-    .bind(&is_available)
-    .bind(size as i64)
-    .bind(&id.to_string())
+        is_available,
+        size.to_string(),
+        id.to_string(),
+    ))
     .execute(&app_state.pool)
     .await
-    .unwrap();
+    {
+        Ok(data) => println!("DELETE UPDATE ORDER POSITION: {:?}", data),
+        Err(error) => println!("DELETE UPDATE ORDER POSITION ERROR: {}", error),
+    };
 }
 
 // need add the position config id, right now it's just jank
@@ -1685,311 +1749,331 @@ pub async fn open_limit_order(
         position_config.to_string()
     );
 
-    let query = sqlx::query(
+    match sqlx::raw_sql(&format!(
         r#"
-                WITH input AS (
-                    SELECT * FROM (
-                    VALUES  (
-                        $1,
-                        $2,
-                        $3, 
-                        $4::order_type
-                    )) AS t ("book_config", "position_config", "price", "order_type")
+            WITH input AS (
+            SELECT * FROM (
+                VALUES  (
+                    '{}',
+                    '{}',
+                    {}, 
+                    '{}'::order_type
+                )) AS t ("book_config", "position_config", "price", "order_type")
 
-                ), trade_pair AS (
-                    SELECT * FROM order_book_config AS obc
-                    WHERE obc.pubkey_id = (SELECT "book_config" FROM input)
+            ), trade_pair AS (
+                SELECT * FROM order_book_config AS obc
+                WHERE obc.pubkey_id = (SELECT "book_config" FROM input)
 
-                ), ledger AS (
+            ), ledger AS (
+                SELECT
+                    op.pubkey_id AS "pubkey_id",
+                    op.next_position AS "next_position",
+                    op.order_type AS "order_type",
+                    op.price AS "price",
+                    op.slot AS "slot"
+
+                FROM order_position AS op
+                WHERE op.book_config = (SELECT "book_config" FROM input) 
+                AND op.order_type = (SELECT "order_type" FROM input)
+                AND op.is_available = 't'
+                ORDER BY op.price ASC
+
+            ), min_price AS (
+                SELECT 
+                    ledger.pubkey_id AS "pubkey_id",
+                    ledger.next_position AS "next_position",
+                    ledger.order_type AS "order_type",
+                    ledger.price AS "price",
+                    ledger.slot AS "slot"
+
+                FROM ledger
+                JOIN (
                     SELECT
-                        op.pubkey_id AS "pubkey_id",
-                        op.next_position AS "next_position",
-                        op.order_type AS "order_type",
-                        op.price AS "price",
-                        op.slot AS "slot"
+                        ledger.pubkey_id,
+                        l.price,
+                        MIN(ledger.slot) AS slot
 
-                    FROM order_position AS op
-                    WHERE op.book_config = (SELECT "book_config" FROM input) 
-                    AND op.order_type = (SELECT "order_type" FROM input)
-                    AND op.is_available = 't'
-                    ORDER BY op.price ASC
-
-                ), min_price AS (
-                    SELECT 
-                        ledger.pubkey_id AS "pubkey_id",
-                        ledger.next_position AS "next_position",
-                        ledger.order_type AS "order_type",
-                        ledger.price AS "price",
-                        ledger.slot AS "slot"
-
-                    FROM ledger
-                    JOIN (
-                        SELECT
-                            ledger.pubkey_id,
-                            l.price,
-                            MIN(ledger.slot) AS slot
-
-                        FROM (
-                            SELECT
-                                MIN(ledger.price) as price
-
-                            FROM ledger
-                            WHERE (
-                                ledger.order_type = 'bid'::order_type
-                                AND ledger.price >= (SELECT price FROM input))
-                            OR (
-                                ledger.order_type = 'ask'::order_type
-                                AND ledger.price > (SELECT price FROM input))
-
-                        ) AS l
-                        JOIN ledger ON l.price = ledger.price
-                        GROUP BY GROUPING SETS (
-                            (1, 2)
-                        )
-                    ) AS _min ON _min.pubkey_id = ledger.pubkey_id
-
-                ), max_price AS (
-                    SELECT 
-                        ledger.pubkey_id AS "pubkey_id",
-                        ledger.next_position AS "next_position",
-                        ledger.order_type AS "order_type",
-                        ledger.price AS "price",
-                        ledger.slot AS "slot"
-
-                    FROM ledger
-                    JOIN (
-                        SELECT
-                            ledger.pubkey_id,
-                            l.price,
-                            MIN(ledger.slot) AS slot
-
-                        FROM (
-                            SELECT
-                                MAX(ledger.price) as price
-
-                            FROM ledger
-                            WHERE  (
-                                ledger.order_type = 'bid'::order_type
-                                AND ledger.price < (SELECT price FROM input))
-                            OR (
-                                ledger.order_type = 'ask'::order_type
-                                AND ledger.price <= (SELECT price FROM input))
-
-                        ) AS l
-                        JOIN ledger ON l.price = ledger.price
-                        GROUP BY GROUPING SETS (
-                            (1, 2)
-                        )
-                    ) AS _min ON _min.pubkey_id = ledger.pubkey_id
-
-                ), head_ask AS (
-                    SELECT 
-                        pubkey_id,
-                        price
-                    FROM order_position AS p
-                    WHERE p.book_config = (SELECT "book_config" FROM input)
-                    AND p.order_type = 'ask' AND p.is_head
-                    LIMIT 1
-
-                ), head_bid AS (
-                    SELECT 
-                        pubkey_id,
-                        price
-                    FROM order_position AS p
-                    WHERE p.book_config = (SELECT "book_config" FROM input)
-                    AND p.order_type = 'bid' AND p.is_head
-                    LIMIT 1
-
-                ), node AS (
-                    SELECT 
-                        (SELECT book_config FROM input) AS book_config,
-                        CASE
-                            WHEN order_type = 'bid' 
-                            AND ((
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NOT NULL )
-                            OR (
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NULL ))
-                                    THEN min_pubkey_id
-  
-
-                            WHEN order_type = 'ask'  
-                            AND ((
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NOT NULL)
-                            OR (
-                                max_pubkey_id IS NOT NULL
-                                AND min_pubkey_id IS NULL
-                                AND max_next_position IS NULL))
-                                    THEN max_pubkey_id
-
-                            
-                            ELSE NULL
-                        END AS prev_pubkey_id,
-
-                        CASE
-                            WHEN order_type = 'bid' 
-                            AND ((
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NOT NULL)
-                            OR (
-                                min_pubkey_id IS NULL
-                                AND max_pubkey_id IS NOT NULL ))
-                                    THEN max_pubkey_id
-
-
-                            WHEN order_type = 'ask'  
-                            AND (( 
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NOT NULL)
-                            OR (
-                                min_pubkey_id IS NOT NULL
-                                AND max_pubkey_id IS NULL))
-                                    THEN min_pubkey_id
-                            
-                            ELSE NULL
-                        END AS next_pubkey_id
-                    
                     FROM (
                         SELECT
-                            min_price.order_type AS order_type,
-                            max_price.slot AS slot,
-
-                            min_price.pubkey_id AS min_pubkey_id, 
-                            min_price.price AS min_price,
-                            min_price.next_position AS min_next_position, 
-                            min_price.slot AS min_slot,
-
-                            max_price.pubkey_id AS max_pubkey_id, 
-                            max_price.price AS max_price,
-                            max_price.next_position AS max_next_position, 
-                            max_price.slot AS max_slot
-                        FROM min_price, max_price
-                        WHERE ( min_price.order_type = 'bid'::order_type
-                            AND min_price.next_position = max_price.pubkey_id )
-                        OR 
-                            ( max_price.order_type = 'ask'::order_type
-                            AND max_price.next_position = min_price.pubkey_id )
-
-                        UNION
-                        SELECT
-                            ledger.order_type AS order_type,
-                            ledger.slot AS slot,
-
-                            min_price.pubkey_id AS min_pubkey_id, 
-                            min_price.price AS min_price,
-                            min_price.next_position AS min_next_position, 
-                            min_price.slot AS min_slot,
-
-                            NULL AS max_pubkey_id, 
-                            NULL AS max_price,
-                            NULL AS max_next_position, 
-                            NULL AS max_slot
-                        FROM ledger
-                        LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
-                        LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-                        WHERE min_price.pubkey_id IS NOT NULL AND max_price.pubkey_id IS NULL
-                        AND ((
-                            ledger.order_type = 'bid'::order_type
-                            AND min_price.next_position IS NULL
-                        ) OR (
-                            ledger.order_type = 'ask'::order_type
-                            AND (SELECT pubkey_id FROM head_ask) = min_price.pubkey_id
-                            AND (SELECT price FROM input) < min_price.price
-                        ))
-
-                        UNION
-                        SELECT
-                            ledger.order_type AS order_type,
-                            ledger.slot AS slot,
-
-                            NULL AS min_pubkey_id, 
-                            NULL AS min_price,
-                            NULL AS min_next_position, 
-                            NULL AS min_slot,
-
-                            max_price.pubkey_id AS max_pubkey_id, 
-                            max_price.price AS max_price,
-                            max_price.next_position AS max_next_position, 
-                            max_price.slot AS max_slot
+                            MIN(ledger.price) as price
 
                         FROM ledger
-                        LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
-                        LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
-                        WHERE max_price.pubkey_id IS NOT NULL AND min_price.pubkey_id IS NULL
-                        AND ((
-                            ledger.order_type = 'ask'::order_type
-                            AND max_price.next_position IS NULL
-                        ) OR (
+                        WHERE (
                             ledger.order_type = 'bid'::order_type
-                            AND (SELECT pubkey_id FROM head_bid) = max_price.pubkey_id
-                            AND (SELECT price FROM input) > max_price.price
-                        ))
+                            AND ledger.price >= (SELECT price FROM input))
+                        OR (
+                            ledger.order_type = 'ask'::order_type
+                            AND ledger.price > (SELECT price FROM input))
+
+                    ) AS l
+                    JOIN ledger ON l.price = ledger.price
+                    GROUP BY GROUPING SETS (
+                        (1, 2)
                     )
+                ) AS _min ON _min.pubkey_id = ledger.pubkey_id
 
-                    WHERE ( 
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NULL
-                        
-                    ) OR ((SELECT order_type FROM input) = 'bid'::order_type AND (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND min_next_position = max_pubkey_id
-                        
-                    ) OR (
-                        -- not sure -> set head
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND (max_next_position IS NULL
-                        OR  max_pubkey_id = (SELECT pubkey_id FROM head_bid))
-
-                    ) OR (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NULL
-
-                    )) OR ((SELECT order_type FROM input) = 'ask'::order_type AND (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND max_next_position = min_pubkey_id
-
-                    ) OR (
-                        -- not sure -> set head
-                        max_pubkey_id IS NULL
-                        AND min_pubkey_id IS NOT NULL
-                        AND (min_next_position IS NULL
-                        OR min_pubkey_id = (SELECT pubkey_id FROM head_ask))
-
-                    ) OR (
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NOT NULL
-                    ))
-                )
-
+            ), max_price AS (
                 SELECT 
-                    t.pubkey_id AS book_config,
+                    ledger.pubkey_id AS "pubkey_id",
+                    ledger.next_position AS "next_position",
+                    ledger.order_type AS "order_type",
+                    ledger.price AS "price",
+                    ledger.slot AS "slot"
 
-                    CASE 
-                        WHEN (SELECT order_type FROM input) = 'bid'::order_type
-                            THEN t.sell_market
-                        WHEN (SELECT order_type FROM input) = 'ask'::order_type
-                            THEN t.buy_market
-                    END AS market_pointer,
+                FROM ledger
+                JOIN (
+                    SELECT
+                        ledger.pubkey_id,
+                        l.price,
+                        MIN(ledger.slot) AS slot
 
-                    CASE 
-                        WHEN (SELECT order_type FROM input) = 'bid'::order_type
-                            THEN t.buy_market
-                        WHEN (SELECT order_type FROM input) = 'ask'::order_type
-                            THEN t.sell_market
-                    END AS contra_pointer,
+                    FROM (
+                        SELECT
+                            MAX(ledger.price) as price
 
-                    (SELECT order_type FROM input) as order_type,
-                    t.token_mint_a,
-                    t.token_mint_b,
-                    t.token_program_a,
-                    t.token_program_b,
-                    t.is_reverse,
-                    pc.pubkey_id AS position_config,
+                        FROM ledger
+                        WHERE  (
+                            ledger.order_type = 'bid'::order_type
+                            AND ledger.price < (SELECT price FROM input))
+                        OR (
+                            ledger.order_type = 'ask'::order_type
+                            AND ledger.price <= (SELECT price FROM input))
+
+                    ) AS l
+                    JOIN ledger ON l.price = ledger.price
+                    GROUP BY GROUPING SETS (
+                        (1, 2)
+                    )
+                ) AS _min ON _min.pubkey_id = ledger.pubkey_id
+
+            ), head_ask AS (
+                SELECT 
+                    pubkey_id,
+                    price
+                FROM order_position AS p
+                WHERE p.book_config = (SELECT "book_config" FROM input)
+                AND p.order_type = 'ask' AND p.is_head
+                LIMIT 1
+
+            ), head_bid AS (
+                SELECT 
+                    pubkey_id,
+                    price
+                FROM order_position AS p
+                WHERE p.book_config = (SELECT "book_config" FROM input)
+                AND p.order_type = 'bid' AND p.is_head
+                LIMIT 1
+
+            ), node AS (
+                SELECT 
+                    (SELECT book_config FROM input) AS book_config,
+                    CASE
+                        WHEN order_type = 'bid' 
+                        AND ((
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NOT NULL )
+                        OR (
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NULL ))
+                                THEN min_pubkey_id
+
+
+                        WHEN order_type = 'ask'  
+                        AND ((
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NOT NULL)
+                        OR (
+                            max_pubkey_id IS NOT NULL
+                            AND min_pubkey_id IS NULL
+                            AND max_next_position IS NULL))
+                                THEN max_pubkey_id
+
+                        
+                        ELSE NULL
+                    END AS prev_pubkey_id,
+
+                    CASE
+                        WHEN order_type = 'bid' 
+                        AND ((
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NOT NULL)
+                        OR (
+                            min_pubkey_id IS NULL
+                            AND max_pubkey_id IS NOT NULL ))
+                                THEN max_pubkey_id
+
+
+                        WHEN order_type = 'ask'  
+                        AND (( 
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NOT NULL)
+                        OR (
+                            min_pubkey_id IS NOT NULL
+                            AND max_pubkey_id IS NULL))
+                                THEN min_pubkey_id
+                        
+                        ELSE NULL
+                    END AS next_pubkey_id
+                
+                FROM (
+                    SELECT
+                        min_price.order_type AS order_type,
+                        max_price.slot AS slot,
+
+                        min_price.pubkey_id AS min_pubkey_id, 
+                        min_price.price AS min_price,
+                        min_price.next_position AS min_next_position, 
+                        min_price.slot AS min_slot,
+
+                        max_price.pubkey_id AS max_pubkey_id, 
+                        max_price.price AS max_price,
+                        max_price.next_position AS max_next_position, 
+                        max_price.slot AS max_slot
+                    FROM min_price, max_price
+                    WHERE ( min_price.order_type = 'bid'::order_type
+                        AND min_price.next_position = max_price.pubkey_id )
+                    OR 
+                        ( max_price.order_type = 'ask'::order_type
+                        AND max_price.next_position = min_price.pubkey_id )
+
+                    UNION
+                    SELECT
+                        ledger.order_type AS order_type,
+                        ledger.slot AS slot,
+
+                        min_price.pubkey_id AS min_pubkey_id, 
+                        min_price.price AS min_price,
+                        min_price.next_position AS min_next_position, 
+                        min_price.slot AS min_slot,
+
+                        NULL AS max_pubkey_id, 
+                        NULL AS max_price,
+                        NULL AS max_next_position, 
+                        NULL AS max_slot
+                    FROM ledger
+                    LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
+                    LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
+                    WHERE min_price.pubkey_id IS NOT NULL AND max_price.pubkey_id IS NULL
+                    AND ((
+                        ledger.order_type = 'bid'::order_type
+                        AND min_price.next_position IS NULL
+                    ) OR (
+                        ledger.order_type = 'ask'::order_type
+                        AND (SELECT pubkey_id FROM head_ask) = min_price.pubkey_id
+                        AND (SELECT price FROM input) < min_price.price
+                    ))
+
+                    UNION
+                    SELECT
+                        ledger.order_type AS order_type,
+                        ledger.slot AS slot,
+
+                        NULL AS min_pubkey_id, 
+                        NULL AS min_price,
+                        NULL AS min_next_position, 
+                        NULL AS min_slot,
+
+                        max_price.pubkey_id AS max_pubkey_id, 
+                        max_price.price AS max_price,
+                        max_price.next_position AS max_next_position, 
+                        max_price.slot AS max_slot
+
+                    FROM ledger
+                    LEFT JOIN min_price ON min_price.pubkey_id = ledger.pubkey_id
+                    LEFT JOIN max_price ON max_price.pubkey_id = ledger.pubkey_id
+                    WHERE max_price.pubkey_id IS NOT NULL AND min_price.pubkey_id IS NULL
+                    AND ((
+                        ledger.order_type = 'ask'::order_type
+                        AND max_price.next_position IS NULL
+                    ) OR (
+                        ledger.order_type = 'bid'::order_type
+                        AND (SELECT pubkey_id FROM head_bid) = max_price.pubkey_id
+                        AND (SELECT price FROM input) > max_price.price
+                    ))
+                ) AS r
+
+                WHERE ( 
+                    min_pubkey_id IS NULL
+                    AND max_pubkey_id IS NULL
+                    
+                ) OR ((SELECT order_type FROM input) = 'bid'::order_type AND (
+                    min_pubkey_id IS NOT NULL
+                    AND max_pubkey_id IS NOT NULL
+                    AND min_next_position = max_pubkey_id
+                    
+                ) OR (
+                    -- not sure -> set head
+                    min_pubkey_id IS NULL
+                    AND max_pubkey_id IS NOT NULL
+                    AND (max_next_position IS NULL
+                    OR  max_pubkey_id = (SELECT pubkey_id FROM head_bid))
+
+                ) OR (
+                    min_pubkey_id IS NOT NULL
+                    AND max_pubkey_id IS NULL
+
+                )) OR ((SELECT order_type FROM input) = 'ask'::order_type AND (
+                    min_pubkey_id IS NOT NULL
+                    AND max_pubkey_id IS NOT NULL
+                    AND max_next_position = min_pubkey_id
+
+                ) OR (
+                    -- not sure -> set head
+                    max_pubkey_id IS NULL
+                    AND min_pubkey_id IS NOT NULL
+                    AND (min_next_position IS NULL
+                    OR min_pubkey_id = (SELECT pubkey_id FROM head_ask))
+
+                ) OR (
+                    min_pubkey_id IS NULL
+                    AND max_pubkey_id IS NOT NULL
+                ))
+            )
+
+            SELECT 
+                t.pubkey_id AS book_config,
+
+                CASE 
+                    WHEN (SELECT order_type FROM input) = 'bid'::order_type
+                        THEN t.sell_market
+                    WHEN (SELECT order_type FROM input) = 'ask'::order_type
+                        THEN t.buy_market
+                END AS market_pointer,
+
+                CASE 
+                    WHEN (SELECT order_type FROM input) = 'bid'::order_type
+                        THEN t.buy_market
+                    WHEN (SELECT order_type FROM input) = 'ask'::order_type
+                        THEN t.sell_market
+                END AS contra_pointer,
+
+                (SELECT order_type FROM input) as order_type,
+                t.token_mint_a,
+                t.token_mint_b,
+                t.token_program_a,
+                t.token_program_b,
+                t.is_reverse::BOOLEAN as is_reverse,
+                pc.pubkey_id AS position_config,
+                pc.market_maker,
+                pc.capital_a,
+                pc.capital_b,
+                pc.vault_a,
+                pc.vault_b,
+                pc.nonce,
+                pc.reference,
+                node.prev_pubkey_id,
+                node.next_pubkey_id,
+
+                (SELECT price FROM head_ask) AS head_ask_price,
+                (SELECT price FROM head_bid) AS head_bid_price,
+                (SELECT pubkey_id FROM head_ask) AS head_ask_pubkey_id,
+                (SELECT pubkey_id FROM head_bid) AS head_bid_pubkey_id
+
+            FROM trade_pair AS t
+            LEFT JOIN node ON node.book_config = t.pubkey_id
+            LEFT JOIN (
+                SELECT 
+                    pc.pubkey_id,
                     pc.market_maker,
                     pc.capital_a,
                     pc.capital_b,
@@ -1997,41 +2081,20 @@ pub async fn open_limit_order(
                     pc.vault_b,
                     pc.nonce,
                     pc.reference,
-                    node.prev_pubkey_id,
-                    node.next_pubkey_id,
+                    (SELECT book_config FROM input) AS book_config
+                FROM order_position_config AS pc
+                WHERE pc.pubkey_id = (SELECT position_config FROM input)
 
-                    (SELECT price FROM head_ask) AS head_ask_price,
-                    (SELECT price FROM head_bid) AS head_bid_price,
-                    (SELECT pubkey_id FROM head_ask) AS head_ask_pubkey_id,
-                    (SELECT pubkey_id FROM head_bid) AS head_bid_pubkey_id
-
-                FROM trade_pair AS t
-                LEFT JOIN node ON node.book_config = t.pubkey_id
-                LEFT JOIN (
-                    SELECT 
-                        pc.pubkey_id,
-                        pc.market_maker,
-                        pc.capital_a,
-                        pc.capital_b,
-                        pc.vault_a,
-                        pc.vault_b,
-                        pc.nonce,
-                        pc.reference,
-                        (SELECT book_config FROM input) AS book_config
-                    FROM order_position_config AS pc
-                    WHERE pc.pubkey_id = (SELECT position_config FROM input)
-
-                ) AS pc ON pc.book_config = t.pubkey_id;
+            ) AS pc ON pc.book_config = t.pubkey_id;
         "#,
-    )
-    .bind(&pubkey_id.to_string())
-    .bind(&position_config.to_string())
-    .bind(price as i64)
-    .bind(&order_type)
+        pubkey_id.to_string(),
+        position_config.to_string(),
+        price.to_string(),
+        order_type,
+    ))
     .fetch_one(&app_state.pool)
-    .await;
-
-    match query {
+    .await
+    {
         Ok(query) => {
             let order_book_data =
                 (!query.try_get_raw("book_config").unwrap().is_null()).then(|| {
@@ -2080,7 +2143,25 @@ pub async fn open_limit_order(
                         };
 
                     let is_reverse =
-                        query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 0;
+                        // doing this because apparently the DB returns boolean value as t/f
+                        // not as 0 or 1... why?? no idea.
+                        // though was not an issue when I was playing around with this eariler
+                        // UPDATE:
+                        // I found out the possible reason why this is happening
+                        // locally the way to do it is by deserialize the bytes
+                        // but supabase environment returns everything as a string
+                        // the reason why integers and booleans are failing
+                        // is there a configuration that sets postgress to do this?
+                        // or is supa base handinging this on there own? and why send
+                        // everything as a string?
+                        query.try_get_raw("is_reverse").unwrap().as_str().unwrap() != "f";
+
+                    // query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 0;
+                    println!(
+                        "PRE:: {:?}, {:?}",
+                        query.try_get_raw("is_reverse").unwrap().as_bytes(),
+                        query.try_get_raw("is_reverse").unwrap().as_str(),
+                    );
                     (
                         book_config,
                         market_pointer,
@@ -2118,13 +2199,15 @@ pub async fn open_limit_order(
                     let data = query.try_get_raw("vault_b").unwrap().as_str().unwrap();
                     let vault_b = Pubkey::from_str(data).unwrap();
 
-                    let data = query.try_get_raw("nonce").unwrap().as_bytes().unwrap();
-                    let nonce =
-                        u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
+                    let _data = query.try_get_raw("nonce").unwrap().as_bytes().unwrap();
+                    let nonce = 0;
+                    // not being handled correctly
+                    // u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
 
-                    let data = query.try_get_raw("reference").unwrap().as_bytes().unwrap();
-                    let reference =
-                        u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
+                    let _data = query.try_get_raw("reference").unwrap().as_bytes().unwrap();
+                    let reference = 0;
+                    // not being handled correctly
+                    // u64::from_be_bytes(data[..8].try_into().expect("epected slice of 8 bytes"));
                     (
                         position_config,
                         market_maker,
@@ -2161,30 +2244,55 @@ pub async fn open_limit_order(
                     .unwrap()
                 });
 
-            let head_ask_price =
+            let head_ask_price: Option<u64> =
                 (!query.try_get_raw("head_ask_price").unwrap().is_null()).then(|| {
-                    u64::from_be_bytes(
-                        query
-                            .try_get_raw("head_ask_price")
-                            .unwrap()
-                            .as_bytes()
-                            .unwrap()[..8]
-                            .try_into()
-                            .expect("8 bytes"),
-                    )
+                    println!(
+                        "PRE ASK PRICE:: {:?}, {:?}",
+                        query.try_get_raw("head_ask_price").unwrap().as_bytes(),
+                        query.try_get_raw("head_ask_price").unwrap().as_str(),
+                    );
+                    // u64::from_be_bytes(
+                    //     query
+                    //         .try_get_raw("head_ask_price")
+                    //         .unwrap()
+                    //         .as_bytes()
+                    //         .unwrap()[..8]
+                    //         .try_into()
+                    //         .expect("8 bytes"),
+                    // )
+
+                    return query
+                        .try_get_raw("head_ask_price")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expect integer value");
                 });
 
-            let head_bid_price =
+            let head_bid_price: Option<u64> =
                 (!query.try_get_raw("head_bid_price").unwrap().is_null()).then(|| {
-                    u64::from_be_bytes(
-                        query
-                            .try_get_raw("head_bid_price")
-                            .unwrap()
-                            .as_bytes()
-                            .unwrap()[..8]
-                            .try_into()
-                            .expect("8 bytes"),
-                    )
+                    println!(
+                        "PRE BID PRICE:: {:?}, {:?}",
+                        query.try_get_raw("head_bid_price").unwrap().as_bytes(),
+                        query.try_get_raw("head_bid_price").unwrap().as_str(),
+                    );
+                    // u64::from_be_bytes(
+                    //     query
+                    //         .try_get_raw("head_bid_price")
+                    //         .unwrap()
+                    //         .as_bytes()
+                    //         .unwrap()[..8]
+                    //         .try_into()
+                    //         .expect("8 bytes"),
+                    // )
+                    return query
+                        .try_get_raw("head_bid_price")
+                        .unwrap()
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expect integer value");
                 });
 
             let head_ask_pubkey_id = (!query.try_get_raw("head_ask_pubkey_id").unwrap().is_null())
@@ -2245,6 +2353,7 @@ pub async fn open_limit_order(
 
             println!("prev_pubkey_id {:?}", prev_pubkey_id);
             println!("next_pubkey_id {:?}", next_pubkey_id);
+            println!("head_bid_price {:?}", head_bid_price);
             println!("head_ask_price {:?}", head_ask_price);
             println!("market_pointer {:?}", market_pointer.0);
             println!("contra_pointer {:?}", data.8);
@@ -2275,7 +2384,7 @@ pub async fn open_limit_order(
             })
         }
         Err(error) => {
-            println!("Query Error: {}", error);
+            println!("OPEN LIMIT ORDER FAILURE :: {}", error);
             return Err(error);
         }
     }

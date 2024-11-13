@@ -64,6 +64,17 @@ pub async fn open_limit_order(
     )
     .await?;
 
+    println!("token_mint_a {}", token_mint_a);
+    println!("token_mint_b {}", token_mint_b);
+    println!("token_program_a {}", token_program_a);
+    println!("token_program_b {}", token_program_b);
+    println!("market_pointer {:?}", market_pointer);
+    println!("contra_pointer {}", contra_pointer);
+    println!("prev_position {:?}", prev_position);
+    println!("next_position {:?}", next_position);
+    println!("position_config {:?}", position_config);
+    println!("is_reverse {}", is_reverse);
+
     let ixs = build_ixs(BuildIxsParams {
         signer: params.signer,
         order_book_config: params.order_book_config,
@@ -282,6 +293,11 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint A, destination derived with mint B
         resolved_source = get_vault_account_pda(order_book_config, token_mint_a, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_b, signer);
+
+        println!("is_reverse {:?}", is_reverse);
+        println!("order_type {:?}", order_type);
+        println!("resolved_source {:?}", resolved_source);
+        println!("resolved_dest {:?}", resolved_dest);
     } else {
         // Capital source derived with mint B
         capital_source =
@@ -290,6 +306,11 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         // Source derived with mint B, destination derived with mint A
         resolved_source = get_vault_account_pda(order_book_config, token_mint_b, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_a, signer);
+
+        println!("is_reverse {:?}", is_reverse);
+        println!("order_type {:?}", order_type);
+        println!("resolved_source {:?}", resolved_source);
+        println!("resolved_dest {:?}", resolved_dest);
     }
 
     let order_position = get_order_position_pda(nonce, order_position_config, signer);

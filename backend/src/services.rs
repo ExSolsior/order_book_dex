@@ -466,7 +466,7 @@ pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let is_available = get_reverse(&data, &mut offset);
 
     if is_available {
-        delete_order_position(pos_pubkey.to_string(), app_state).await;
+        delete_order_position(pos_pubkey, app_state).await;
     }
 }
 
