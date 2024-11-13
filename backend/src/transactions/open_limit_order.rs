@@ -315,6 +315,8 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
 
     let order_position = get_order_position_pda(nonce, order_position_config, signer);
 
+    println!("order position {:?}", order_position);
+
     ixs.push(Instruction {
         program_id,
         accounts: ToAccountMetas::to_account_metas(
@@ -341,6 +343,8 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         }),
     });
 
+    println!("ixs len {:?}", ixs.len());
+
     ixs.push(Instruction {
         program_id,
         accounts: ToAccountMetas::to_account_metas(
@@ -360,6 +364,8 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
         ),
         data: InstructionData::data(&instruction::OpenOrderPosition {}),
     });
+
+    println!("ixs len {:?}", ixs.len());
 
     ixs
 }
