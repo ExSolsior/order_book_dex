@@ -88,24 +88,26 @@ class Queue {
                 return
             }
 
-            const { asks, bids } = this.set(
-                this.data!.orderBook!.asks.feedData,
-                this.data!.orderBook!.bids.feedData,
-                data
-            )
+            this.setData!((prev) => {
+                const { asks, bids } = this.set(
+                    prev!.orderBook!.asks.feedData,
+                    prev!.orderBook!.bids.feedData,
+                    data
+                )
 
-            this.setData!((prev) => ({
-                ...prev!,
-                orderBook: {
-                    ...prev!.orderBook,
-                    bids: {
-                        feedData: bids
-                    },
-                    asks: {
-                        feedData: asks,
+                return {
+                    ...prev!,
+                    orderBook: {
+                        ...prev!.orderBook,
+                        bids: {
+                            feedData: bids
+                        },
+                        asks: {
+                            feedData: asks,
+                        }
                     }
                 }
-            }))
+            })
 
         }, 10000)
     }
@@ -277,6 +279,8 @@ export const useTransaction = (marketId: PublicKey) => {
 
     queue.update(setData);
 
+    console.log(base.toString());
+
     useEffect(() => {
         if (subscribeId === undefined || connection === undefined) {
             return
@@ -311,12 +315,16 @@ export const useTransaction = (marketId: PublicKey) => {
                 fetch(candleDataURL)
             ]);
 
+            console.log(response)
+
             const book = await (async () => {
                 if (response[0].status === 200) {
                     return await response[0].json();
                 }
                 return null;
             })();
+
+            console.log(book)
 
             // need to add redirect to home page if  marketId is not found
             if (book === null) {

@@ -121,7 +121,12 @@ export default function LimitOrder({
     const path = new URL("./open_limit_order?" + params.toString(), base.toString());
 
     fetch(path)
-      .then((data) => data.json())
+      .then((data) => {
+        // check is okay
+        // if not then throw error
+        console.log(data);
+        return data.json();
+      })
       .then((data) => {
         const vMessage = new MessageV0({
 
@@ -162,8 +167,6 @@ export default function LimitOrder({
       })
       .catch(err => {
         console.log(err)
-        console.log(err.getLogs())
-
       })
   }
 

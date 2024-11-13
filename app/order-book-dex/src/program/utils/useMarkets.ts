@@ -173,7 +173,9 @@ export const useMarkets = () => {
 
                 (async () => {
                     const positionConfigNonce = await (async () => {
+                        console.log("fetching account...")
                         const account = await connection.getAccountInfo(positionConfigId)
+                        console.log(account);
                         if (account !== null) {
                             const offset = 32 * 4 + 8;
                             return account.data.readBigUInt64LE(offset);

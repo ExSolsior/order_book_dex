@@ -558,8 +558,18 @@ solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.js
 --account J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q ./token/J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q 
 
 
+spl-token create-account --url https://rpc.devnet.soo.network/rpc --fee-payer /home/nomadic/.config/solana/id.json 3DFGvE9XjuT8TtRi3yQ1rFZwTmntDyc5qC5MGdWv53Yw --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
+
 
 NOTES ON PORTFOLIO 
     - not sure what summery is or season 1 points?
     - open orders: type should be [bid, ask], needs filled amount, amount should be size
     - past orders: should include both limit orders and market orders?
+
+    CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
+
+    3UBcLCTcEjt1LdLr62ZHG8j7tATDXZHP6Gz7qcvicyPT
+    3DFGvE9XjuT8TtRi3yQ1rFZwTmntDyc5qC5MGdWv53Yw
+
+    J58wwLPZWgaVmbEn4exmiCjTrodqPEoCZkWJXytq32vR
+    6q2aufcNM7iJMAJfhrvF9jxjVKUvMxcD2Cr7rKjrqzdz
