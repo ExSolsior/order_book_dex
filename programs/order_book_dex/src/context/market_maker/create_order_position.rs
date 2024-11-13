@@ -113,6 +113,14 @@ impl<'info> CreateOrderPosition<'info> {
             (self.token_program_b.clone(), self.token_mint_b.clone())
         };
 
+        // u128 should be enough buffer to prevent overflow
+        let transfer_amount = if self.order_position.order_type == Order::Bid {
+            let decimals = (self.token_mint_a.decimals + self.token_mint_b.decimals) as u32;
+            (price as u128 * amount as u128 / u64::pow(10, decimals) as u128) as u64
+        } else {
+            amount
+        };
+
         transfer_checked(
             CpiContext::new(
                 token_program.to_account_info(),
@@ -123,7 +131,7 @@ impl<'info> CreateOrderPosition<'info> {
                     mint: token_mint.to_account_info(),
                 },
             ),
-            amount,
+            transfer_amount,
             token_mint.decimals,
         )?;
 
