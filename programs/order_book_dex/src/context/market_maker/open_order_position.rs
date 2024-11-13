@@ -78,7 +78,7 @@ pub struct OpenOrderPosition<'info> {
         constraint = order_position.is_available
             @ ErrorCode::OrderPositionIsNotAvailable,
     )]
-    pub order_position: Account<'info, OrderPosition>,
+    pub order_position: Box<Account<'info, OrderPosition>>,
 
     #[account(
         mut,

@@ -22,11 +22,26 @@ pub async fn create_versioned_tx(
 ) -> Result<VersionedTransaction, TransactionBuildError> {
     // let rpc_endpoint = secrets.get("RPC_ENDPOINT").context("secret was not found")?;
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
-    Ok(VersionedTransaction::try_new(
-        VersionedMessage::V0(Message::try_compile(payer, ixs, &[], recent_blockhash)?),
-        &[&NullSigner::new(payer)],
-    )
-    .unwrap())
+
+    println!("recent_blockhash {}", recent_blockhash);
+    println!("payer {}", payer);
+
+    let message = Message::try_compile(payer, ixs, &[], recent_blockhash)?;
+
+    println!("message {:?}", message);
+
+    let data: Result<VersionedTransaction, solana_sdk::signer::SignerError> =
+        VersionedTransaction::try_new(VersionedMessage::V0(message), &[&NullSigner::new(payer)]);
+
+    println!("data {:?}", data);
+
+    if data.is_err() {
+        let error = data.unwrap_err();
+        println!("error :: {}", error);
+        return Err(TransactionBuildError::BadError);
+    };
+
+    Ok(data.unwrap())
 }
 
 pub fn create_rpc_client() -> RpcClient {
