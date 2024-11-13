@@ -11,7 +11,7 @@ pub struct CreateOrderPosition<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
-    pub order_book_config: Account<'info, OrderBookConfig>,
+    pub order_book_config: Box<Account<'info, OrderBookConfig>>,
 
     #[account(
         mut,
@@ -20,7 +20,7 @@ pub struct CreateOrderPosition<'info> {
         constraint = order_position_config.is_valid_owner(signer.key())
             @ ErrorCode::InvalidOrderPositionOwner,
     )]
-    pub order_position_config: Account<'info, OrderPositionConfig>,
+    pub order_position_config: Box<Account<'info, OrderPositionConfig>>,
 
     #[account(
         init,
