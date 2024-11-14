@@ -176,12 +176,6 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
 
 // issue with prepared statement
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
-    println!("INSERT NEXT POSITION :: {:?}", order_position.next_position);
-    println!(
-        "INSERT NEXT POSITION :: {:?}",
-        order_position.parent_position
-    );
-
     match sqlx::raw_sql(&format!(
         r#"
                 BEGIN;
