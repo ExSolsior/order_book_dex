@@ -178,6 +178,8 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
     match sqlx::raw_sql(&format!(
         r#"
+                BEGIN;
+
                 WITH head_change AS (
                     UPDATE order_position AS p
                     SET is_head = false
@@ -187,12 +189,6 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
                     ({is_head}::BOOLEAN IS FALSE AND p.is_head IS NULL))
                     AND 
                     p.order_type = '{order_type}'::order_type
-
-                ), parent AS (
-                    UPDATE order_position AS p
-                    SET next_position = '{next_position}'
-                    WHERE p.pubkey_id = '{parent_id}' -- parent position 
-                    AND p.pubkey_id IS NOT NULL 
 
                 )
 
@@ -215,7 +211,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
                     '{pubkey_id}', 
                     '{book_config}', 
                     '{position_config}', 
-                    '{next_position}', 
+                    NULLIF('{next_position}', ''), 
                     '{source_vault}', 
                     '{destination_vault}', 
                     '{order_type}'::order_type, 
@@ -224,8 +220,15 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
                     {is_available}, 
                     {slot}, 
                     {timestamp}, 
-                    {is_head}
-                 );
+                    {is_head}::BOOLEAN
+                );
+
+                UPDATE order_position AS p
+                    SET next_position = NULLIF('{pubkey_id}', '')
+                    WHERE p.pubkey_id = NULLIF('{parent_id}', '')
+                    AND p.pubkey_id IS NOT NULL;
+                
+                END;
             "#,
         parent_id = order_position
             .parent_position
@@ -1044,7 +1047,7 @@ pub async fn get_trade_pair(
                     SELECT
                         op.pubkey_id AS "pubkey_id", 
                         opc.pubkey_id AS "position_config", 
-                        op.next_position AS "next_position", 
+                        NULLIF(op.next_position, '') AS "next_position", 
                         opc.market_maker AS "market_maker", 
                         op.order_type AS "order_type", 
                         op.price AS "price", 
@@ -1329,8 +1332,6 @@ pub async fn get_trade_pair(
         data["marketData"]["prevLastPrice"] = Value::Number(Number::from_i128(0).unwrap());
         data["marketData"]["time"] = Value::Number(Number::from_i128(0).unwrap());
     }
-
-    println!("{}", data);
 
     Ok(data)
 }
@@ -1643,10 +1644,20 @@ pub async fn get_open_positions(
 pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
     match sqlx::raw_sql(&format!(
         r#"
-                DELETE FROM order_position
-                WHERE pubkey_id == '{}';
-            "#,
-        pubkey_id.to_string()
+            WITH replace AS (
+                SELECT * FROM order_position
+                WHERE pubkey_id = '{postion}'
+            ), up AS (
+                UPDATE order_position
+                SET next_position = (SELECT next_position FROM replace)
+                WHERE next_position = '{postion}'
+            )
+
+            DELETE FROM order_position
+            WHERE pubkey_id = '{postion}';
+
+        "#,
+        postion = pubkey_id.to_string()
     ))
     .execute(&app_state.pool)
     .await
@@ -1722,8 +1733,8 @@ pub async fn update_order_position(
     .execute(&app_state.pool)
     .await
     {
-        Ok(data) => println!("DELETE UPDATE ORDER POSITION: {:?}", data),
-        Err(error) => println!("DELETE UPDATE ORDER POSITION ERROR: {}", error),
+        Ok(data) => println!("UPDATE ORDER POSITION SUCCUESS: {:?}", data),
+        Err(error) => println!("UPDATE ORDER POSITION FAILURE: {}", error),
     };
 }
 
@@ -1767,7 +1778,7 @@ pub async fn open_limit_order(
             ), ledger AS (
                 SELECT
                     op.pubkey_id AS "pubkey_id",
-                    op.next_position AS "next_position",
+                    NULLIF(op.next_position, '') AS "next_position",
                     op.order_type AS "order_type",
                     op.price AS "price",
                     op.slot AS "slot"
@@ -2337,7 +2348,9 @@ pub async fn open_limit_order(
                             && price < head_ask_price.unwrap()))),
             );
 
+            println!("prev_pubkey_id {:?}", prev_pubkey_id);
             println!("next_pubkey_id {:?}", next_pubkey_id);
+            println!("\n");
 
             let next_pubkey_id =
                 if prev_pubkey_id.is_none() && next_pubkey_id.is_none() && data.6 == Order::Bid {

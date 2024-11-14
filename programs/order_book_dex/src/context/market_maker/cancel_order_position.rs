@@ -111,6 +111,8 @@ impl<'info> CancelOrderPosition<'info> {
             pos_pubkey: self.order_position.key(),
             book_config: self.order_book_config.key(),
             pos_config: self.order_position_config.key(),
+            order_type: self.order_position.order_type.clone(),
+            price: self.order_position.price,
             amount: self.order_position.amount,
             is_available: self.order_position.is_available,
         });

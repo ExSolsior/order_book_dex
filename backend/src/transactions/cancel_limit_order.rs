@@ -43,6 +43,8 @@ pub async fn cancel_limit_order(
     let order_book_data =
         get_trade_pair(&order_book_config, &Option::<Pubkey>::None, app_state).await?;
 
+    println!("order_book_data {:?}", order_book_data);
+
     let cleaned_order_book_entries = match order_type {
         Order::Bid => {
             let mut list = vec![];
@@ -54,6 +56,7 @@ pub async fn cancel_limit_order(
                             Pubkey::from_str(bid["nextPosition"].as_str().unwrap()).unwrap()
                         }),
                         Pubkey::from_str(bid["marketMaker"].as_str().unwrap()).unwrap(),
+                        Pubkey::from_str(bid["positionConfig"].as_str().unwrap()).unwrap(),
                     ));
                 }
             };
@@ -70,6 +73,7 @@ pub async fn cancel_limit_order(
                             Pubkey::from_str(ask["nextPosition"].as_str().unwrap()).unwrap()
                         }),
                         Pubkey::from_str(ask["marketMaker"].as_str().unwrap()).unwrap(),
+                        Pubkey::from_str(ask["positionConfig"].as_str().unwrap()).unwrap(),
                     ));
                 }
             };
@@ -79,31 +83,57 @@ pub async fn cancel_limit_order(
         _ => unreachable!(),
     };
 
+    println!(
+        "cleaned_order_book_entries {:?}",
+        cleaned_order_book_entries
+    );
+
     let (index, order_position_data) = match cleaned_order_book_entries
         .iter()
         .enumerate()
         .find(|(_, op)| op.0 == order_position && op.2 == signer)
     {
-        Some(data) => data,
-        None => return Err(TransactionBuildError::InvalidOrderPositionOrSigner),
+        Some(data) => {
+            println!("data found? {:?}", data);
+            data
+        }
+        None => {
+            println!("Didn't find order position data?");
+            println!("data not found? {:?}", order_position);
+            println!("data not found? {:?}", signer);
+
+            return Err(TransactionBuildError::InvalidOrderPositionOrSigner);
+        }
     };
+
+    println!("order_position_data {:?}", order_position_data);
 
     let prev_order_position =
         (!(index == 0)).then(|| cleaned_order_book_entries.get(index - 1).unwrap().0);
     let next_order_position = order_position_data.1;
 
+    println!("prev_order_position {:?}", prev_order_position);
+    println!("next_order_position {:?}", next_order_position);
+
     let buy_market_pointer =
         Pubkey::from_str(order_book_data["buyMarketPointer"].as_str().unwrap()).unwrap();
+    println!("buy_market_pointer {:?}", buy_market_pointer);
+
     let sell_market_pointer =
         Pubkey::from_str(order_book_data["sellMarketPointer"].as_str().unwrap()).unwrap();
+    println!("sell_market_pointer {:?}", sell_market_pointer);
 
     let (market_pointer, is_write) = match order_type {
         Order::Bid => (sell_market_pointer, index == 0),
         Order::Ask => (buy_market_pointer, index == 0),
         _ => unreachable!(), // Not handling buy and sell order types
     };
+    println!("market_pointer {:?} {}", market_pointer, is_write);
 
-    let order_position_config = order_position_data.0;
+    // should be order_positino_data.3?
+    let order_position_config = order_position_data.3;
+
+    println!("order_position_config {:?}", order_position_config);
 
     let ixs = build_ixs(BuildIxParams {
         signer,

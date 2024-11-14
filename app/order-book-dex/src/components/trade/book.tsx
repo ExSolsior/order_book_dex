@@ -41,7 +41,7 @@ export default function Book({ market }: { market: Market | null }) {
               className="text-xs"
             >
               <TableCell className="text-red-500 font-mono">
-                {displayValue(ask.price, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(ask.price, !isReverse ? decimalsB : decimalsA)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
@@ -76,7 +76,7 @@ export default function Book({ market }: { market: Market | null }) {
               className="text-xs"
             >
               <TableCell className="text-green-500 font-mono">
-                {displayValue(bid.price, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(bid.price, !isReverse ? decimalsB : decimalsA)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
