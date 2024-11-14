@@ -1,6 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
-import { OrderType } from "../ProgramProvider";
 // import { OrderType } from "../ProgramProvider";
 
 const CANCEL_LIMIT_ORDER_EVENT = Buffer.from([216, 16, 162, 254, 206, 149, 207, 36]);
