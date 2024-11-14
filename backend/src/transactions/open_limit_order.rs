@@ -291,6 +291,7 @@ pub fn build_ixs(build_ix_params: BuildIxsParams) -> Vec<Instruction> {
             get_associated_token_address_with_program_id(&signer, &token_mint_a, &token_program_a);
 
         // Source derived with mint A, destination derived with mint B
+        // this appears to be wrong...
         resolved_source = get_vault_account_pda(order_book_config, token_mint_a, signer);
         resolved_dest = get_vault_account_pda(order_book_config, token_mint_b, signer);
 

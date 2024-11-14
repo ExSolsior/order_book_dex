@@ -1648,13 +1648,13 @@ pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
                 SELECT * FROM order_position
                 WHERE pubkey_id = '{postion}'
             ), up AS (
-                UPDATE order_position AS p
-                SET next_position = (SELECT next_postion FROM replace)
-                WHERE p.next_position = '{postion}'
-            ), del AS (
-                DELETE FROM replace
-                WHERE pubkey_id = '{postion}';
+                UPDATE order_position
+                SET next_position = (SELECT next_position FROM replace)
+                WHERE next_position = '{postion}'
             )
+
+            DELETE FROM order_position
+            WHERE pubkey_id = '{postion}';
 
         "#,
         postion = pubkey_id.to_string()
@@ -1733,8 +1733,8 @@ pub async fn update_order_position(
     .execute(&app_state.pool)
     .await
     {
-        Ok(data) => println!("DELETE UPDATE ORDER POSITION: {:?}", data),
-        Err(error) => println!("DELETE UPDATE ORDER POSITION ERROR: {}", error),
+        Ok(data) => println!("UPDATE ORDER POSITION SUCCUESS: {:?}", data),
+        Err(error) => println!("UPDATE ORDER POSITION FAILURE: {}", error),
     };
 }
 

@@ -791,7 +791,7 @@ VALUES (
                     VALUES  (
                         '26N4LDjnqvcEAHFgxDQA4vgL5frFLGUn8U5hxmTo3Zw6',
                         '7t3guwpq3TFaQRTDrXFEgnYXU2F67mH51ND68AdZXTTy',
-                        300000000000, 
+                        10, 
                         'bid'::order_type
                     )) AS t ("book_config", "position_config", "price", "order_type")
 
@@ -1051,43 +1051,43 @@ VALUES (
                         ))
                     )
 
-                    WHERE ( 
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NULL
+                    -- WHERE ( 
+                    --     min_pubkey_id IS NULL
+                    --     AND max_pubkey_id IS NULL
                         
-                    ) OR ((SELECT order_type FROM input) = 'bid'::order_type AND (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND min_next_position = max_pubkey_id
+                    -- ) OR ((SELECT order_type FROM input) = 'bid'::order_type AND (
+                    --     min_pubkey_id IS NOT NULL
+                    --     AND max_pubkey_id IS NOT NULL
+                    --     AND min_next_position = max_pubkey_id
                         
-                    ) OR (
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND (max_next_position IS NULL
-                        OR  max_pubkey_id = (SELECT pubkey_id FROM head_bid))
+                    -- ) OR (
+                    --     min_pubkey_id IS NULL
+                    --     AND max_pubkey_id IS NOT NULL
+                    --     AND (max_next_position IS NULL
+                    --     OR  max_pubkey_id = (SELECT pubkey_id FROM head_bid))
 
-                    ) OR (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NULL
+                    -- ) OR (
+                    --     min_pubkey_id IS NOT NULL
+                    --     AND max_pubkey_id IS NULL
 
-                    )) OR ((SELECT order_type FROM input) = 'ask'::order_type AND (
-                        min_pubkey_id IS NOT NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND max_next_position = min_pubkey_id
+                    -- )) OR ((SELECT order_type FROM input) = 'ask'::order_type AND (
+                    --     min_pubkey_id IS NOT NULL
+                    --     AND max_pubkey_id IS NOT NULL
+                    --     AND max_next_position = min_pubkey_id
 
-                    ) OR (
-                        max_pubkey_id IS NULL
-                        AND min_pubkey_id IS NOT NULL
-                        AND (min_next_position IS NULL
-                        OR min_pubkey_id = (SELECT pubkey_id FROM head_ask))
+                    -- ) OR (
+                    --     max_pubkey_id IS NULL
+                    --     AND min_pubkey_id IS NOT NULL
+                    --     AND (min_next_position IS NULL
+                    --     OR min_pubkey_id = (SELECT pubkey_id FROM head_ask))
 
-                    ) OR (
-                        min_pubkey_id IS NULL
-                        AND max_pubkey_id IS NOT NULL
-                        AND (SELECT price FROM input) > (SELECT price FROM head_bid)
-                        AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
+                    -- ) OR (
+                    --     min_pubkey_id IS NULL
+                    --     AND max_pubkey_id IS NOT NULL
+                    --     AND (SELECT price FROM input) > (SELECT price FROM head_bid)
+                    --     AND max_pubkey_id = (SELECT pubkey_id FROM head_ask)
 
-                    ))
+                    -- ))
 
                 )
 

@@ -350,7 +350,7 @@ pub async fn parse_order_book_event(data: &[u8], app_state: &AppState) {
     // let timestamp = get_timestamp(&data, &mut offset);
 
     let ticker = if !is_reverse {
-        format!("{}/{}", token_symbol_a, token_symbol_b)
+        format!("{}/{}", token_symbol_b, token_symbol_a)
     } else {
         format!("{}/{}", token_symbol_b, token_symbol_a)
     };
@@ -463,9 +463,9 @@ pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let _book_config = get_pubkey(&data, &mut offset);
     let _pos_config = get_pubkey(&data, &mut offset);
     let _amount = get_slot(&data, &mut offset);
-    let is_available = get_reverse(&data, &mut offset);
+    let is_available = get_is_avialable(&data, &mut offset);
 
-    if is_available {
+    if !is_available {
         delete_order_position(pos_pubkey, app_state).await;
     }
 }
@@ -618,6 +618,14 @@ pub fn get_decimals(data: &[u8], offset: &mut u64) -> u8 {
 }
 
 pub fn get_reverse(data: &[u8], offset: &mut u64) -> bool {
+    let length = 1;
+    let flag = u8::from_be_bytes([data[*offset as usize]]);
+    *offset += length;
+
+    flag != 0
+}
+
+pub fn get_is_avialable(data: &[u8], offset: &mut u64) -> bool {
     let length = 1;
     let flag = u8::from_be_bytes([data[*offset as usize]]);
     *offset += length;

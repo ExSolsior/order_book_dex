@@ -355,7 +355,7 @@ WITH input AS (
     VALUES  (
         '26N4LDjnqvcEAHFgxDQA4vgL5frFLGUn8U5hxmTo3Zw6',
         '7t3guwpq3TFaQRTDrXFEgnYXU2F67mH51ND68AdZXTTy',
-        150000000001, 
+        15000000000, 
         'bid'::order_type
     )) AS t ("book_config", "position_config", "price", "order_type")
 
@@ -366,7 +366,7 @@ WITH input AS (
 ), ledger AS (
     SELECT
         op.pubkey_id AS "pubkey_id",
-        op.next_position AS "next_position",
+        NULLIF(op.next_position, '') AS "next_position",
         op.order_type AS "order_type",
         op.price AS "price",
         op.slot AS "slot"
