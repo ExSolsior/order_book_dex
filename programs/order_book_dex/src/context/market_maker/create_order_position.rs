@@ -115,7 +115,7 @@ impl<'info> CreateOrderPosition<'info> {
 
         // u128 should be enough buffer to prevent overflow
         let transfer_amount = if self.order_position.order_type == Order::Bid {
-            let decimals = (self.token_mint_a.decimals + self.token_mint_b.decimals) as u32;
+            let decimals = self.token_mint_b.decimals as u32;
             (price as u128 * amount as u128 / u64::pow(10, decimals) as u128) as u64
         } else {
             amount
