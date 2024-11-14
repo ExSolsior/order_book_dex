@@ -68,6 +68,9 @@ pub struct CancelLimitOrderEvent {
     pub pos_pubkey: Pubkey,
     pub book_config: Pubkey,
     pub pos_config: Pubkey,
+    pub order_type: Order,
+    pub price: u64,
+    // should be total or size?
     pub amount: u64,
     pub is_available: bool,
 }

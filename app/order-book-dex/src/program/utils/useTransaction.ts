@@ -126,12 +126,11 @@ class Queue {
                         : ask.size - data.size,
                 });
 
-                if (ask.size === BigInt(0)) {
+                if (asks.get(data.price)!.size === BigInt(0)) {
                     asks.delete(data.price);
                 } else if (ask.size < BigInt(0)) {
                     // data out of sync, need to resync
                 }
-
 
             } else if (data.order === 'ask') {
                 asks.set(data.price, {
@@ -152,13 +151,11 @@ class Queue {
                         : bid.size - data.size,
                 });
 
-                if (bid.size === BigInt(0)) {
+                if (bids.get(data.price)!.size === BigInt(0)) {
                     bids.delete(data.price);
                 } else if (bid.size < BigInt(0)) {
                     // data out of sync, need to resync
                 }
-
-
 
             } else if (data.order === 'bid') {
                 bids.set(data.price, {
@@ -279,8 +276,6 @@ export const useTransaction = (marketId: PublicKey) => {
 
     queue.update(setData);
 
-    console.log(base.toString());
-
     useEffect(() => {
         if (subscribeId === undefined || connection === undefined) {
             return
@@ -374,6 +369,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
                     })
                 })
+
+                console.log("BALANCE INFO", data)
 
 
 
@@ -604,15 +601,12 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "open-limit-order": {
-                        console.log(payload)
                         queue.push({
                             method: "add",
                             order: payload.orderType!,
                             price: payload.price! as bigint,
                             size: payload.size! as bigint,
                         });
-
-                        console.log("added to queue?", queue);
 
                         break;
                     }

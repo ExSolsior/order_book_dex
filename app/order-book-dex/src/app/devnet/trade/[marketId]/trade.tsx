@@ -14,11 +14,11 @@ export default function Trade({ market, marketOrder }: { market: Market, marketO
     <div className="flex flex-col w-1/4 border-2 border-t-0">
       <div className="flex justify-center items-center gap-1 border-b-2 py-2">
         <h3 className="scroll-m-20 text-xl font-semibold">
-          <span className="mr-1">{isReverse ? symbolB : symbolA}</span>
+          <span className="mr-1">{!isReverse ? symbolB : symbolA}</span>
           <OpenNewWindowButton
             link={`${SOON_EXPLORER_URL}/account/7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs`}
           />
-          {" /"} <span>{isReverse ? symbolA : symbolB}</span>
+          {" /"} <span>{!isReverse ? symbolA : symbolB}</span>
           <OpenNewWindowButton
             link={`${SOON_EXPLORER_URL}/account/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB`}
           />

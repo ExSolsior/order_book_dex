@@ -1,5 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
+import { OrderType } from "../ProgramProvider";
 // import { OrderType } from "../ProgramProvider";
 
 const CANCEL_LIMIT_ORDER_EVENT = Buffer.from([216, 16, 162, 254, 206, 149, 207, 36]);
@@ -180,8 +181,6 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         marketTaker: undefined,
         amount: undefined,
     }
-    console.log(offset, data)
-
 
     callback("open-limit-order", data)
 }
@@ -372,10 +371,11 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         position: getPubkey(decoded, offset),
         bookConfig: getPubkey(decoded, offset),
         positionConfig: getPubkey(decoded, offset),
-        amount: getBN(decoded, offset),
+        orderType: getOrderType(decoded, offset),
+        price: getBN(decoded, offset),
+        size: getBN(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
 
-        orderType: undefined,
         source: undefined,
         destination: undefined,
         nextPosition: undefined,
@@ -391,8 +391,6 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         vaultA: undefined,
         vaultB: undefined,
         nextPointer: undefined,
-        price: undefined,
-        size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
         nonce: undefined,
@@ -410,7 +408,7 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
-
+        amount: undefined
     }
 
     callback("cancel-limit-order", data);

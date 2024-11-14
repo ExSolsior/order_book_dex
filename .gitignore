@@ -8,3 +8,5 @@ test-ledger
 /target
 .shuttle*
 Secrets*.toml
+
+/program_id

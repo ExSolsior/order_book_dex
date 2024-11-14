@@ -29,7 +29,6 @@ export default function OrderDetails({
   const displayABalance = displayValue(capitalABalance, decimalsA);
   const displayBBalance = displayValue(capitalBBalance, decimalsB);
 
-
   return (
     <Tabs
       defaultValue="limit"
@@ -44,10 +43,11 @@ export default function OrderDetails({
         className="space-y-3 px-2 pt-2"
       >
         <Balance
-          token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
+          // type is a bid or buy
+          token={type === "buy" ? !isReverse ? symbolA : symbolB : !isReverse ? symbolB : symbolA}
           balance={(type === "buy" ? !isReverse
-            ? displayBBalance : displayABalance : !isReverse
-            ? displayABalance : displayBBalance).toString()}
+            ? displayABalance : displayBBalance : !isReverse
+            ? displayBBalance : displayABalance).toString()}
         />
         <LimitOrder
           market={market}
@@ -60,10 +60,11 @@ export default function OrderDetails({
         className="space-y-3 px-2 pt-2"
       >
         <Balance
-          token={type === "buy" ? !isReverse ? symbolB : symbolA : !isReverse ? symbolA : symbolB}
+          // type is a bid or buy
+          token={type === "buy" ? !isReverse ? symbolA : symbolB : !isReverse ? symbolB : symbolA}
           balance={(type === "buy" ? !isReverse
-            ? displayBBalance : displayABalance : !isReverse
-            ? displayABalance : displayBBalance).toString()}
+            ? displayABalance : displayBBalance : !isReverse
+            ? displayBBalance : displayABalance).toString()}
         />
         <MarketOrder
           market={market}

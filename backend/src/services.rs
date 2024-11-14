@@ -462,6 +462,8 @@ pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let pos_pubkey = get_pubkey(&data, &mut offset);
     let _book_config = get_pubkey(&data, &mut offset);
     let _pos_config = get_pubkey(&data, &mut offset);
+    let _order_type = get_order_type(&data, &mut offset);
+    let _price = get_slot(&data, &mut offset);
     let _amount = get_slot(&data, &mut offset);
     let is_available = get_is_avialable(&data, &mut offset);
 

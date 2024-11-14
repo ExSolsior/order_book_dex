@@ -20,10 +20,10 @@ export default function Trades({ market }: { market: Market }) {
       <TableHeader>
         <TableRow>
           <TableHead className="font-semibold">
-            Price ({isReverse ? symbolA : symbolB})
+            Price ({!isReverse ? symbolB : symbolA})
           </TableHead>
           <TableHead className="font-semibold text-right">
-            Qty ({isReverse ? symbolB : symbolA})
+            Qty ({!isReverse ? symbolA : symbolB})
           </TableHead>
           <TableHead className="font-semibold text-right">Time</TableHead>
         </TableRow>
@@ -35,11 +35,11 @@ export default function Trades({ market }: { market: Market }) {
               className={`font-mono ${trade.action === "buy" ? "text-green-500" : "text-red-500"
                 }`}
             >
-              {displayValue(trade.price, isReverse ? decimalsA : decimalsB)}
+              {displayValue(trade.price, !isReverse ? decimalsB : decimalsA)}
 
             </TableCell>
             <TableCell className="text-right font-mono">
-              {displayValue(trade.qty, isReverse ? decimalsB : decimalsA)}
+              {displayValue(trade.qty, !isReverse ? decimalsA : decimalsB)}
 
             </TableCell>
             <TableCell className="text-right font-mono ">
