@@ -69,8 +69,8 @@ export default function LimitOrder({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // not sure if this is correct?
-    const decimals = isReverse ? decimalsA : decimalsB
+    const priceDeicmals = !isReverse ? decimalsA : decimalsB;
+    const amountDecimals = !isReverse ? decimalsB : decimalsA;
     const convertNum = (value: string, decimals: number) => {
       const list = value.split(".");
 
@@ -89,8 +89,8 @@ export default function LimitOrder({
       return [list[0].replace(/^0+/, ''), list[1].padEnd(decimals, "0")].join("");
     }
 
-    const price = convertNum(values.price, decimals);
-    const amount = convertNum(values.quantity, decimals);
+    const price = convertNum(values.price, priceDeicmals);
+    const amount = convertNum(values.quantity, amountDecimals);
     // const total = BigInt(price) * BigInt(amount);
     // validate total against quote balance
 

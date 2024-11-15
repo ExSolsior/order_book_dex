@@ -3,13 +3,14 @@
 import { Markets, OpenOrder, useMarkets, UserBalance } from "@/program/utils/useMarkets";
 import { createContext, ReactNode } from "react";
 
-export const MarketContext = createContext<{ markets: Markets[], openLimitOrders: OpenOrder[], userBalance: UserBalance }>({
+export const MarketContext = createContext<{
+    markets: Markets[],
+    openLimitOrders: OpenOrder[],
+    userBalance: UserBalance[],
+}>({
     markets: [],
     openLimitOrders: [],
-    userBalance: {
-        capitalAAmount: BigInt(0),
-        capitalBAmount: BigInt(0),
-    } as UserBalance,
+    userBalance: [],
 });
 
 export const MarketContextProvider = ({ children }: { children: ReactNode }) => {
