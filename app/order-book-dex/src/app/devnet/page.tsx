@@ -22,8 +22,10 @@ export default function Home() {
             return {
               marketId: data.accounts.marketId.toString(),
               // baseToken
-              tokenA: data.details.baseToken.symbol,
-              tokenB: data.details.quoteToken.symbol,
+              // tokenA: data.details.baseToken.symbol,
+              // tokenB: data.details.quoteToken.symbol,
+              tokenA: !data.details.isReverse ? data.details.quoteToken.symbol : data.details.baseToken.symbol,
+              tokenB: !data.details.isReverse ? data.details.baseToken.symbol : data.details.quoteToken.symbol,
               price: Number(data.status.lastPrice.toString()),
               change: Number(data.status.changePercent.toString()),
               turnover: Number(data.status.turnover.toString()),

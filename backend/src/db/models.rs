@@ -1587,16 +1587,22 @@ pub async fn get_open_positions(
             ), positions AS (
                 SELECT
                     json_build_object(
-                        'positionId', p.pubkey_id,
-                        'marketId', p.book_config,
-                        'ticker', b.ticker,
-                        'positionConfig', p.position_config,
-                        'orderType', p.order_type,
-                        'price', p.price,
-                        'size', p.size,
-                        'fill', p.fill,
-                        'slot', p.slot,
-                        'timestamp', p.timestamp
+                        'positionId',       p.pubkey_id,
+                        'marketId',         p.book_config,
+                        'tokenMintA',       b.token_mint_a,
+                        'tokenMintB',       b.token_mint_b,
+                        'decimalsA',        b.decimals_a,
+                        'decimalsB',        b.decimals_b,
+                        'symbolA',          b.symbol_a,
+                        'symoblB',          b.symobl_b,
+                        'ticker',           b.ticker,
+                        'positionConfig',   p.position_config,
+                        'orderType',        p.order_type,
+                        'price',            p.price,
+                        'size',             p.size,
+                        'fill',             p.fill,
+                        'slot',             p.slot,
+                        'timestamp',        p.timestamp
                     ) AS "data"
 
                 FROM order_position_config AS c
