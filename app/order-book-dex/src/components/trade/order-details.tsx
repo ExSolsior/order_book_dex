@@ -7,6 +7,9 @@ import CustomTabsTrigger from "./custom-tabs-trigger";
 import LimitOrder from "./limit-order";
 import MarketOrder from "./market-order";
 import { displayValue } from "@/program/utils/helper";
+import { useContext } from "react";
+import { MarketContext } from "../provider/market-provider";
+import { UserBalance } from "@/program/utils/useMarkets";
 
 export default function OrderDetails({
   market,
@@ -20,14 +23,27 @@ export default function OrderDetails({
 
   const userWallet = useAnchorWallet();
 
+  const { marketId } = market!.orderBook.accounts;
+  const data = useContext(MarketContext)
+  const userBalance = data.userBalance
+    .find((user: UserBalance) => user.marketId.toString() === marketId.toString());
+
+  const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
+  const { capitalABalance, capitalBBalance } = userBalance! ? {
+    // issue happening here, userBalance is undefined?
+    capitalABalance: userBalance.capitalAAmount || BigInt(0),
+    capitalBBalance: userBalance.capitalBAmount || BigInt(0),
+  } : {
+    capitalABalance: BigInt(0),
+    capitalBBalance: BigInt(0),
+  };
+
+  const displayABalance = displayValue(capitalABalance, decimalsA);
+  const displayBBalance = displayValue(capitalBBalance, decimalsB);
+
   if (!userWallet) {
     return <WalletPrompt />;
   }
-
-  const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
-  const { capitalABalance, capitalBBalance } = market!.user!;
-  const displayABalance = displayValue(capitalABalance, decimalsA);
-  const displayBBalance = displayValue(capitalBBalance, decimalsB);
 
   return (
     <Tabs
