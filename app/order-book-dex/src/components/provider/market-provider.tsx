@@ -1,7 +1,7 @@
 "use client"
 
 import { Markets, OpenOrder, useMarkets, UserBalance } from "@/program/utils/useMarkets";
-import { createContext, Dispatch, ReactNode, SetStateAction } from "react";
+import { createContext, ReactNode } from "react";
 
 export const MarketContext = createContext<{
     markets: Markets[],
