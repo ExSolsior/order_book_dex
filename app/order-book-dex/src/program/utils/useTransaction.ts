@@ -2,10 +2,7 @@
 
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import {
-    getAccount,
-    getAssociatedTokenAddress,
-} from "@solana/spl-token";
+
 import {
     eventListner,
     OPEN_LIMIT_ORDER_EVENT,
@@ -20,7 +17,6 @@ import {
     useAnchorWallet,
     useConnection,
 } from "@solana/wallet-adapter-react";
-import { PROGRAM_ID } from "./constants";
 import { displayValue } from "./helper";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
