@@ -326,65 +326,6 @@ export const useTransaction = (marketId: PublicKey) => {
                 return
             }
 
-            const user = await (async () => {
-                if (!userWallet) {
-                    return null
-                }
-
-                const userCapitalA = await getAssociatedTokenAddress(
-                    new PublicKey(book.tokenMintA),
-                    userWallet!.publicKey!,
-                    true,
-                    new PublicKey(book.tokenProgramA),
-                );
-
-                const userCapitalB = await getAssociatedTokenAddress(
-                    new PublicKey(book.tokenMintB),
-                    userWallet!.publicKey!,
-                    true,
-                    new PublicKey(book.tokenProgramB),
-                );
-
-                const userVaultA = PublicKey.findProgramAddressSync([
-                    new PublicKey(book.pubkeyId).toBuffer(),
-                    new PublicKey(book.tokenMintA).toBuffer(),
-                    userWallet!.publicKey!.toBuffer(),
-                    Buffer.from("vault-account"),
-                ], PROGRAM_ID)[0];
-
-                const userVaultB = PublicKey.findProgramAddressSync([
-                    new PublicKey(book.pubkeyId).toBuffer(),
-                    new PublicKey(book.tokenMintB).toBuffer(),
-                    userWallet!.publicKey!.toBuffer(),
-                    Buffer.from("vault-account"),
-                ], PROGRAM_ID)[0];
-
-                const data = await Promise.allSettled([
-                    getAccount(connection, userCapitalA),
-                    getAccount(connection, userCapitalB),
-                    getAccount(connection, userVaultA),
-                    getAccount(connection, userVaultB),
-                ]).then((results) => {
-                    return results.map(data => {
-                        return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
-                    })
-                })
-
-                console.log("BALANCE INFO", data)
-
-
-
-                return {
-                    userCapitalA,
-                    userCapitalB,
-                    userVaultA,
-                    userVaultB,
-                    capitalABalance: data[0],
-                    capitalBBalance: data[1],
-                    vaultABalance: data[2],
-                    vaultBBalance: data[3],
-                }
-            })()
 
             const candles = await (async () => {
                 if (response[1].status === 200) {
@@ -396,7 +337,6 @@ export const useTransaction = (marketId: PublicKey) => {
             const asks = new Map<bigint, Order>();
             const bids = new Map<bigint, Order>();
 
-            // also need display format and real format
             book.book.asks.forEach((element: Order) => {
 
                 const price = BigInt(element.price);
@@ -440,8 +380,6 @@ export const useTransaction = (marketId: PublicKey) => {
                 user: {
                     // will remove?
                     positionConfigNonce: BigInt(0),
-                    capitalABalance: BigInt(user ? user.capitalABalance : 0),
-                    capitalBBalance: BigInt(user ? user.capitalBBalance : 0),
                 },
 
                 orderBook: {
@@ -456,10 +394,6 @@ export const useTransaction = (marketId: PublicKey) => {
                         userAddress: userWallet ? userWallet!.publicKey : undefined,
                         // will remove?
                         userPositionConfig: undefined,
-                        userCapitalA: userWallet ? user?.userCapitalA : undefined,
-                        userCapitalB: userWallet ? user?.userCapitalB : undefined,
-                        userVaultA: userWallet ? user?.userVaultA : undefined,
-                        userVaultB: userWallet ? user?.userVaultB : undefined,
                     },
                     marketDetails: {
                         isReverse: book.isReverse,
@@ -691,8 +625,6 @@ export interface Market {
     page: number,
     user: {
         positionConfigNonce: bigint | undefined,
-        capitalABalance: bigint,
-        capitalBBalance: bigint,
     },
     // WIP
     // openPositions: Position[],
@@ -707,10 +639,6 @@ export interface Market {
             tokenProgramB: PublicKey,
             userAddress: PublicKey | undefined,
             userPositionConfig: PublicKey | undefined,
-            userCapitalA: PublicKey | undefined,
-            userCapitalB: PublicKey | undefined,
-            userVaultA: PublicKey | undefined,
-            userVaultB: PublicKey | undefined,
         },
         marketDetails: {
             isReverse: boolean,

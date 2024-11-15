@@ -7,6 +7,9 @@ import CustomTabsTrigger from "./custom-tabs-trigger";
 import LimitOrder from "./limit-order";
 import MarketOrder from "./market-order";
 import { displayValue } from "@/program/utils/helper";
+import { useContext } from "react";
+import { MarketContext } from "../provider/market-provider";
+import { UserBalance } from "@/program/utils/useMarkets";
 
 export default function OrderDetails({
   market,
@@ -24,8 +27,18 @@ export default function OrderDetails({
     return <WalletPrompt />;
   }
 
+  const { marketId } = market!.orderBook.accounts;
+  const userBalance = useContext(MarketContext).userBalance
+    .find((user: UserBalance) => user.marketId.toString() === marketId.toString());
+
   const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
-  const { capitalABalance, capitalBBalance } = market!.user!;
+  const { capitalABalance, capitalBBalance } = userBalance! ? {
+    capitalABalance: userBalance.capitalAAmount,
+    capitalBBalance: userBalance.capitalBAmount,
+  } : {
+    capitalABalance: BigInt(0),
+    capitalBBalance: BigInt(0),
+  };
   const displayABalance = displayValue(capitalABalance, decimalsA);
   const displayBBalance = displayValue(capitalBBalance, decimalsB);
 
