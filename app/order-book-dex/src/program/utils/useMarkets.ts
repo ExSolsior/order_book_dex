@@ -13,6 +13,7 @@ import {
 import { PROGRAM_ID } from "./constants";
 import { CachedMarket } from "./types";
 import { useParams } from "next/navigation";
+import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
 
 
 // should place these under constants.ts file
@@ -22,10 +23,7 @@ export const useMarkets = () => {
     const [markets, setMarkets] = useState<Markets[]>([]);
     const [openLimitOrders, setOpenLimitOrders] = useState<OpenOrder[]>([]);
     const [isLoaded, setIsloaded] = useState(false);
-    const [userBalance, setUserBalance] = useState<UserBalance>({
-        capitalAAmount: BigInt(0),
-        capitalBAmount: BigInt(0)
-    });
+    const [userBalance, setUserBalance] = useState<UserBalance[]>([]);
     const [intervalId, setIntervalId] = useState<NodeJS.Timeout | undefined>()
     const [isLoading, setLoading] = useState(true);
     const [eventId, setEventId] = useState<number | undefined>();
@@ -33,7 +31,7 @@ export const useMarkets = () => {
     const { connection } = useConnection();
     const params = useParams<{ marketId: string }>()
 
-    const load = async () => {
+    const load = async (isSet: boolean) => {
 
         const params = new URLSearchParams();
         params.append("limit", (1000).toString());
@@ -53,6 +51,13 @@ export const useMarkets = () => {
             }
 
             const list = data.map((el: FetchedMarket) => {
+
+                console.log(
+                    el.tokenMintA,
+                    el.tokenMintB,
+                    (new PublicKey(el.tokenMintA)).toString(),
+                    (new PublicKey(el.tokenMintB)).toString(),
+                )
                 return {
                     accounts: {
                         marketId: new PublicKey(el.pubkeyId),
@@ -94,7 +99,23 @@ export const useMarkets = () => {
                 }
             })
 
+            const balanceList = data.map((el: FetchedMarket) => {
+                const marketId = new PublicKey(el.pubkeyId);
+                return {
+                    marketId: marketId,
+                    isSet: false,
+                    capitalAAmount: BigInt(0),
+                    capitalBAmount: BigInt(0),
+                    vaultAAmount: BigInt(0),
+                    vaultBAmount: BigInt(0),
+                }
+            })
+
             setMarkets(list)
+
+            if (!isSet) {
+                setUserBalance(balanceList)
+            }
 
         } catch (err) {
             console.log(err);
@@ -111,8 +132,6 @@ export const useMarkets = () => {
 
         // hack impl, need to fixed on server side but it works
         const positions = repsonse.ok ? await repsonse.json() || [] : [];
-
-        console.log("positions from backend:: ", positions);
 
         // I wonder if this could cause issues, let's say event listner gets data first
         // then this loads data. data becomes mismatched and doesn't reflect the real state.
@@ -135,11 +154,109 @@ export const useMarkets = () => {
         })
     }
 
+    const loadBalance = async () => {
+        if (params.marketId === undefined) {
+            return
+        }
+
+        const marketId = new PublicKey(params.marketId);
+        const market = markets.find((market: Markets) => market.accounts.marketId.toString() === marketId.toString());
+
+        if (userWallet === undefined ||
+            market === undefined ||
+            !!userBalance.find((user: UserBalance) => user.marketId.toString() === marketId.toString() && user.isSet)
+        ) {
+            return
+        }
+
+
+        const book = market?.accounts
+
+        console.log(
+            book.tokenMintA.toString(),
+            userWallet.publicKey.toString(),
+        )
+
+        console.log(
+            book.tokenMintB.toString(),
+        )
+
+        const userCapitalA = await getAssociatedTokenAddress(
+            new PublicKey(book!.tokenMintA),
+            userWallet!.publicKey!,
+            true,
+            new PublicKey(book!.tokenProgramA),
+        );
+
+        const userCapitalB = await getAssociatedTokenAddress(
+            new PublicKey(book!.tokenMintB),
+            userWallet!.publicKey!,
+            true,
+            new PublicKey(book!.tokenProgramB),
+        );
+
+        const userVaultA = PublicKey.findProgramAddressSync([
+            new PublicKey(book!.marketId).toBuffer(),
+            new PublicKey(book!.tokenMintA).toBuffer(),
+            userWallet!.publicKey!.toBuffer(),
+            Buffer.from("vault-account"),
+        ], PROGRAM_ID)[0];
+
+        const userVaultB = PublicKey.findProgramAddressSync([
+            new PublicKey(book!.marketId).toBuffer(),
+            new PublicKey(book!.tokenMintB).toBuffer(),
+            userWallet!.publicKey!.toBuffer(),
+            Buffer.from("vault-account"),
+        ], PROGRAM_ID)[0];
+
+
+        console.log(
+            book!.tokenMintA.toString(),
+            book!.tokenMintB.toString(),
+            userCapitalA.toString(),
+            userCapitalB.toString(),
+            userVaultA.toString(),
+            userVaultB.toString(),
+        )
+
+        const data = await Promise.allSettled([
+            getAccount(connection, userCapitalA),
+            getAccount(connection, userCapitalB),
+            getAccount(connection, userVaultA),
+            getAccount(connection, userVaultB),
+        ]).then((results) => {
+            return results.map(data => {
+                return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
+            })
+        })
+
+        // it double loads on first render... no idea why
+        setUserBalance((prev: UserBalance[]) => {
+
+            const current = prev.find((market: UserBalance) => market.marketId.toString() === marketId.toString());
+
+            return [
+                {
+                    ...current,
+                    isSet: true,
+                    capitalAAmount: data[0],
+                    capitalBAmount: data[1],
+                    vaultAAmount: data[2],
+                    vaultBAmount: data[3],
+                },
+                ...prev.filter((market: UserBalance) => market.marketId.toString() !== marketId.toString()),
+            ] as UserBalance[]
+        })
+
+    }
+
     useEffect(() => {
 
         if (userWallet === undefined || params.marketId === undefined) {
             return
         }
+
+        const marketId = new PublicKey(params.marketId);
 
         {
             if (!localStorage.getItem(userWallet.publicKey.toString())) {
@@ -153,7 +270,6 @@ export const useMarkets = () => {
                 )
             }
 
-            const marketId = new PublicKey(params.marketId);
 
             const expire = Date.now() / 1000 + (60 * 60 * 6);
             if (!JSON.parse(localStorage
@@ -255,7 +371,9 @@ export const useMarkets = () => {
 
 
 
-    }, [userWallet, params, connection])
+
+
+    }, [userWallet, params, connection, markets])
 
     useEffect(() => {
         if (eventId !== undefined) {
@@ -356,11 +474,11 @@ export const useMarkets = () => {
         }
 
         // update every minute
-        const id = setInterval(() => load(), 60000)
+        const id = setInterval(() => load(true), 60000)
 
         setLoading(false);
         setIntervalId(id);
-        load();
+        load(false);
 
     }, [isLoading, intervalId])
 
@@ -369,7 +487,9 @@ export const useMarkets = () => {
         setIsloaded(true)
     }
 
-    return { markets, openLimitOrders, userBalance, setUserBalance }
+    loadBalance()
+
+    return { markets, openLimitOrders, userBalance }
 }
 
 export type OpenOrder = {
@@ -385,8 +505,12 @@ export type OpenOrder = {
 }
 
 export type UserBalance = {
+    marketId: PublicKey,
+    isSet: boolean,
     capitalAAmount: bigint,
     capitalBAmount: bigint,
+    vaultAAmount: bigint,
+    vaultBAmount: bigint,
 }
 
 export type Markets = {
@@ -432,6 +556,7 @@ export type Markets = {
         changeDelta: bigint,
         changePercent: bigint,
     },
+    userBalance: UserBalance[],
 };
 
 export interface FetchedMarket {

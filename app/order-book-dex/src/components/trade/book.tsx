@@ -41,15 +41,15 @@ export default function Book({ market }: { market: Market | null }) {
               className="text-xs"
             >
               <TableCell className="text-red-500 font-mono">
-                {displayValue(ask.price, !isReverse ? decimalsB : decimalsA)}
+                {displayValue(ask.price, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {displayValue(ask.size, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(ask.size, !isReverse ? decimalsB : decimalsA)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {displayValue(ask.depth, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(ask.depth, !isReverse ? decimalsB : decimalsA)}
 
               </TableCell>
             </TableRow>
@@ -76,16 +76,16 @@ export default function Book({ market }: { market: Market | null }) {
               className="text-xs"
             >
               <TableCell className="text-green-500 font-mono">
-                {displayValue(bid.price, !isReverse ? decimalsB : decimalsA)}
+                {displayValue(bid.price, !isReverse ? decimalsA : decimalsB)}
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {displayValue(bid.size, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(bid.size, !isReverse ? decimalsB : decimalsA)}
 
 
               </TableCell>
               <TableCell className="text-right font-mono">
-                {displayValue(bid.depth, !isReverse ? decimalsA : decimalsB)}
+                {displayValue(bid.depth, !isReverse ? decimalsB : decimalsA)}
 
               </TableCell>
             </TableRow>
@@ -102,12 +102,12 @@ function BookHeader({ market }: { market: Market }) {
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className="text-xs">Price ({isReverse ? symbolA : symbolB})</TableHead>
+        <TableHead className="text-xs">Price ({!isReverse ? symbolA : symbolB})</TableHead>
         <TableHead className="text-xs text-right">
-          Size ({isReverse ? symbolB : symbolA})
+          Size ({!isReverse ? symbolB : symbolA})
         </TableHead>
         <TableHead className="text-xs text-right">
-          Total ({isReverse ? symbolA : symbolB})
+          Total ({!isReverse ? symbolB : symbolA})
         </TableHead>
       </TableRow>
     </TableHeader>
