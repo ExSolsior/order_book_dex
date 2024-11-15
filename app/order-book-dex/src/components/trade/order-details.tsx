@@ -23,24 +23,27 @@ export default function OrderDetails({
 
   const userWallet = useAnchorWallet();
 
-  if (!userWallet) {
-    return <WalletPrompt />;
-  }
-
   const { marketId } = market!.orderBook.accounts;
-  const userBalance = useContext(MarketContext).userBalance
+  const data = useContext(MarketContext)
+  const userBalance = data.userBalance
     .find((user: UserBalance) => user.marketId.toString() === marketId.toString());
 
   const { symbolA, symbolB, decimalsA, decimalsB, isReverse } = market!.orderBook!.marketDetails;
   const { capitalABalance, capitalBBalance } = userBalance! ? {
-    capitalABalance: userBalance.capitalAAmount,
-    capitalBBalance: userBalance.capitalBAmount,
+    // issue happening here, userBalance is undefined?
+    capitalABalance: userBalance.capitalAAmount || BigInt(0),
+    capitalBBalance: userBalance.capitalBAmount || BigInt(0),
   } : {
     capitalABalance: BigInt(0),
     capitalBBalance: BigInt(0),
   };
+
   const displayABalance = displayValue(capitalABalance, decimalsA);
   const displayBBalance = displayValue(capitalBBalance, decimalsB);
+
+  if (!userWallet) {
+    return <WalletPrompt />;
+  }
 
   return (
     <Tabs

@@ -52,12 +52,6 @@ export const useMarkets = () => {
 
             const list = data.map((el: FetchedMarket) => {
 
-                console.log(
-                    el.tokenMintA,
-                    el.tokenMintB,
-                    (new PublicKey(el.tokenMintA)).toString(),
-                    (new PublicKey(el.tokenMintB)).toString(),
-                )
                 return {
                     accounts: {
                         marketId: new PublicKey(el.pubkeyId),
@@ -173,15 +167,6 @@ export const useMarkets = () => {
 
         const book = market?.accounts
 
-        console.log(
-            book.tokenMintA.toString(),
-            userWallet.publicKey.toString(),
-        )
-
-        console.log(
-            book.tokenMintB.toString(),
-        )
-
         const userCapitalA = await getAssociatedTokenAddress(
             new PublicKey(book!.tokenMintA),
             userWallet!.publicKey!,
@@ -209,16 +194,6 @@ export const useMarkets = () => {
             userWallet!.publicKey!.toBuffer(),
             Buffer.from("vault-account"),
         ], PROGRAM_ID)[0];
-
-
-        console.log(
-            book!.tokenMintA.toString(),
-            book!.tokenMintB.toString(),
-            userCapitalA.toString(),
-            userCapitalB.toString(),
-            userVaultA.toString(),
-            userVaultB.toString(),
-        )
 
         const data = await Promise.allSettled([
             getAccount(connection, userCapitalA),
@@ -437,14 +412,28 @@ export const useMarkets = () => {
                         const current = prev
                             .find((user: UserBalance) => user.marketId.toString() === payload.bookConfig!.toString())
 
-                        if (!current!.isReverse && payload.orderType == 'bid' || current!.isReverse && payload.orderType == 'ask') {
-                            current!.capitalAAmount = payload.capitalSourceBalance as bigint;
-                        } else {
-                            current!.capitalBAmount = payload.capitalSourceBalance as bigint;
+                        console.log(current)
+
+                        const update = {
+                            capitalAAmount: current!.capitalBAmount,
+                            capitalBAmount: current!.capitalBAmount,
+
                         }
 
+                        if (!current!.isReverse && payload.orderType == 'bid' || current!.isReverse && payload.orderType == 'ask') {
+                            update.capitalAAmount = payload.capitalSourceBalance as bigint;
+                        } else {
+                            update.capitalBAmount = payload.capitalSourceBalance as bigint;
+                        }
+
+                        console.log(update)
+
                         return [
-                            { ...current! },
+                            {
+                                ...current,
+                                capitalAAmount: update.capitalAAmount,
+                                capitalBAmount: update.capitalBAmount,
+                            },
                             ...prev
                                 .filter((user: UserBalance) => user.marketId.toString() !== payload.bookConfig!.toString())
                         ] as UserBalance[]
@@ -467,6 +456,7 @@ export const useMarkets = () => {
                     }
 
                     setOpenLimitOrders((prev: OpenOrder[]) => [state, ...prev] as OpenOrder[])
+                    break;
                 }
 
                 case "close-limit-order": {
@@ -493,6 +483,7 @@ export const useMarkets = () => {
                                 .filter((user: UserBalance) => user.marketId.toString() !== payload.bookConfig!.toString())
                         ] as UserBalance[]
                     })
+                    break;
                 }
             }
         })

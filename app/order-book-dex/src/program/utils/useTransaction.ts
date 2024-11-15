@@ -315,8 +315,6 @@ export const useTransaction = (marketId: PublicKey) => {
                 return null;
             })();
 
-            console.log(book)
-
             // need to add redirect to home page if  marketId is not found
             if (book === null) {
                 return
