@@ -578,7 +578,12 @@ NOTES ON PORTFOLIO
 
     ----
     BTC
+    token mint b
     DWjrMTiuAqizpp1d4zHQtFm8agkgLYmCzt2ToDF2fbnH
     
     USDC
+    token mint a
     Cvs1FzKtQJUpXY7YNuojYgvvHV2moDRGPDpVmTVH8zFB
+
+    isReverse
+    BTC / USDC
