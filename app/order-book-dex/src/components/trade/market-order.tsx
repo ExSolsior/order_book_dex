@@ -21,7 +21,7 @@ import { useContext, useState } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
 import { displayValue } from "@/program/utils/helper";
-import { SelectValue } from "@radix-ui/react-select";
+// import { SelectValue } from "@radix-ui/react-select"; not sure what this is?
 import { MarketContext } from "../provider/market-provider";
 import { UserBalance } from "@/program/utils/useMarkets";
 

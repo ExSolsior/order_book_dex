@@ -55,11 +55,13 @@ export default function LimitOrder({
   // WIP:: need to improve validations. they are jank and don't work
   const formSchema = z.object({
     price: z.string().refine((val) => {
+      console.log(val)
       return true
     }, {
       message: "Expected number, received a string"
     }),
     quantity: z.string().refine((val) => {
+      console.log(val)
 
       return type === 'sell'
         ? true
@@ -459,8 +461,8 @@ export default function LimitOrder({
               .every((value: string) => /^\d+(\.\d+)?$/.test(value))
 
             const isDecimals = field.value.includes(".")
-            const quantity = form.getValues("quantity");
-            const price = form.getValues("price");
+            // const quantity = form.getValues("quantity");
+            // const price = form.getValues("price");
 
             if (update.includes('quantity')) {
               // guard!
