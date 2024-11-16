@@ -1582,7 +1582,7 @@ pub async fn get_open_positions(
             WITH input AS (
                 SELECT * FROM (
                 VALUES  (
-                    {}
+                    '{}'
                 )) AS t ("market_maker")
             ), positions AS (
                 SELECT
@@ -1591,10 +1591,10 @@ pub async fn get_open_positions(
                         'marketId',         p.book_config,
                         'tokenMintA',       b.token_mint_a,
                         'tokenMintB',       b.token_mint_b,
-                        'decimalsA',        b.decimals_a,
-                        'decimalsB',        b.decimals_b,
-                        'symbolA',          b.symbol_a,
-                        'symoblB',          b.symobl_b,
+                        'decimalsA',        b.token_decimals_a,
+                        'decimalsB',        b.token_decimals_b,
+                        'symbolA',          b.token_symbol_a,
+                        'symoblB',          b.token_symbol_b,
                         'ticker',           b.ticker,
                         'positionConfig',   p.position_config,
                         'orderType',        p.order_type,
@@ -1615,7 +1615,7 @@ pub async fn get_open_positions(
             )
 
             SELECT
-                array_agg(
+                json_agg(
                     p.data
                 ) AS "data"
 
@@ -1635,9 +1635,9 @@ pub async fn get_open_positions(
     }
 
     let query = query.unwrap();
-    let data = query.try_get_raw("data")?.as_str();
+    let data = query.try_get_raw("data");
     let data: Option<Box<Value>> = match data {
-        Ok(data) => serde_json::from_str(data).unwrap(),
+        Ok(data) => serde_json::from_str(data.as_str().unwrap()).unwrap(),
         Err(error) => {
             println!("error being cleaned to empty array:: {}", error);
             return Ok(Some(Box::new(json!([]))));
