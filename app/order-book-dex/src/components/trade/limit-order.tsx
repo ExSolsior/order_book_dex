@@ -21,6 +21,9 @@ import { useContext } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
 import { CachedMarket } from "@/program/utils/types";
+import { displayValue } from "@/program/utils/helper";
+import { MarketContext } from "../provider/market-provider";
+import { UserBalance } from "@/program/utils/useMarkets";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
@@ -43,18 +46,45 @@ export default function LimitOrder({
   const userWallet = useAnchorWallet();
   const { program } = useContext(ProgramContext)!;
 
+  const { userBalance } = useContext(MarketContext);
+  const balance = userBalance.find((user: UserBalance) => user.marketId.toString() === marketId.toString());
+  const availableBalance = type === 'buy'
+    ? !isReverse ? balance!.capitalAAmount : balance!.capitalBAmount
+    : !isReverse ? balance!.capitalBAmount : balance!.capitalAAmount;
+
+  // WIP:: need to improve validations. they are jank and don't work
   const formSchema = z.object({
     price: z.string().refine((val) => {
-      return !Number.isNaN(parseInt(val, 10))
+      return true
     }, {
       message: "Expected number, received a string"
     }),
-    quantity: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
+    quantity: z.string().refine((val) => {
+
+      return type === 'sell'
+        ? true
+        : true
+    }, {
       message: "Expected number, received a string"
     }),
 
-    orderValue: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
-      message: "Expected number, received a string"
+    orderValue: z.string().refine((val) => {
+      console.log(
+        "val",
+        val,
+        BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)),
+        availableBalance, BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
+      )
+      return type === 'buy'
+        ? BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
+        : true
+    }, {
+
+      message: `Expected value to be less than available balance: ${displayValue(availableBalance,
+        type === 'buy'
+          ? !isReverse ? decimalsA : decimalsB
+          : !isReverse ? decimalsB : decimalsA
+      )}`
     })
   });
 
@@ -233,6 +263,27 @@ export default function LimitOrder({
     // }
   }
 
+  const convertNum = (value: string, decimals: number) => {
+    const list = value.split(".");
+
+    if (list.length > 2) {
+      return '0'
+    }
+
+    if (list.length === 1) {
+      return list[0].concat("0".repeat(decimals));
+    }
+
+    if (list[0] === '0') {
+      return list[1].substring(0, decimals).padEnd(decimals, "0").replace(/^0+/, '');
+    }
+
+    return [list[0].replace(/^0+/, ''), list[1].substring(0, decimals).padEnd(decimals, "0")].join("");
+  }
+
+  let update = '';
+
+  // when on focus on input, should place the curser after the last value
   return (
     <Form {...form}>
       <form
@@ -242,79 +293,242 @@ export default function LimitOrder({
         <FormField
           control={form.control}
           name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price</FormLabel>
-              <FormControl>
-                <div className="flex gap-1">
-                  <Input
-                    className="text-right text-xl font-mono font-semibold"
-                    {...field}
-                  />
-                  <Avatar>
-                    <AvatarImage
-                      src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
-                      alt={isReverse ? symbolA : symbolB}
-                      className="rounded-full w-6 h-6 self-center"
+          render={({ field }) => {
+
+            const isNumbers = field.value.split('').filter((value: string) => value !== '.')
+              .every((value: string) => /^\d+(\.\d+)?$/.test(value))
+            const isDecimals = field.value.includes(".")
+            const quantity = form.getValues("quantity");
+
+            if (!((isNumbers && isDecimals) || isNumbers)) {
+              form.setValue("price", field.value
+                .split('')
+                .filter((value: string) => /^\d+(\.\d+)?$/.test(value))
+                .join('')
+                .trim())
+            } else {
+
+              if (field.value.length === 0) {
+                form.setValue("price", '0')
+              }
+
+              if (field.value.length != 1 && field.value[0] === '0' && field.value[1] !== '.') {
+                form.setValue("price", field.value.slice(1))
+              }
+
+
+              if (field.value[0] === '.') {
+                form.setValue("price", '0' + field.value)
+
+              }
+
+              if (field.value.includes('.')) {
+                const list = field.value.split('.')
+                if (list.length > 2) {
+                  form.setValue("price", field.value.substring(0, field.value.length - 1))
+                }
+
+                if (list[1].length > (!isReverse ? decimalsA : decimalsB)) {
+                  form.setValue("price", field.value.substring(0, field.value.length - 1))
+                }
+
+              }
+
+
+              if (quantity !== '0') {
+                update = 'price';
+                const total = BigInt(
+                  convertNum(quantity, !isReverse ? decimalsB : decimalsA))
+                  * BigInt(convertNum(field.value, !isReverse ? decimalsA : decimalsB))
+                  / BigInt(10 ** (!isReverse ? decimalsB : decimalsA));
+
+                form.setValue("orderValue", displayValue(total, !isReverse ? decimalsA : decimalsB))
+              }
+            }
+
+            return (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <div className="flex gap-1">
+                    <Input
+                      className="text-right text-xl font-mono font-semibold"
+                      {...field}
                     />
-                  </Avatar>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+                    <Avatar>
+                      <AvatarImage
+                        src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+                        alt={isReverse ? symbolA : symbolB}
+                        className="rounded-full w-6 h-6 self-center"
+                      />
+                    </Avatar>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
 
         <FormField
           control={form.control}
           name="quantity"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Quantity</FormLabel>
-              <FormControl>
-                <div className="flex gap-1">
-                  <Input
-                    className="text-right text-xl font-mono font-semibold"
-                    {...field}
-                  />
-                  <Avatar>
-                    <AvatarImage
-                      src={market.image}
-                      alt={isReverse ? symbolB : symbolA}
-                      className="rounded-full w-6 h-6 self-center"
+          render={({ field }) => {
+
+
+            const isNumbers = field.value.split('').filter((value: string) => value !== '.')
+              .every((value: string) => /^\d+(\.\d+)?$/.test(value))
+            const isDecimals = field.value.includes(".")
+            const price = form.getValues("price");
+
+            if (update.includes('orderValue')) {
+              // guard!
+            } else if (!((isNumbers && isDecimals) || isNumbers)) {
+              form.setValue("quantity", field.value
+                .split('')
+                .filter((value: string) => /^\d+(\.\d+)?$/.test(value))
+                .join('')
+                .trim())
+            } else {
+
+              if (field.value.length === 0) {
+                form.setValue("quantity", '0')
+              }
+
+              if (field.value.length != 1 && field.value[0] === '0' && field.value[1] !== '.') {
+                form.setValue("quantity", field.value.slice(1))
+              }
+
+              if (field.value[0] === '.') {
+                form.setValue("quantity", '0' + field.value)
+
+              }
+
+              if (field.value.includes('.')) {
+                const list = field.value.split('.')
+                if (list.length > 2) {
+                  form.setValue("quantity", field.value.substring(0, field.value.length - 1))
+                }
+
+                if (list[1].length > (!isReverse ? decimalsB : decimalsA)) {
+                  form.setValue("quantity", field.value.substring(0, field.value.length - 1))
+                }
+
+              }
+
+              if (price !== '0') {
+                update = 'quantity';
+                const total = BigInt(
+                  convertNum(price, !isReverse ? decimalsA : decimalsB))
+                  * BigInt(convertNum(field.value, !isReverse ? decimalsB : decimalsA))
+                  / BigInt(10 ** (!isReverse ? decimalsB : decimalsA));
+                form.setValue("orderValue", displayValue(total, !isReverse ? decimalsA : decimalsB))
+              }
+            }
+
+            return (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <div className="flex gap-1">
+                    <Input
+                      className="text-right text-xl font-mono font-semibold"
+                      {...field}
                     />
-                  </Avatar>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+                    <Avatar>
+                      <AvatarImage
+                        src={market.image}
+                        alt={isReverse ? symbolB : symbolA}
+                        className="rounded-full w-6 h-6 self-center"
+                      />
+                    </Avatar>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
 
         <FormField
           control={form.control}
           name="orderValue"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Order Value</FormLabel>
-              <FormControl>
-                <div className="flex gap-1">
-                  <Input
-                    className="text-right text-xl font-mono font-semibold"
-                    {...field}
-                  />
-                  <Avatar>
-                    <AvatarImage
-                      src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
-                      alt={isReverse ? symbolA : symbolB}
-                      className="rounded-full w-6 h-6 self-center"
+          render={({ field }) => {
+
+            const isNumbers = field.value.split('').filter((value: string) => value !== '.')
+              .every((value: string) => /^\d+(\.\d+)?$/.test(value))
+
+            const isDecimals = field.value.includes(".")
+            const quantity = form.getValues("quantity");
+            const price = form.getValues("price");
+
+            if (update.includes('quantity')) {
+              // guard!
+            } else if (!((isNumbers && isDecimals) || isNumbers)) {
+              form.setValue("orderValue", field.value
+                .split('')
+                .filter((value: string) => /^\d+(\.\d+)?$/.test(value))
+                .join('')
+                .trim())
+            } else {
+
+              if (field.value.length === 0) {
+                form.setValue("orderValue", '0')
+              }
+
+              if (field.value.length != 1 && field.value[0] === '0' && field.value[1] !== '.') {
+                form.setValue("orderValue", field.value.slice(1))
+              }
+
+
+              if (field.value[0] === '.') {
+                form.setValue("orderValue", '0' + field.value)
+
+              }
+
+              if (field.value.includes('.')) {
+                const list = field.value.split('.')
+                if (list.length > 2) {
+                  form.setValue("orderValue", field.value.substring(0, field.value.length - 1))
+                }
+
+                if (list[1].length > (!isReverse ? decimalsA : decimalsB)) {
+                  form.setValue("orderValue", field.value.substring(0, field.value.length - 1))
+                }
+
+              }
+
+              // if (price !== '0') {
+              //   update = 'orderValue';
+              //   const value = BigInt(convertNum(field.value, !isReverse ? decimalsA : decimalsB))
+              //     * BigInt(10 ** (!isReverse ? decimalsB : decimalsA))
+              //     / BigInt(convertNum(price, !isReverse ? decimalsA : decimalsB))
+              //   form.setValue("quantity", displayValue(value, !isReverse ? decimalsA : decimalsB));
+              // }
+            }
+
+            return (
+              <FormItem>
+                <FormLabel>Order Value</FormLabel>
+                <FormControl>
+                  <div className="flex gap-1">
+                    <Input
+                      className="text-right text-xl font-mono font-semibold"
+                      {...field}
                     />
-                  </Avatar>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+                    <Avatar>
+                      <AvatarImage
+                        src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+                        alt={isReverse ? symbolA : symbolB}
+                        className="rounded-full w-6 h-6 self-center"
+                      />
+                    </Avatar>
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
         <Button
           type="submit"

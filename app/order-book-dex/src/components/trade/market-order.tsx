@@ -259,9 +259,7 @@ export default function MarketOrder({
                 <FormMessage />
               </FormItem>
             )
-          }
-
-          }
+          }}
         />
 
         <Button
