@@ -1594,7 +1594,7 @@ pub async fn get_open_positions(
                         'decimalsA',        b.token_decimals_a,
                         'decimalsB',        b.token_decimals_b,
                         'symbolA',          b.token_symbol_a,
-                        'symoblB',          b.token_symbol_b,
+                        'symbolB',          b.token_symbol_b,
                         'ticker',           b.ticker,
                         'positionConfig',   p.position_config,
                         'orderType',        p.order_type,
