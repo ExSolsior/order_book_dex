@@ -1596,6 +1596,7 @@ pub async fn get_open_positions(
                         'symbolA',          b.token_symbol_a,
                         'symbolB',          b.token_symbol_b,
                         'ticker',           b.ticker,
+                        'isReverse',        b.is_reverse,
                         'positionConfig',   p.position_config,
                         'orderType',        p.order_type,
                         'price',            p.price,
