@@ -26,6 +26,7 @@ pub struct MarketOrderParams {
     pub target_amount: u64,
 }
 
+// need to correctly compute if need to create position config and vaults
 pub async fn execute_market_order(
     app_state: web::Data<AppState>,
     market_order: MarketOrderParams,
@@ -37,6 +38,8 @@ pub async fn execute_market_order(
         app_state,
     )
     .await?;
+
+    println!(":: positionConfig {:?}", order_book_data["positionConfig"]);
 
     let market_pointer = match market_order.order_type {
         Order::Sell => {
@@ -162,6 +165,7 @@ pub async fn execute_market_order(
         )
     };
 
+    // need to facter in the fill -> amount = size - fill
     let positions = match market_order.order_type {
         Order::Sell => {
             let mut list = vec![];
@@ -403,7 +407,9 @@ pub async fn execute_market_order(
         let capital_source = positions[0].6;
         let capital_destination = positions[0].7;
 
-        if order_book_data["position_config"].is_null() {
+        println!("is null? {}", order_book_data["positionConfig"].is_null());
+
+        if order_book_data["positionConfig"].is_null() {
             let capital_a = get_associated_token_address_with_program_id(
                 &market_order.signer,
                 &token_mint_a,
@@ -552,7 +558,7 @@ pub async fn execute_market_order(
 
         let mut ixs = vec![];
 
-        if !order_book_data["position_config"].is_null() {
+        if !order_book_data["positionConfig"].is_null() {
             let capital_a = get_associated_token_address_with_program_id(
                 &market_order.signer,
                 &token_mint_a,
