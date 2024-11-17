@@ -85,4 +85,13 @@ pub enum ErrorCode {
 
     #[msg("Invalid Market Write With Contra")]
     InvalidMarketPointerWrite,
+
+    #[msg("Invalid FIll Order Position")]
+    InvalidFillOrderPosition,
+
+    #[msg("Invalid Next Pointer")]
+    InvalidNextPointer,
+
+    #[msg("Price * Size / 10 ** DecimalSize = 0, Invalid Bid")]
+    TransferOfBidIsZero,
 }

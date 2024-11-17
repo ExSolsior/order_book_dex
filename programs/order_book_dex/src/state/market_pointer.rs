@@ -390,7 +390,7 @@ pub struct ExecutionStats {
 }
 
 impl ExecutionStats {
-    pub const LEN: usize = (PUBKEY_BYTES * 6) + (U64_BYTES * 2);
+    pub const LEN: usize = (PUBKEY_BYTES * 5) + (BYTE + PUBKEY_BYTES) + (U64_BYTES * 3);
 
     pub fn update(&mut self, amount: u64, pay_amount: u64, price: u64) {
         self.total_amount += amount;

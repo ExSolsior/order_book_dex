@@ -113,13 +113,25 @@ impl<'info> CreateOrderPosition<'info> {
             (self.token_program_b.clone(), self.token_mint_b.clone())
         };
 
-        // u128 should be enough buffer to prevent overflow
-        let transfer_amount = if self.order_position.order_type == Order::Bid {
-            let decimals = self.token_mint_b.decimals as u32;
-            (price as u128 * amount as u128 / u64::pow(10, decimals) as u128) as u64
+        let decimals = if !self.order_book_config.is_reverse {
+            self.token_mint_b.decimals as u32
         } else {
-            amount
+            self.token_mint_a.decimals as u32
         };
+
+        // u128 should be enough buffer to prevent overflow
+        let (transfer_amount, shift) = if self.order_position.order_type == Order::Bid {
+            let shift = u64::pow(10, decimals);
+            let total = (price as u128 * amount as u128 / shift as u128) as u64;
+            (total, shift)
+        } else {
+            (amount, 0)
+        };
+
+        require!(
+            price as u128 * amount as u128 > shift as u128,
+            ErrorCode::TransferOfBidIsZero
+        );
 
         transfer_checked(
             CpiContext::new(

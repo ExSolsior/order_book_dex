@@ -10,6 +10,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   createMint,
   mintToChecked,
+  getAccount,
 } from "@solana/spl-token";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
@@ -26,6 +27,7 @@ describe("order_book_dex", () => {
     Keypair,
     PublicKey,
     SystemProgram,
+    Connection
   } = anchor.web3
 
   const provider = <AnchorProvider>anchor.getProvider();
@@ -36,7 +38,6 @@ describe("order_book_dex", () => {
   const orderBookConfigAddressList = [];
 
   const connection = provider!.connection!;
-
 
   before(async () => {
 
@@ -430,7 +431,7 @@ describe("order_book_dex", () => {
         ], program.programId);
 
         const tx = await program.methods
-          .createOrderPosition({ bid: {} }, new anchor.BN(100), new anchor.BN(100))
+          .createOrderPosition({ bid: {} }, new anchor.BN(1_000_000), new anchor.BN(1_000_000))
           .accountsStrict({
             signer: signer.publicKey,
             orderBookConfig,
@@ -454,6 +455,15 @@ describe("order_book_dex", () => {
           lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
           signature: tx,
         });
+
+        const data = await program.account.orderPosition.fetch(orderPosition)
+        const capitalsource = await getAccount(program.provider.connection, makerTokenAccounts.capitalSource.address)
+
+        const source = await getAccount(program.provider.connection, makerTokenAccounts.source)
+        const dest = await getAccount(program.provider.connection, makerTokenAccounts.dest)
+
+        console.log(data, source, dest)
+        console.log(capitalsource)
 
       })
 
@@ -566,7 +576,7 @@ describe("order_book_dex", () => {
         ], program.programId);
 
         const tx = await program.methods
-          .createOrderPosition({ ask: {} }, new anchor.BN(50), new anchor.BN(100))
+          .createOrderPosition({ ask: {} }, new anchor.BN(15_000_000), new anchor.BN(10_000_000))
           .accountsStrict({
             signer: signer.publicKey,
             orderBookConfig,
@@ -644,8 +654,8 @@ describe("order_book_dex", () => {
             orderPositionConfig,
             marketPointerRead: null,
             marketPointerWrite: buyMarketPointer,
-            contraPointer: null, // should fail because marketPointerWrite is being used
-            // contraPointer: sellMarketPointer, // should pass with MarketPointerWrite
+            // contraPointer: null, // should fail because marketPointerWrite is being used
+            contraPointer: sellMarketPointer, // should pass with MarketPointerWrite
             orderPosition,
             prevOrderPosition: null,
             nextOrderPosition: null,
@@ -663,6 +673,151 @@ describe("order_book_dex", () => {
 
       })
     })
+
+    // describe("bid limit order", () => {
+    //   it("Create Order Position", async () => {
+
+    //     const signer = users[0].keypair;
+
+    //     const {
+    //       tokenMintA,
+    //       tokenMintB,
+    //       tokenProgramA,
+    //       tokenProgramB,
+    //     } = orderBookConfigAddressList[0];
+
+    //     const makerTokenAccounts = users[0].vaultAccountList[0].tokenAccounts
+    //       .find(list => list.side === 'bid');
+
+    //     const [orderBookConfig] = PublicKey.findProgramAddressSync([
+    //       tokenMintA.toBuffer(),
+    //       tokenMintB.toBuffer(),
+    //       Buffer.from('order-book-config'),
+    //     ], program.programId);
+
+    //     const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+    //       users[0].keypair.publicKey.toBuffer(),
+    //       orderBookConfig.toBuffer(),
+    //       Buffer.from('order-position-config'),
+    //     ], program.programId);
+
+    //     const bufNum = Buffer.allocUnsafe(8);
+    //     const num = BigInt(2);
+    //     bufNum.writeBigUInt64LE(num, 0);
+    //     const [orderPosition] = PublicKey.findProgramAddressSync([
+    //       bufNum,
+    //       orderPositionConfig.toBuffer(),
+    //       signer.publicKey.toBuffer(),
+    //       Buffer.from('order-position'),
+    //     ], program.programId);
+
+    //     const tx = await program.methods
+    //       .createOrderPosition({ bid: {} }, new anchor.BN(1_000_000), new anchor.BN(1_000_000))
+    //       .accountsStrict({
+    //         signer: signer.publicKey,
+    //         orderBookConfig,
+    //         orderPositionConfig,
+    //         orderPosition,
+    //         tokenMintA,
+    //         tokenMintB,
+    //         capitalSource: makerTokenAccounts.capitalSource.address,
+    //         source: makerTokenAccounts.source,
+    //         destination: makerTokenAccounts.dest,
+    //         tokenProgramA,
+    //         tokenProgramB,
+    //         systemProgram: SYSTEM_PROGRAM_ID,
+    //       })
+    //       .signers([signer])
+    //       .rpc();
+
+    //     const latestBlockHash = await provider.connection.getLatestBlockhash()
+    //     await provider.connection.confirmTransaction({
+    //       blockhash: latestBlockHash.blockhash,
+    //       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+    //       signature: tx,
+    //     });
+
+    //     const data = await program.account.orderPosition.fetch(orderPosition)
+    //     const capitalsource = await getAccount(program.provider.connection, makerTokenAccounts.capitalSource.address)
+
+    //     const source = await getAccount(program.provider.connection, makerTokenAccounts.source)
+    //     const dest = await getAccount(program.provider.connection, makerTokenAccounts.dest)
+
+    //     console.log(data, source, dest)
+    //     console.log(capitalsource)
+
+    //   })
+
+    //   it("Open Order Position", async () => {
+
+    //     const signer = users[0].keypair;
+
+    //     const {
+    //       tokenMintA,
+    //       tokenMintB,
+    //     } = orderBookConfigAddressList[0];
+
+    //     const [orderBookConfig] = PublicKey.findProgramAddressSync([
+    //       tokenMintA.toBuffer(),
+    //       tokenMintB.toBuffer(),
+    //       Buffer.from('order-book-config'),
+    //     ], program.programId);
+
+    //     const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+    //       users[0].keypair.publicKey.toBuffer(),
+    //       orderBookConfig.toBuffer(),
+    //       Buffer.from('order-position-config'),
+    //     ], program.programId);
+
+    //     const bufNum = Buffer.allocUnsafe(8);
+    //     const num = BigInt(2);
+    //     bufNum.writeBigUInt64LE(num, 0);
+    //     const [orderPosition] = PublicKey.findProgramAddressSync([
+    //       bufNum,
+    //       orderPositionConfig.toBuffer(),
+    //       signer.publicKey.toBuffer(),
+    //       Buffer.from('order-position'),
+    //     ], program.programId);
+
+    //     const [buyMarketPointer] = PublicKey.findProgramAddressSync([
+    //       Buffer.from('buy-market-pointer'),
+    //       orderBookConfig.toBuffer(),
+    //       Buffer.from('market-pointer'),
+    //     ], program.programId);
+
+    //     const [sellMarketPointer] = PublicKey.findProgramAddressSync([
+    //       Buffer.from('sell-market-pointer'),
+    //       orderBookConfig.toBuffer(),
+    //       Buffer.from('market-pointer'),
+    //     ], program.programId);
+
+    //     const tx = await program.methods
+    //       .openOrderPosition()
+    //       .accountsStrict({
+    //         signer: signer.publicKey,
+    //         orderBookConfig,
+    //         orderPositionConfig,
+    //         marketPointerRead: null,
+    //         marketPointerWrite: sellMarketPointer,
+    //         // contraPointer: null, // should fail because marketPointerWrite is being used
+    //         contraPointer: buyMarketPointer, // should pass with MarketPointerWrite
+    //         orderPosition,
+    //         prevOrderPosition: null,
+    //         nextOrderPosition: null,
+    //         nextPositionPointer: null,
+    //       })
+    //       .signers([signer])
+    //       .rpc();
+
+    //     const latestBlockHash = await provider.connection.getLatestBlockhash()
+    //     await provider.connection.confirmTransaction({
+    //       blockhash: latestBlockHash.blockhash,
+    //       lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+    //       signature: tx,
+    //     });
+
+    //   })
+    // })
 
   })
 
@@ -738,6 +893,7 @@ describe("order_book_dex", () => {
 
     it("Create Market Order", async () => {
 
+
       const signer = users[1].keypair;
 
       const {
@@ -753,13 +909,21 @@ describe("order_book_dex", () => {
         Buffer.from('order-book-config'),
       ], program.programId);
 
+      const maker = users[0].keypair;
+
+      const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+        users[0].keypair.publicKey.toBuffer(),
+        orderBookConfig.toBuffer(),
+        Buffer.from('order-position-config'),
+      ], program.programId);
+
       const bufNum = Buffer.allocUnsafe(8);
       const num = BigInt(0);
       bufNum.writeBigUInt64LE(num, 0);
       const [orderPosition] = PublicKey.findProgramAddressSync([
         bufNum,
+        orderPositionConfig.toBuffer(),
         users[0].keypair.publicKey.toBuffer(),
-        // 'market-maker-order-position'
         Buffer.from('order-position'),
       ], program.programId);
 
@@ -803,6 +967,18 @@ describe("order_book_dex", () => {
         signature: tx,
       });
 
+      const data = await program.account.marketPointer.fetch(sellMarketPointer)
+      const account = await program.provider.connection.getAccountInfo(sellMarketPointer)
+
+      console.log(data)
+      console.log(account)
+      console.log([...account.data].slice(0, 96))
+      console.log([...account.data].slice(96, 192))
+      console.log([...account.data].slice(192, 288))
+      console.log([...account.data].slice(288))
+
+
+
     })
 
     it("Fill Market Order", async () => {
@@ -841,13 +1017,19 @@ describe("order_book_dex", () => {
         Buffer.from('market-pointer'),
       ], program.programId);
 
+      const [orderPositionConfig] = PublicKey.findProgramAddressSync([
+        users[0].keypair.publicKey.toBuffer(),
+        orderBookConfig.toBuffer(),
+        Buffer.from('order-position-config'),
+      ], program.programId);
+
       const bufNum = Buffer.allocUnsafe(8);
       const num = BigInt(0);
       bufNum.writeBigUInt64LE(num, 0);
       const [orderPosition] = PublicKey.findProgramAddressSync([
         bufNum,
-        maker.publicKey.toBuffer(),
-        // 'market-maker-order-position'
+        orderPositionConfig.toBuffer(),
+        users[0].keypair.publicKey.toBuffer(),
         Buffer.from('order-position'),
       ], program.programId);
 

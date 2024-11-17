@@ -9,3 +9,6 @@ pub use market_taker::*;
 
 pub mod market_maker;
 pub use market_maker::*;
+
+pub mod realloc_market_pointer;
+pub use realloc_market_pointer::*;
