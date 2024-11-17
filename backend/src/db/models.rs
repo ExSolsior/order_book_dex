@@ -1726,6 +1726,7 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     }
 }
 
+// missing replacing head when fill == size
 pub async fn update_order_position(
     id: Pubkey,
     size: u64,
@@ -1734,13 +1735,31 @@ pub async fn update_order_position(
 ) {
     match sqlx::raw_sql(&format!(
         r#"
-                UPDATE order_position AS p SET "is_available" = {}, "fill" = p.size - {}
-                WHERE p.pubkey_id = '{}'
-                -- need implement delete when fill == size
-            "#,
-        is_available,
-        size.to_string(),
-        id.to_string(),
+            WITH position AS (
+                SELECT next_position, size FROM order_position AS p
+                WHERE p.pubkey_id = '{id}'
+
+            ), current AS (
+                UPDATE order_position AS p
+                SET p.is_head = false::BOOLEAN 
+                WHERE p.pubkey_id = '{id}'
+                AND (SELECT size FROM position) = '{fill}'
+
+            ), next AS (
+                UPDATE order_position AS p
+                SET p.is_head = false::BOOLEAN 
+                WHERE p.pubkey_id = (SELECT next_position FROM position)
+                AND (SELECT size FROM position) = '{fill}'
+
+            )
+
+            UPDATE order_position AS p SET "is_available" = {is_available}, "fill" = p.size - {fill}
+            WHERE p.pubkey_id = '{id}'
+            -- need implement delete when fill == size
+        "#,
+        is_available = is_available,
+        fill = size.to_string(),
+        id = id.to_string(),
     ))
     .execute(&app_state.pool)
     .await
