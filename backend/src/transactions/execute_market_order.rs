@@ -77,24 +77,24 @@ pub async fn execute_market_order(
     {
         let source_vault = get_vault_account_pda(
             market_order.order_book_config,
-            token_mint_a,
+            token_mint_b,
             market_order.signer,
         );
         let dest_vault = get_vault_account_pda(
             market_order.order_book_config,
-            token_mint_b,
+            token_mint_a,
             market_order.signer,
         );
 
         let source_capital = get_associated_token_address_with_program_id(
             &market_order.signer,
-            &token_mint_a,
-            &token_program_a,
+            &token_mint_b,
+            &token_program_b,
         );
         let dest_capital = get_associated_token_address_with_program_id(
             &market_order.signer,
-            &token_mint_b,
-            &token_program_b,
+            &token_mint_a,
+            &token_program_a,
         );
 
         println!("");
@@ -112,32 +112,32 @@ pub async fn execute_market_order(
             dest_vault,
             source_capital,
             dest_capital,
-            token_mint_a,
             token_mint_b,
-            token_program_a,
+            token_mint_a,
             token_program_b,
+            token_program_a,
         )
     } else {
         let source_vault = get_vault_account_pda(
             market_order.order_book_config,
-            token_mint_b,
+            token_mint_a,
             market_order.signer,
         );
         let dest_vault = get_vault_account_pda(
             market_order.order_book_config,
-            token_mint_a,
+            token_mint_b,
             market_order.signer,
         );
 
         let source_capital = get_associated_token_address_with_program_id(
             &market_order.signer,
-            &token_mint_b,
-            &token_program_b,
+            &token_mint_a,
+            &token_program_a,
         );
         let dest_capital = get_associated_token_address_with_program_id(
             &market_order.signer,
-            &token_mint_a,
-            &token_program_a,
+            &token_mint_b,
+            &token_program_b,
         );
 
         println!("");
@@ -145,20 +145,20 @@ pub async fn execute_market_order(
         println!("dest_vault: {}", dest_vault);
         println!("source_capital: {}", source_capital);
         println!("dest_capital: {}", dest_capital);
-        println!("token_mint_b: {}", token_mint_b);
         println!("token_mint_a: {}", token_mint_a);
-        println!("token_program_b: {}", token_program_b);
+        println!("token_mint_b: {}", token_mint_b);
         println!("token_program_a: {}", token_program_a);
+        println!("token_program_b: {}", token_program_b);
 
         (
             source_vault,
             dest_vault,
             source_capital,
             dest_capital,
-            token_mint_b,
             token_mint_a,
-            token_program_b,
+            token_mint_b,
             token_program_a,
+            token_program_b,
         )
     };
 
@@ -174,10 +174,22 @@ pub async fn execute_market_order(
                 )
                 .unwrap(),
             );
+            println!("prep next position {:?}", next);
             if let Some(bids) = order_book_data["book"]["bids"].as_array() {
                 for bid in bids {
-                    let price = bid["price"].as_u64().unwrap();
-                    let amount = bid["size"].as_u64().unwrap();
+                    // price and size are coming as string
+                    // so need to parse as u64
+                    let price: u64 = bid["price"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
+
+                    let amount: u64 = bid["size"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
 
                     let pubkey_id = Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -200,15 +212,15 @@ pub async fn execute_market_order(
                     };
 
                     let (source_mint, source_program) = if !is_reverse {
-                        (token_mint_b, token_program_b)
-                    } else {
                         (token_mint_a, token_program_a)
+                    } else {
+                        (token_mint_b, token_program_b)
                     };
 
                     let (destination_mint, destination_program) = if !is_reverse {
-                        (token_mint_a, token_program_a)
-                    } else {
                         (token_mint_b, token_program_b)
+                    } else {
+                        (token_mint_a, token_program_a)
                     };
 
                     let market_maker =
@@ -230,6 +242,13 @@ pub async fn execute_market_order(
                     println!("pubkey_id: {}", pubkey_id);
                     println!("postion_config: {}", postion_config);
                     println!("next_position: {}", next_position.is_some());
+                    println!("next_position: {:?}", next_position);
+                    println!(
+                        "NEXT POSITION POINTER: {:?}",
+                        (target_amount == 0 && next_position.is_some())
+                            .then(|| next_position.unwrap())
+                    );
+
                     println!("market_maker: {}", market_maker);
                     println!("source_vault: {}", source_vault);
                     println!("destination_vault: {}", destination_vault);
@@ -279,10 +298,19 @@ pub async fn execute_market_order(
                 )
                 .unwrap(),
             );
+            println!("prep next position {:?}", next);
             if let Some(asks) = order_book_data["book"]["asks"].as_array() {
                 for ask in asks {
-                    let price = ask["price"].as_u64().unwrap();
-                    let amount = ask["size"].as_u64().unwrap();
+                    let price: u64 = ask["price"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
+                    let amount: u64 = ask["size"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
 
                     let pubkey_id = Pubkey::from_str(ask["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -305,15 +333,15 @@ pub async fn execute_market_order(
                     };
 
                     let (source_mint, source_program) = if !is_reverse {
-                        (token_mint_a, token_program_a)
-                    } else {
                         (token_mint_b, token_program_b)
+                    } else {
+                        (token_mint_a, token_program_a)
                     };
 
                     let (destination_mint, destination_program) = if !is_reverse {
-                        (token_mint_b, token_program_b)
-                    } else {
                         (token_mint_a, token_program_a)
+                    } else {
+                        (token_mint_b, token_program_b)
                     };
 
                     let market_maker =
@@ -357,13 +385,15 @@ pub async fn execute_market_order(
         _ => unreachable!(),
     };
 
+    println!("THIS??? :: {:?}", positions[0].2);
+
     let mut list: Vec<VersionedTransaction> = Vec::new();
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
     let payer = market_order.signer;
 
     if positions.len() == 1 {
         let mut ixs = vec![];
-        let target_amount = positions[0].13;
+        let target_amount = positions[0].14;
         let order_position = positions[0].0;
         let position_config = positions[0].1;
 
@@ -430,6 +460,14 @@ pub async fn execute_market_order(
                 data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
             });
         }
+        println!(
+            "NEXT POSITION POINTER: {:?}",
+            (target_amount == 0 && next_position_pointer.is_some())
+                .then(|| next_position_pointer.unwrap())
+        );
+
+        println!("TARGET AMOUNT: {:?}", target_amount);
+        println!("ORDER POSITION: {:?}", order_position);
 
         ixs.push(create_market_order(
             market_order.signer,
@@ -476,12 +514,15 @@ pub async fn execute_market_order(
                 maker_destination,
                 capital_source,
                 capital_destination,
-                source_mint,
-                destination_mint,
+                positions[0].8,
+                positions[0].9,
                 source_program,
                 destination_program,
             ))
         });
+
+        println!("SOURCE MINT: {:?}", source_mint);
+        println!("SOURCE MINT: {:?}", positions[0].8);
 
         ixs.push(return_execution_market_order(
             market_order.signer,
@@ -505,9 +546,9 @@ pub async fn execute_market_order(
             .unwrap(),
         );
     } else {
-        let target_amount = positions[0].13;
+        let target_amount = positions[positions.len() - 1].14;
         let order_position = positions[0].0;
-        let next_position_pointer = positions[0].2;
+        let next_position_pointer = positions[positions.len() - 1].2;
 
         let mut ixs = vec![];
 
@@ -569,6 +610,14 @@ pub async fn execute_market_order(
                 data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
             });
         }
+
+        println!(
+            "NEXT POSITION POINTER: {:?}",
+            (target_amount == 0 && next_position_pointer.is_some())
+                .then(|| next_position_pointer.unwrap())
+        );
+        println!("TARGET AMOUNT: {:?}", target_amount);
+        println!("NEXT POSITION POINTER: {:?}", next_position_pointer);
 
         ixs.push(create_market_order(
             market_order.signer,

@@ -258,3 +258,48 @@
 // console.log(" :: ", Keypair.generate().publicKey.toString())
 // console.log(" :: ", Keypair.generate().publicKey.toString())
 // console.log(" :: ", Keypair.generate().publicKey.toString())
+
+
+
+
+// it("Realloc Market Pointer to fix bug", async () => {
+
+//     console.log(program.provider.connection.rpcEndpoint)
+//     const account = await program.account.orderBookConfig.fetch(new PublicKey("9nQrpEf5Q3K8wRQ8xo2ffzWHEacR3yqz5QZj2jCBWmsn"));
+//     console.log(account)
+
+//     const b1 = await program.provider.connection.getAccountInfo(new PublicKey("5ZnDahZRLmcFYRAkuJr6WHMngGTtwJQKLoDUg2i4SW2S"));
+//     const s1 = await program.provider.connection.getAccountInfo(new PublicKey("6K4LzX6x2Z8UAvYjcicXuBAPGNb96w5b5WfvJpDj9KuQ"));
+//     console.log(b1, s1)
+//     console.log(b1.data.length, s1.data.length)
+
+//     const account2 = await program.account.marketPointer.fetch(new PublicKey("5ZnDahZRLmcFYRAkuJr6WHMngGTtwJQKLoDUg2i4SW2S"));
+//     const account3 = await program.account.marketPointer.fetch(new PublicKey("6K4LzX6x2Z8UAvYjcicXuBAPGNb96w5b5WfvJpDj9KuQ"));
+
+//     console.log(account2, account3)
+
+
+//     const tx = await program.methods
+//         .reallocMarketPointer()
+//         .accountsStrict({
+//             signer: wallet.publicKey,
+//             orderBookConfig: new PublicKey("9nQrpEf5Q3K8wRQ8xo2ffzWHEacR3yqz5QZj2jCBWmsn"),
+//             sellMarketPointer: new PublicKey("5ZnDahZRLmcFYRAkuJr6WHMngGTtwJQKLoDUg2i4SW2S"),
+//             buyMarketPointer: new PublicKey("6K4LzX6x2Z8UAvYjcicXuBAPGNb96w5b5WfvJpDj9KuQ"),
+//             systemProgram: SYSTEM_PROGRAM_ID,
+//         })
+//         .signers([wallet.payer])
+//         .rpc();
+
+//     const latestBlockHash = await provider.connection.getLatestBlockhash()
+//     await provider.connection.confirmTransaction({
+//         blockhash: latestBlockHash.blockhash,
+//         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+//         signature: tx,
+//     });
+
+//     const b2 = await program.provider.connection.getAccountInfo(new PublicKey("5ZnDahZRLmcFYRAkuJr6WHMngGTtwJQKLoDUg2i4SW2S"));
+//     const s2 = await program.provider.connection.getAccountInfo(new PublicKey("6K4LzX6x2Z8UAvYjcicXuBAPGNb96w5b5WfvJpDj9KuQ"));
+//     console.log(b2, s2)
+//     console.log(b2.data.length, s2.data.length)
+// })

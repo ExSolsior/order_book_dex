@@ -27,8 +27,12 @@ pub struct CreateMarketOrder<'info> {
     pub market_pointer: Account<'info, MarketPointer>,
 
     #[account(
-        constraint = market_pointer.order_position_pointer.unwrap() == order_position.key(),
-        constraint = next_position_pointer.is_none() && order_position.next_order_position.is_none(),
+        constraint = market_pointer.order_position_pointer.unwrap() == order_position.key()
+            @ ErrorCode::InvalidFillOrderPosition,
+        constraint = next_position_pointer.is_some() || 
+            (next_position_pointer.is_none() 
+            && order_position.next_order_position.is_none())
+            @ ErrorCode::InvalidNextPointer,
     )]
     pub order_position: Account<'info, OrderPosition>,
 

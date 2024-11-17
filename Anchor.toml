@@ -12,6 +12,8 @@ url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
+# cluster = "https://rpc.devnet.soo.network/rpc"
+
 wallet = "~/.config/solana/id.json"
 
 [test.validator]
@@ -22,3 +24,4 @@ address = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+up = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
