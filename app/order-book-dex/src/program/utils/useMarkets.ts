@@ -123,10 +123,10 @@ export const useMarkets = () => {
         marketMakerParams.append("market_maker", userWallet!.publicKey.toString());
         const openPositionsURL = new URL("./get_open_positions?" + marketMakerParams.toString(), base);
 
-        const repsonse = await fetch(openPositionsURL)
+        const response = await fetch(openPositionsURL)
 
         // hack impl, need to fixed on server side but it works
-        const positions = repsonse.ok ? await repsonse.json() || [] : [];
+        const positions = response.ok ? await response.json() || [] : [];
 
         // I wonder if this could cause issues, let's say event listner gets data first
         // then this loads data. data becomes mismatched and doesn't reflect the real state.
