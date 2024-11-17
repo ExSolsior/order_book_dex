@@ -245,6 +245,8 @@ pub async fn execute_market_order(
         target_amount: query.target_amount,
     };
 
+    println!("target_amount :: {}", query.target_amount);
+
     match transactions::execute_market_order::execute_market_order(app_state, market_order).await {
         Ok(data) =>
         // should should as structured message
