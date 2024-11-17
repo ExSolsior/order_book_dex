@@ -73,8 +73,4 @@ pub mod order_book_dex {
     pub fn return_execution_market_order(ctx: Context<ReturnExecutionMarketOrder>) -> Result<()> {
         ctx.accounts.exec()
     }
-
-    pub fn realloc_market_pointer(_ctx: Context<Realloc>) -> Result<()> {
-        Ok(())
-    }
 }
