@@ -1051,7 +1051,8 @@ pub async fn get_trade_pair(
                         opc.market_maker AS "market_maker", 
                         op.order_type AS "order_type", 
                         op.price AS "price", 
-                        op.size AS "size", 
+                        op.size AS "size",
+                        op.fill AS "fill",
                         op.is_available AS  "is_available",
 
                         CASE
@@ -1106,6 +1107,7 @@ pub async fn get_trade_pair(
                         p.order_type,
                         p.price,
                         p.size,
+                        p.fill,
                         p.is_available,
                         p.capital_source,
                         p.capital_destination,
@@ -1128,6 +1130,7 @@ pub async fn get_trade_pair(
                         p.order_type,
                         p.price,
                         p.size,
+                        p.fill,
                         p.is_available,
                         p.capital_source,
                         p.capital_destination,
@@ -1153,6 +1156,7 @@ pub async fn get_trade_pair(
                                 'orderType', b.order_type,
                                 'price', b.price::TEXT,
                                 'size', b.size::TEXT,
+                                'fill', b.fill::TEXT,
                                 'isAvailable', b.is_available,
                                 'sourceCapital', b.capital_source,
                                 'destinationCapital', b.capital_destination,
@@ -1176,6 +1180,7 @@ pub async fn get_trade_pair(
                                 'orderType', a.order_type,
                                 'price', a.price::TEXT,
                                 'size', a.size::TEXT,
+                                'fill', a.fill::TEXT,
                                 'isAvailable', a.is_available,
                                 'sourceCapital', a.capital_source,
                                 'destinationCapital', a.capital_destination,
@@ -1612,7 +1617,7 @@ pub async fn get_open_positions(
                 JOIN order_position AS p ON p.position_config = c.pubkey_id
                 JOIN order_book_config AS b ON b.pubkey_id = p.book_config
                 WHERE c.market_maker = (SELECT market_maker FROM input) 
-                AND p.size != p.fill
+                AND p.is_available = true::BOOLEAN
                 ORDER BY p.book_config DESC, p.slot DESC
                 
             )
@@ -1637,10 +1642,8 @@ pub async fn get_open_positions(
         return Ok(Some(Box::new(json!([]))));
     }
 
-    let query = query.unwrap();
-    let data = query.try_get_raw("data");
-    let data: Option<Box<Value>> = match data {
-        Ok(data) => serde_json::from_str(data.as_str().unwrap()).unwrap(),
+    let data: Option<Box<Value>> = match query.unwrap().try_get_raw("data").unwrap().as_str() {
+        Ok(data) => serde_json::from_str(data).unwrap(),
         Err(error) => {
             println!("error being cleaned to empty array:: {}", error);
             return Ok(Some(Box::new(json!([]))));
