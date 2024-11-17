@@ -1116,6 +1116,7 @@ pub async fn get_trade_pair(
 
                     FROM position AS p
                     WHERE p.order_type = 'bid'
+                    AND is_available = true::BOOLEAN
                     ORDER BY p.price DESC, p.slot ASC
 
                 ), asks AS (
@@ -1137,6 +1138,7 @@ pub async fn get_trade_pair(
 
                     FROM position AS p
                     WHERE p.order_type = 'ask'
+                    AND is_available = true::BOOLEAN
                     ORDER BY p.price ASC, p.slot ASC
 
                 ), agg_bids AS (
