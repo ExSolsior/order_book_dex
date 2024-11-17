@@ -18,6 +18,7 @@ import {
     useConnection,
 } from "@solana/wallet-adapter-react";
 import { displayValue } from "./helper";
+import { PROGRAM_ID } from "./constants";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // const API_SVM = process.env.NEXT_PUBLIC_API_SVM;
@@ -363,6 +364,12 @@ export const useTransaction = (marketId: PublicKey) => {
                 queue.get(),
             )
 
+            const userPositionConfig = PublicKey.findProgramAddressSync([
+                userWallet!.publicKey!.toBuffer(),
+                new PublicKey(book!.pubkeyId).toBuffer(),
+                Buffer.from("order-position-config"),
+            ], PROGRAM_ID)[0];
+
             const store = {
                 // how to handle including image?
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
@@ -387,7 +394,7 @@ export const useTransaction = (marketId: PublicKey) => {
                         tokenProgramB: new PublicKey(book.tokenProgramB),
                         userAddress: userWallet ? userWallet!.publicKey : undefined,
                         // will remove?
-                        userPositionConfig: undefined,
+                        userPositionConfig: userPositionConfig,
                     },
                     marketDetails: {
                         isReverse: book.isReverse,

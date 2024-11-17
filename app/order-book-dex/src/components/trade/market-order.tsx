@@ -16,7 +16,7 @@ import { Input } from "../ui/input";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageHeader, MessageV0, PublicKey, VersionedTransaction } from "@solana/web3.js";
+import { MessageHeader, MessageV0, PublicKey, TransactionSignature, VersionedTransaction } from "@solana/web3.js";
 import { useContext, useState } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
@@ -27,6 +27,8 @@ import { UserBalance } from "@/program/utils/useMarkets";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
+// using lastPrice could be wrong especially if zero
+// should use head ask or head bid?
 export default function MarketOrder({
   market,
   type
@@ -75,22 +77,35 @@ export default function MarketOrder({
 
   function onSubmit(values: z.infer<typeof formSchema>) {
 
+
     // need to validate total against the avialable balance
     // need to implement correct decimals
-    if ((BigInt(convertNum(values.quantity, 10)) > availableBalance) || total > availableBalance) {
+    if (type === 'buy' ?
+      (BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA)) > availableBalance)
+      : total > availableBalance) {
       return
     }
+
+    console.log(total > availableBalance, total, availableBalance)
+    console.log((BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA)) > availableBalance)
+      , BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA))
+      , availableBalance)
+
+
+    console.log(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA))
 
     const params = new URLSearchParams({
       "book_config": marketId.toString(),
       "signer": userWallet!.publicKey.toString(),
-      "positionConfig": market!.orderBook!.accounts!.userPositionConfig!.toString(),
+      "position_config": market!.orderBook!.accounts!.userPositionConfig!.toString(),
       "order_type": type,
-      "target_amount": values.quantity,
+      "target_amount": convertNum(values.quantity, !isReverse ? decimalsB : decimalsA),
     });
 
-    const base = new URL("/api", API_ENDPOINT);
+    const base = new URL("./api/", API_ENDPOINT);
     const path = new URL("./execute_market_order?" + params.toString(), base.toString());
+
+    console.log(path)
 
     fetch(path)
       .then((data) => data.json())
@@ -133,15 +148,20 @@ export default function MarketOrder({
           })
 
           const vTransaction = new VersionedTransaction(vMessage);
-          return userWallet?.signTransaction(vTransaction);
+          // return userWallet?.signTransaction(vTransaction);
+          return vTransaction
         })
 
-        return v0TransactionList.map((signedTransaction: VersionedTransaction) => {
-          program!.provider!.sendAndConfirm!(signedTransaction)
-        })
+        return userWallet?.signAllTransactions(v0TransactionList)
+      })
+      .then((v0TransactionList) => {
+
+        return Promise.allSettled(v0TransactionList!.map((signedTransaction) => {
+          return program!.provider!.sendAndConfirm!(signedTransaction)
+        }))
 
       })
-      .then((data) => data.forEach((txSig: string) => console.log(txSig)))
+      .then((data) => data?.forEach((txSig: PromiseSettledResult<TransactionSignature>) => console.log(txSig)))
       .catch((err) => console.log(err))
   }
 
