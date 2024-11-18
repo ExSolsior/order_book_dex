@@ -128,6 +128,8 @@ export const useMarkets = () => {
         // hack impl, need to fixed on server side but it works
         const positions = response.ok ? await response.json() || [] : [];
 
+        console.log("Fetched Open Limit Orders: ", positions);
+
         // I wonder if this could cause issues, let's say event listner gets data first
         // then this loads data. data becomes mismatched and doesn't reflect the real state.
         // will come back to this later
@@ -135,15 +137,22 @@ export const useMarkets = () => {
             return [
                 ...prev,
                 ...(positions.map((position: ReceivedOpenLimitOrder) => ({
+                    marketId: new PublicKey(position.marketId),
+                    positionConfig: new PublicKey(position.positionConfig),
                     positionId: new PublicKey(position.positionId),
-                    ticker: "",
-                    OrderType: position.orderType,
+                    tokenA: position.symbolA,
+                    tokenB: position.symbolB,
+                    decimalsA: position.decimalsA,
+                    decimalsB: position.decimalsB,
+                    isReverse: position.isReverse,
+                    ticker: position.ticker,
+                    orderType: position.orderType,
                     price: BigInt(position.price),
                     amount: BigInt(position.size),
                     fillAmount: BigInt(0), // how to handle this?
-                    value: BigInt(position.price) * BigInt(position.size),
+                    value: BigInt(position.price) * BigInt(position.size) / BigInt((10 ** (!position.isReverse ? Number(position.decimalsA) : Number(position.decimalsB)))),
                     valueUSD: BigInt(0), // need oracle to handle this
-                    createAt: position.timestamp,
+                    createdAt: position.timestamp,
                 })))
             ] as OpenOrder[]
         })
@@ -517,7 +526,14 @@ export const useMarkets = () => {
 }
 
 export type OpenOrder = {
+    marketId: PublicKey,
+    positionConfig: PublicKey,
     positionId: PublicKey,
+    tokenA: string,
+    tokenB: string,
+    decimalsA: number,
+    decimalsB: number,
+    isReverse: boolean,
     ticker: string, // pair
     orderType: "bid" | "ask",
     price: bigint,
@@ -619,7 +635,14 @@ type ReceivedOpenLimitOrder = {
     // 'size', p.size,
     // -- need filled total of size, currently not tracking
     // 'slot', p.slot
+    marketId: string,
+    positionConfig: string,
     positionId: string,
+    symbolA: string,
+    symbolB: string,
+    decimalsA: string,
+    decimalsB: string,
+    isReverse: boolean,
     ticker: string,
     orderType: string,
     // I think??
