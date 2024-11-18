@@ -42,6 +42,12 @@ export const createVersionedTransaction = async (
   }
 };
 
+const formatWithCommas = (num: string) => {
+  const [integerPart, decimalPart] = num.split('.');
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+};
+
 export const displayValue = (value: bigint, decimal: number, truncate: number = 0) => {
   const num = []
   const shift = BigInt(10 ** decimal);
@@ -49,10 +55,18 @@ export const displayValue = (value: bigint, decimal: number, truncate: number = 
 
   if (truncate < decimal) {
     num.push(base.toString());
-    num.push((value - (base * shift))
-      .toString()
-      .padStart(decimal, "0")
-      .slice(0, decimal - truncate));
+    const decimalPart = (value - (base * shift))
+    .toString()
+    .padStart(decimal, "0")
+    .slice(0, decimal - truncate);
+  
+    // Remove trailing zeros from the decimal part
+    const trimmedDecimalPart = decimalPart.replace(/0+$/, '');
+
+    // Check if the decimal part is empty after trimming
+    if (trimmedDecimalPart.length > 0) {
+      num.push(trimmedDecimalPart);
+    }
 
   } else if (truncate - decimal < base.toString().length) {
     num.push(base.toString().slice(0, truncate - decimal));
@@ -62,5 +76,5 @@ export const displayValue = (value: bigint, decimal: number, truncate: number = 
     num.push("..")
   }
 
-  return num.join(".");
+  return formatWithCommas(num.join("."));
 };
