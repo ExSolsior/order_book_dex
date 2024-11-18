@@ -94,4 +94,7 @@ pub enum ErrorCode {
 
     #[msg("Price * Size / 10 ** DecimalSize = 0, Invalid Bid")]
     TransferOfBidIsZero,
+
+    #[msg("Invalid Maret Order")]
+    InvalidTransferAmount,
 }

@@ -55,6 +55,7 @@ impl MarketPointer {
         order_type: Order,
         fill: Fill,
         target_amount: u64,
+        allocated_amount: u64,
         owner: Pubkey,
         source: Pubkey,
         dest: Pubkey,
@@ -78,6 +79,7 @@ impl MarketPointer {
         });
 
         self.execution_stats = Some(ExecutionStats {
+            buy_allocated_amount: allocated_amount,
             total_amount: 0,
             total_cost: 0,
             last_price: 0,
@@ -170,6 +172,7 @@ impl MarketPointer {
     }
 
     // is this correct?
+    // I actually have no idea what this is for?
     pub fn is_valid_order_pointer(&self, order_position: Pubkey) -> bool {
         self.execution_stats
             .as_ref()
@@ -384,13 +387,14 @@ pub struct ExecutionStats {
     pub source: Pubkey,
     pub dest: Pubkey,
     pub next_position_pointer: Option<Pubkey>,
+    pub buy_allocated_amount: u64,
     pub total_amount: u64,
     pub total_cost: u64,
     pub last_price: u64,
 }
 
 impl ExecutionStats {
-    pub const LEN: usize = (PUBKEY_BYTES * 5) + (BYTE + PUBKEY_BYTES) + (U64_BYTES * 3);
+    pub const LEN: usize = (PUBKEY_BYTES * 5) + (BYTE + PUBKEY_BYTES) + (U64_BYTES * 4);
 
     pub fn update(&mut self, amount: u64, pay_amount: u64, price: u64) {
         self.total_amount += amount;
