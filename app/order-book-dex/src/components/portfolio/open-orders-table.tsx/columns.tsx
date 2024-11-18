@@ -1,12 +1,13 @@
-"use client";
-
-import { OpenOrder } from "@/app/devnet/portfolio/open-orders";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
+"use client"
+import { OpenOrder } from "@/program/utils/useMarkets";
+// import { AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import Link from "next/link";
+import { displayValue } from "@/program/utils/helper";
 
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -44,17 +45,18 @@ export const columns: ColumnDef<OpenOrder>[] = [
       />
     ),
     cell: ({ row }) => {
-      const name = `${row.original.tokenA} / ${row.original.tokenB}`;
       return (
-        <Link href={`/trade/${row.original.marketId}`}>
+        <Link href={`/trade/${row.original.positionId}`}>
           <div className="text-left font-semibold flex items-center gap-2">
             <Avatar className="h-5 w-5">
-              <AvatarImage
+              {/* <AvatarImage
                 src={row.original.tokenAImage}
                 alt={row.original.tokenA}
-              />
+
+                TOKEN IMAGE: Will have to be handled properly
+              /> */} 
             </Avatar>
-            <span>{name}</span>
+            <span>{row.original.ticker}</span>
           </div>
         </Link>
       );
@@ -72,9 +74,9 @@ export const columns: ColumnDef<OpenOrder>[] = [
     cell: ({ row }) => {
       return (
         <div
-          className={`text-center font-mono font-bold ${row.original.type === "buy" ? "text-green-500" : "text-red-500"}`}
+          className={`text-center font-mono font-bold ${row.original.orderType === "bid" ? "text-green-500" : "text-red-500"}`}
         >
-          {row.original.type === "buy" ? "BUY" : "SELL"}
+          {row.original.orderType === "bid" ? "BID" : "ASK"}
         </div>
       );
     }
@@ -91,12 +93,14 @@ export const columns: ColumnDef<OpenOrder>[] = [
     cell: ({ row }) => {
       return (
         <div className="text-right font-semibold font-mono flex items-center gap-1">
-          <span className="ml-auto">{row.original.amount}</span>
+          <span className="ml-auto">{displayValue(row.original.amount, !row.original.isReverse ? row.original.decimalsB : row.original.decimalsA)}</span>
           <Avatar className="h-5 w-5">
-            <AvatarImage
+            {/* <AvatarImage
               src={row.original.tokenAImage}
               alt={row.original.tokenA}
-            />
+
+              TOKEN IMAGE: Will have to be handled properly
+            /> */}
           </Avatar>
         </div>
       );
@@ -114,12 +118,14 @@ export const columns: ColumnDef<OpenOrder>[] = [
     cell: ({ row }) => {
       return (
         <div className="text-right font-semibold font-mono flex items-center gap-1">
-          <span className="ml-auto">{row.original.price}</span>
+          <span className="ml-auto">{displayValue(row.original.price, !row.original.isReverse ? row.original.decimalsA : row.original.decimalsB)}</span>
           <Avatar className="h-5 w-5">
-            <AvatarImage
+            {/* <AvatarImage
               src={row.original.tokenBImage}
               alt={row.original.tokenB}
-            />
+
+              TOKEN IMAGE: Will have to be handled properly
+            /> */}
           </Avatar>
         </div>
       );
@@ -135,15 +141,8 @@ export const columns: ColumnDef<OpenOrder>[] = [
       />
     ),
     cell: ({ row }) => {
-      const usd_value = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 10
-      }).format(parseFloat(row.getValue("usd_value")));
-
       return (
-        <div className="text-right font-semibold font-mono">{usd_value}</div>
+        <div className="text-right font-semibold font-mono">{displayValue(row.original.valueUSD, 2)}</div>
       );
     }
   },

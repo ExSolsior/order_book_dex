@@ -307,8 +307,6 @@ export const useTransaction = (marketId: PublicKey) => {
                 fetch(candleDataURL)
             ]);
 
-            console.log(response)
-
             const book = await (async () => {
                 if (response[0].status === 200) {
                     return await response[0].json();
@@ -321,7 +319,6 @@ export const useTransaction = (marketId: PublicKey) => {
                 return
             }
 
-
             const candles = await (async () => {
                 if (response[1].status === 200) {
                     return await response[1].json();
@@ -332,28 +329,28 @@ export const useTransaction = (marketId: PublicKey) => {
             const asks = new Map<bigint, Order>();
             const bids = new Map<bigint, Order>();
 
-            book.book.asks.forEach((element: Order) => {
+            book.book.asks.forEach((element: IncomingOrder) => {
 
                 const price = BigInt(element.price);
                 asks.set(price, {
                     id: crypto.randomUUID(),
                     price: price,
                     size: asks.has(price)
-                        ? asks.get(price)!.size + BigInt(element.size)
-                        : BigInt(element.size),
+                        ? asks.get(price)!.size + (BigInt(element.size) - BigInt(element.fill))
+                        : BigInt(element.size) - BigInt(element.fill),
                     depth: BigInt(0),
                 });
             });
 
-            book.book.bids.forEach((element: Order) => {
+            book.book.bids.forEach((element: IncomingOrder) => {
 
                 const price = BigInt(element.price);
                 bids.set(price, {
                     id: crypto.randomUUID(),
                     price: price,
                     size: bids.has(price)
-                        ? bids.get(price)!.size + BigInt(element.size)
-                        : BigInt(element.size),
+                        ? bids.get(price)!.size + (BigInt(element.size) - BigInt(element.fill))
+                        : BigInt(element.size) - BigInt(element.fill),
                     depth: BigInt(0),
                 });
             });
@@ -596,6 +593,14 @@ interface Payload {
     price: bigint,
     size: bigint,
 };
+
+interface IncomingOrder {
+    id: string,
+    price: string;
+    size: string;
+    fill: string
+    depth: string;
+}
 
 export interface Order {
     id: string,

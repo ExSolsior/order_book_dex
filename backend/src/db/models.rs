@@ -1051,7 +1051,8 @@ pub async fn get_trade_pair(
                         opc.market_maker AS "market_maker", 
                         op.order_type AS "order_type", 
                         op.price AS "price", 
-                        op.size AS "size", 
+                        op.size AS "size",
+                        op.fill AS "fill",
                         op.is_available AS  "is_available",
 
                         CASE
@@ -1106,6 +1107,7 @@ pub async fn get_trade_pair(
                         p.order_type,
                         p.price,
                         p.size,
+                        p.fill,
                         p.is_available,
                         p.capital_source,
                         p.capital_destination,
@@ -1116,6 +1118,7 @@ pub async fn get_trade_pair(
 
                     FROM position AS p
                     WHERE p.order_type = 'bid'
+                    AND is_available = true::BOOLEAN
                     ORDER BY p.price DESC, p.slot ASC
 
                 ), asks AS (
@@ -1127,6 +1130,7 @@ pub async fn get_trade_pair(
                         p.order_type,
                         p.price,
                         p.size,
+                        p.fill,
                         p.is_available,
                         p.capital_source,
                         p.capital_destination,
@@ -1137,6 +1141,7 @@ pub async fn get_trade_pair(
 
                     FROM position AS p
                     WHERE p.order_type = 'ask'
+                    AND is_available = true::BOOLEAN
                     ORDER BY p.price ASC, p.slot ASC
 
                 ), agg_bids AS (
@@ -1151,6 +1156,7 @@ pub async fn get_trade_pair(
                                 'orderType', b.order_type,
                                 'price', b.price::TEXT,
                                 'size', b.size::TEXT,
+                                'fill', b.fill::TEXT,
                                 'isAvailable', b.is_available,
                                 'sourceCapital', b.capital_source,
                                 'destinationCapital', b.capital_destination,
@@ -1174,6 +1180,7 @@ pub async fn get_trade_pair(
                                 'orderType', a.order_type,
                                 'price', a.price::TEXT,
                                 'size', a.size::TEXT,
+                                'fill', a.fill::TEXT,
                                 'isAvailable', a.is_available,
                                 'sourceCapital', a.capital_source,
                                 'destinationCapital', a.capital_destination,
@@ -1610,7 +1617,7 @@ pub async fn get_open_positions(
                 JOIN order_position AS p ON p.position_config = c.pubkey_id
                 JOIN order_book_config AS b ON b.pubkey_id = p.book_config
                 WHERE c.market_maker = (SELECT market_maker FROM input) 
-                AND p.size != p.fill
+                AND p.is_available = true::BOOLEAN
                 ORDER BY p.book_config DESC, p.slot DESC
                 
             )
@@ -1635,10 +1642,8 @@ pub async fn get_open_positions(
         return Ok(Some(Box::new(json!([]))));
     }
 
-    let query = query.unwrap();
-    let data = query.try_get_raw("data");
-    let data: Option<Box<Value>> = match data {
-        Ok(data) => serde_json::from_str(data.as_str().unwrap()).unwrap(),
+    let data: Option<Box<Value>> = match query.unwrap().try_get_raw("data").unwrap().as_str() {
+        Ok(data) => serde_json::from_str(data).unwrap(),
         Err(error) => {
             println!("error being cleaned to empty array:: {}", error);
             return Ok(Some(Box::new(json!([]))));
@@ -1721,6 +1726,7 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
     }
 }
 
+// missing replacing head when fill == size
 pub async fn update_order_position(
     id: Pubkey,
     size: u64,
@@ -1729,13 +1735,31 @@ pub async fn update_order_position(
 ) {
     match sqlx::raw_sql(&format!(
         r#"
-                UPDATE order_position AS p SET "is_available" = {}, "fill" = p.size - {}
-                WHERE p.pubkey_id = '{}'
-                -- need implement delete when fill == size
-            "#,
-        is_available,
-        size.to_string(),
-        id.to_string(),
+            WITH position AS (
+                SELECT next_position, size FROM order_position AS p
+                WHERE p.pubkey_id = '{id}'
+
+            ), current AS (
+                UPDATE order_position AS p
+                SET p.is_head = false::BOOLEAN 
+                WHERE p.pubkey_id = '{id}'
+                AND (SELECT size FROM position) = '{fill}'
+
+            ), next AS (
+                UPDATE order_position AS p
+                SET p.is_head = false::BOOLEAN 
+                WHERE p.pubkey_id = (SELECT next_position FROM position)
+                AND (SELECT size FROM position) = '{fill}'
+
+            )
+
+            UPDATE order_position AS p SET "is_available" = {is_available}, "fill" = p.size - {fill}
+            WHERE p.pubkey_id = '{id}'
+            -- need implement delete when fill == size
+        "#,
+        is_available = is_available,
+        fill = size.to_string(),
+        id = id.to_string(),
     ))
     .execute(&app_state.pool)
     .await

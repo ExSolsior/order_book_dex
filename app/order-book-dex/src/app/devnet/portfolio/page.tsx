@@ -6,6 +6,7 @@ import { PortfolioHeader } from "./header";
 import { PortfolioOpenOrders } from "./open-orders";
 import { PastOrders } from "./past-orders";
 import { PortfolioSummary } from "./summary";
+import { MarketContextProvider } from "@/components/provider/market-provider";
 
 export default function PortfolioPage() {
   const wallet = useWallet();
@@ -18,7 +19,9 @@ export default function PortfolioPage() {
     <div className="space-y-6">
       <PortfolioHeader />
       <PortfolioSummary />
-      <PortfolioOpenOrders />
+      <MarketContextProvider>
+        <PortfolioOpenOrders />
+      </MarketContextProvider>
       <PastOrders />
     </div>
   );
