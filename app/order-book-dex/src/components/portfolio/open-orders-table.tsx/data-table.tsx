@@ -32,10 +32,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
 }
 
-export interface OrderData extends OpenOrder {
-}
-
-export function OpenOrdersTable<TData extends OrderData, TValue>({
+export function OpenOrdersTable<TData extends OpenOrder, TValue>({
   columns,
   data
 }: DataTableProps<TData, TValue>) {

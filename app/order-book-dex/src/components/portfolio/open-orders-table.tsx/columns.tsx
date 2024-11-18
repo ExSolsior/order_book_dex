@@ -1,5 +1,5 @@
 "use client"
-import { OrderData } from "./data-table";
+import { OpenOrder } from "@/program/utils/useMarkets";
 // import { AvatarImage } from "@/components/ui/avatar";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ function DataTableColumnHeader<TData, TValue>({
   );
 }
 
-export const columns: ColumnDef<OrderData>[] = [
+export const columns: ColumnDef<OpenOrder>[] = [
   {
     accessorKey: "tokenA",
     header: ({ column }) => (
@@ -141,13 +141,6 @@ export const columns: ColumnDef<OrderData>[] = [
       />
     ),
     cell: ({ row }) => {
-      const usd_value = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 10
-      }).format(parseFloat(row.getValue("usd_value")));
-
       return (
         <div className="text-right font-semibold font-mono">{displayValue(row.original.valueUSD, 2)}</div>
       );

@@ -1,5 +1,5 @@
 import { columns } from "@/components/portfolio/open-orders-table.tsx/columns";
-import { OpenOrdersTable, OrderData } from "@/components/portfolio/open-orders-table.tsx/data-table";
+import { OpenOrdersTable } from "@/components/portfolio/open-orders-table.tsx/data-table";
 import { MarketContext } from "@/components/provider/market-provider";
 import { useContext } from "react";
 
