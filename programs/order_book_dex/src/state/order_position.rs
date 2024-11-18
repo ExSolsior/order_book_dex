@@ -16,7 +16,11 @@ pub struct OrderPosition {
     pub next_order_position: Option<Pubkey>,
     pub order_type: Order,
     pub price: u64,
+
+    // should label as size
     pub amount: u64,
+
+    // should label as balance?
     pub received_amount: u64,
     pub slot: u64,
     pub timestamp: i64,
@@ -73,6 +77,9 @@ impl OrderPosition {
     // how to handle fees?
     // how to handle some other thing that just escaped my mind?
     // how to handle big ints?
+    // this is partially wrong... fixing now
+    // need to factor in the order type...
+    // should rename amount to size
     pub fn update(&mut self, delta_amount: u64, balance: u64, decimals: u32) -> (u64, u64) {
         let (amount, total) = if delta_amount >= self.amount {
             self.amount;
@@ -96,6 +103,7 @@ impl OrderPosition {
             )
         };
 
+        // this could be an issue if balance is 0? but if balance is 0 then no trade should take place?
         let total = if total == 0 { 1 } else { total };
 
         self.amount -= amount;

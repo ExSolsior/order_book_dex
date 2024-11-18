@@ -145,7 +145,12 @@ impl<'info> FillMarketOrder<'info> {
                 }
             };
 
-        let decimals = token_mint_a.decimals + token_mint_b.decimals;
+        let decimals = if !self.order_book_config.is_reverse {
+            self.token_mint_b.decimals as u32
+        } else {
+            self.token_mint_a.decimals as u32
+        };
+
         let balance = match self.market_pointer.order_type {
             Order::Buy => self.taker_source.amount,
             Order::Sell => self.maker_source.amount,
@@ -209,7 +214,6 @@ impl<'info> FillMarketOrder<'info> {
             receiving_amount,
             token_mint_b.decimals,
         )?;
-
 
         let Clock {
             slot,

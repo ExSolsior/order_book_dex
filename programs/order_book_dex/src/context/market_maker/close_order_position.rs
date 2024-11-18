@@ -87,6 +87,9 @@ impl<'info> CloseOrderPosition<'info> {
         // The account will be automatically closed and its lamports
         // will be transferred to the signer due to the `close = signer` constraint
 
+        // order position open reference
+        self.order_position_config.close_position();
+
         let bump = &[self.order_book_config.bump];
         let signer_seeds = &[&[
             self.order_book_config.token_mint_a.as_ref(),
@@ -95,7 +98,8 @@ impl<'info> CloseOrderPosition<'info> {
             bump,
         ][..]];
 
-        if self.source.amount != 0 {
+        // if remaining balance and open reference is 0 then transfer remaining balance
+        if self.source.amount != 0 && self.order_position_config.reference == 0 {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.source_program.to_account_info(),
@@ -112,7 +116,8 @@ impl<'info> CloseOrderPosition<'info> {
             )?;
         }
 
-        if self.dest.amount != 0 {
+        // if remaining balance and open reference is 0 then transfer remaining balance
+        if self.dest.amount != 0 && self.order_position_config.reference == 0 {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.dest_program.to_account_info(),
@@ -125,6 +130,40 @@ impl<'info> CloseOrderPosition<'info> {
                     signer_seeds,
                 ),
                 self.dest.amount,
+                self.token_mint_dest.decimals,
+            )?;
+        }
+
+        if self.order_position.amount != 0 && self.order_position_config.reference != 0 {
+            transfer_checked(
+                CpiContext::new_with_signer(
+                    self.source_program.to_account_info(),
+                    TransferChecked {
+                        from: self.source.to_account_info(),
+                        to: self.capital_source.to_account_info(),
+                        authority: self.order_book_config.to_account_info(),
+                        mint: self.token_mint_source.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                self.order_position.amount,
+                self.token_mint_source.decimals,
+            )?;
+        }
+
+        if self.order_position.received_amount != 0 && self.order_position_config.reference != 0 {
+            transfer_checked(
+                CpiContext::new_with_signer(
+                    self.dest_program.to_account_info(),
+                    TransferChecked {
+                        from: self.dest.to_account_info(),
+                        to: self.capital_dest.to_account_info(),
+                        authority: self.order_book_config.to_account_info(),
+                        mint: self.token_mint_dest.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                self.order_position.received_amount,
                 self.token_mint_dest.decimals,
             )?;
         }
