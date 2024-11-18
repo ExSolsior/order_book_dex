@@ -24,13 +24,15 @@ import {
 } from "@/components/ui/table";
 import { ChevronLeftIcon, ChevronRightIcon, Search } from "lucide-react";
 import React from "react";
+import CancelOrder from "./cancel-order";
+import { OpenOrder } from "@/program/utils/useMarkets";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function OpenOrdersTable<TData, TValue>({
+export function OpenOrdersTable<TData extends OpenOrder, TValue>({
   columns,
   data
 }: DataTableProps<TData, TValue>) {
@@ -102,6 +104,25 @@ export function OpenOrdersTable<TData, TValue>({
                       )}
                     </TableCell>
                   ))}
+                  <TableCell className="px-2 text-center">
+                    <CancelOrder 
+                      bookConfig={row.original.marketId.toBase58()} 
+                      orderType={row.original.orderType} 
+                      orderPosition={row.original.positionId.toBase58()}   
+
+                      orderDetails={{
+                        tokenA: row.original.tokenA,
+                        tokenB: row.original.tokenB,
+                        pair: row.original.ticker,
+                        type: row.original.orderType,
+                        amount: row.original.amount,
+                        price: row.original.price,
+                        value: row.original.valueUSD, // USD VALUE
+                        decimalsA: row.original.decimalsA,
+                        decimalsB: row.original.decimalsB,
+                        isReverse: row.original.isReverse,
+                      }}                  />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
