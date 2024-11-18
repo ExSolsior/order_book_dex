@@ -107,6 +107,10 @@ export default function MarketOrder({
 
     console.log(path)
 
+    // TODO:::
+    // get market pointer data
+    // 
+
     fetch(path)
       .then((data) => data.json())
       .then((msg) => {
