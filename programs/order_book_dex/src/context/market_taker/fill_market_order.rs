@@ -126,7 +126,7 @@ impl<'info> FillMarketOrder<'info> {
                         )
                     }
                 }
-                _ => {
+                Order::Sell => {
                     if !self.order_book_config.is_reverse {
                         (
                             &self.token_mint_b,
@@ -143,6 +143,7 @@ impl<'info> FillMarketOrder<'info> {
                         )
                     }
                 }
+                _ => unreachable!()
             };
 
         let decimals = if !self.order_book_config.is_reverse {
@@ -154,7 +155,7 @@ impl<'info> FillMarketOrder<'info> {
         let balance = match self.market_pointer.order_type {
             Order::Buy => self.taker_source.amount,
             Order::Sell => self.maker_source.amount,
-            _ => return err!(ErrorCode::InvalidOrderType),
+            _ => unreachable!(),
         };
 
         let (amount, total) = self.order_position.update(
@@ -169,7 +170,7 @@ impl<'info> FillMarketOrder<'info> {
         let (sending_amount, receiving_amount) = match self.market_pointer.order_type {
             Order::Buy => (total, amount),
             Order::Sell => (amount, total),
-            _ => return err!(ErrorCode::InvalidOrderType),
+            _ => unreachable!(),
         };
 
         let token_mint_a_key = self.token_mint_a.key();

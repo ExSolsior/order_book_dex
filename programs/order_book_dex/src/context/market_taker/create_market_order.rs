@@ -83,8 +83,7 @@ pub struct CreateMarketOrder<'info> {
         constraint = order_book_config.is_valid_token_mint_dest(token_mint_dest.key(), market_pointer.order_type.clone())
             @ ErrorCode::InvalidMint,
     )]
-    /// CHECKED: validate mint pubkey agaist order book config and market pointer order type
-    pub token_mint_dest: UncheckedAccount<'info>,
+    pub token_mint_dest: InterfaceAccount<'info, Mint>,
 
     /// CHECKED: validate owner of token mint source
     pub source_program: UncheckedAccount<'info>,
@@ -101,10 +100,31 @@ pub struct CreateMarketOrder<'info> {
 impl<'info> CreateMarketOrder<'info> {
     // I don't think I need the order_type since it already exist on the market pointer
     pub fn exec(&mut self, order_type: Order, fill: Fill, target_amount: u64) -> Result<()> {
+
+        let transfer_amount = match order_type {
+            Order::Buy => {
+                // price * amount / 10 ** amount_decimal
+                let decimals = self.token_mint_dest.decimals as u32;
+                let amount = (self.order_position.price as u128 * target_amount as u128 / u64::pow(10, decimals) as u128) as u64;
+                if self.capital_source.amount >= amount && amount != 0 {self.capital_source.amount} else {amount}
+            }
+            Order::Sell => target_amount,
+            _ => 0,
+        };
+
+        require!(self.capital_source.amount >= transfer_amount && transfer_amount != 0, ErrorCode::InvalidTransferAmount);
+
+        let allocated_amount = if self.market_pointer.order_type == Order::Buy {
+            transfer_amount
+        } else {
+            0
+        };
+
         self.market_pointer.add_market_order(
             order_type.clone(),
             fill,
             target_amount,
+            allocated_amount,
             self.signer.key(),
             self.source.key(),
             self.dest.key(),
@@ -114,19 +134,6 @@ impl<'info> CreateMarketOrder<'info> {
                 .is_some()
                 .then(|| self.next_position_pointer.as_ref().unwrap().key()),
         )?;
-
-        let transfer_amount = match order_type {
-            Order::Buy => {
-                let amount = target_amount * self.order_position.price;
-                if self.capital_source.amount > amount {
-                    amount
-                } else {
-                    self.capital_source.amount
-                }
-            }
-            Order::Sell => target_amount,
-            _ => 0,
-        };
 
         transfer_checked(
             CpiContext::new(
