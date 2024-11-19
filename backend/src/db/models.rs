@@ -1696,8 +1696,8 @@ pub async fn cancel_order_position(pubkey_id: Pubkey, app_state: &AppState) {
     .execute(&app_state.pool)
     .await
     {
-        Ok(data) => println!("DELETE ORDER POSIITON: {:?}", data),
-        Err(error) => println!("DELETE ORDER POSIITON ERROR: {}", error),
+        Ok(data) => println!("CANCEL ORDER POSIITON: {:?}", data),
+        Err(error) => println!("CANCEL ORDER POSIITON ERROR: {}", error),
     };
 }
 
