@@ -1,10 +1,10 @@
 use {
     crate::{
         db::models::{
-            self, delete_order_position, delete_real_trade, get_market_order_history,
-            get_trade_pair, get_trade_pair_list, insert_market_order_history,
-            insert_order_position, insert_order_position_config, insert_real_time_trade,
-            insert_trade_pair, update_order_position, OrderPosition, PositionConfig, RealTimeTrade,
+            self, delete_real_trade, get_market_order_history, get_trade_pair, get_trade_pair_list,
+            insert_market_order_history, insert_order_position, insert_order_position_config,
+            insert_real_time_trade, insert_trade_pair, update_order_position, OrderPosition,
+            PositionConfig, RealTimeTrade,
         },
         transactions::{
             self, cancel_limit_order::CancelLimitOrderParams,
@@ -467,11 +467,9 @@ pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let _order_type = get_order_type(&data, &mut offset);
     let _price = get_slot(&data, &mut offset);
     let _amount = get_slot(&data, &mut offset);
-    let is_available = get_is_avialable(&data, &mut offset);
+    let _is_available = get_is_avialable(&data, &mut offset);
 
-    if !is_available {
-        delete_order_position(pos_pubkey, app_state).await;
-    }
+    models::cancel_order_position(pos_pubkey, app_state).await;
 }
 
 // delete -> but cancel is handling it so not needed

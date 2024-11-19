@@ -1653,20 +1653,42 @@ pub async fn get_open_positions(
     Ok(data)
 }
 
-pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
+// maybe not delete?
+pub async fn cancel_order_position(pubkey_id: Pubkey, app_state: &AppState) {
     match sqlx::raw_sql(&format!(
         r#"
             WITH replace AS (
                 SELECT * FROM order_position
                 WHERE pubkey_id = '{postion}'
-            ), up AS (
+
+            ), next_position AS (
                 UPDATE order_position
                 SET next_position = (SELECT next_position FROM replace)
                 WHERE next_position = '{postion}'
+
+            ), update_is_head AS (
+                UPDATE order_position
+                SET is_head = false::BOOLEAN
+                WHERE (SELECT is_head FROM replace)
+                AND pubkey_id = (SELECT pubkey_id FROM replace)
+
+                UNION
+
+                UPDATE order_position
+                SET is_head = true::BOOLEAN
+                WHERE (SELECT is_head FROM replace)
+                AND (SELECT next_position FROM replace) IS NOT NULL
+                AND pubkey_id = (SELECT next_position FROM replace)
+
             )
 
-            DELETE FROM order_position
+            UPDATE order_position
+            SET is_available = false::BOOLEAN,
+            next_position = NULL
             WHERE pubkey_id = '{postion}';
+
+            -- DELETE FROM order_position
+            -- WHERE pubkey_id = '{postion}';
 
         "#,
         postion = pubkey_id.to_string()
