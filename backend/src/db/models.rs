@@ -1666,20 +1666,19 @@ pub async fn cancel_order_position(pubkey_id: Pubkey, app_state: &AppState) {
                 SET next_position = (SELECT next_position FROM replace)
                 WHERE next_position = '{postion}'
 
-            ), update_is_head AS (
+            ), update_is_head_current AS (
                 UPDATE order_position
                 SET is_head = false::BOOLEAN
                 WHERE (SELECT is_head FROM replace)
                 AND pubkey_id = (SELECT pubkey_id FROM replace)
 
-                UNION
-
+            ), udpate_is_head_next AS (
                 UPDATE order_position
                 SET is_head = true::BOOLEAN
                 WHERE (SELECT is_head FROM replace)
                 AND (SELECT next_position FROM replace) IS NOT NULL
                 AND pubkey_id = (SELECT next_position FROM replace)
-
+            
             )
 
             UPDATE order_position

@@ -458,7 +458,7 @@ pub async fn parse_open_limit_order_event(data: &[u8], app_state: &AppState) {
     .await;
 }
 
-// delete
+// update
 pub async fn parse_cancel_limit_order_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
     let pos_pubkey = get_pubkey(&data, &mut offset);
