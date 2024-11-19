@@ -27,7 +27,7 @@ impl MarketPointer {
         + Order::LEN
         + PUBKEY_BYTES
         + (BYTE + PUBKEY_BYTES)
-        + U64_BYTES * 3
+        + (U64_BYTES * 3)
         + (BYTE + MarketOrder::LEN)
         + (BYTE + ExecutionStats::LEN);
 
@@ -247,6 +247,8 @@ impl MarketPointer {
             || order_position.as_ref().is_none()
     }
 
+    // not sure if this is right?
+    // need to review
     pub fn is_valid_open_position_section(
         &self,
         order_position: &Account<'_, OrderPosition>,
@@ -280,7 +282,7 @@ impl MarketPointer {
                 .unwrap();
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
-                && order_position.amount < next_position_pointer.amount;
+                && order_position.price < next_position_pointer.price;
         }
 
         if self.market_order.is_some()
@@ -295,7 +297,7 @@ impl MarketPointer {
                 .unwrap();
             let next_position_pointer = next_position_pointer.unwrap();
             return position_pointer == next_position_pointer.key()
-                && order_position.amount > next_position_pointer.amount;
+                && order_position.price > next_position_pointer.price;
         }
 
         return self.market_order.is_none();

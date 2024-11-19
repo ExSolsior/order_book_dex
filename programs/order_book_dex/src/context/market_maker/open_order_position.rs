@@ -155,7 +155,7 @@ impl<'info> OpenOrderPosition<'info> {
             next_pos_pubkey: self.order_position.next_order_position,
             order_type: self.order_position.order_type.clone(),
             price: self.order_position.price,
-            size: self.order_position.amount,
+            size: self.order_position.size,
             slot: slot,
             timestamp: unix_timestamp,
             is_available: self.order_position.is_available,

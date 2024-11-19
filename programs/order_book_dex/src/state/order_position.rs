@@ -17,11 +17,10 @@ pub struct OrderPosition {
     pub order_type: Order,
     pub price: u64,
 
-    // should label as size
-    pub amount: u64,
+    pub size: u64,
+    pub fill: u64,
+    pub balance: u64,
 
-    // should label as balance?
-    pub received_amount: u64,
     pub slot: u64,
     pub timestamp: i64,
     pub is_available: bool,
@@ -32,7 +31,7 @@ impl OrderPosition {
         + (PUBKEY_BYTES * 4)
         + (BYTE + PUBKEY_BYTES)
         + Order::LEN
-        + (U64_BYTES * 4)
+        + (U64_BYTES * 5)
         + I64_BYTES
         + BYTE;
 
@@ -46,7 +45,8 @@ impl OrderPosition {
         destination: Pubkey,
         order_type: Order,
         price: u64,
-        amount: u64,
+        size: u64,
+        balance: u64,
     ) -> Result<()> {
         let Clock {
             slot,
@@ -61,8 +61,9 @@ impl OrderPosition {
         self.order_type = order_type;
         self.next_order_position = None;
         self.price = price;
-        self.amount = amount;
-        self.received_amount = 0;
+        self.size = size;
+        self.fill = 0;
+        self.balance = balance;
         self.timestamp = unix_timestamp;
         self.slot = slot;
         self.is_available = true;
@@ -75,24 +76,19 @@ impl OrderPosition {
     }
 
     // how to handle fees?
-    // how to handle some other thing that just escaped my mind?
-    // how to handle big ints?
-    // this is partially wrong... fixing now
-    // need to factor in the order type...
-    // should rename amount to size
     pub fn update(&mut self, delta_amount: u64, balance: u64, decimals: u32) -> (u64, u64) {
-        let (amount, total) = if delta_amount >= self.amount {
-            self.amount;
+        let amount = self.size - self.fill;
+        let (amount, total) = if delta_amount >= amount {
             (
-                self.amount,
+                amount,
                 OrderPosition::get_total(
                     balance,
-                    ((self.price as u128 * self.amount as u128)
+                    ((self.price as u128 * amount as u128)
                         / OrderPosition::BASE10.pow(decimals) as u128) as u64,
                 ),
             )
         } else {
-            let amount = self.amount - delta_amount;
+            let amount = amount - delta_amount;
             (
                 amount,
                 OrderPosition::get_total(
@@ -103,13 +99,30 @@ impl OrderPosition {
             )
         };
 
-        // this could be an issue if balance is 0? but if balance is 0 then no trade should take place?
-        let total = if total == 0 { 1 } else { total };
+        match self.order_type {
+            Order::Ask => {
+                // old note::: need to rethink if this still applies or if another issues is possible?
+                // this could be an issue if balance is 0? but if balance is 0 then no trade should take place?
+                // new note... if min traded amount results in zero and is rounded up, then the accumulated total
+                // will be significantly higher if it was just one trade that took the who limit order
+                // for example
+                // size 17 -> decimal 1 -> min base trade is 0.1
+                // price 5 -> decimal 0 -> min quote would be 0 at min trade or 1 with base at 0.2
+                // at min base trade need to round quote to 1, but market maker will be
+                // over paying by 0.5
+                // if all trades were like this total will be 170 instead of 85
+                // need a process to handle this in the correct manner
+                let total = if total == 0 { 1 } else { total };
+                self.balance += total;
+            }
+            Order::Bid => {
+                self.balance -= total;
+            }
+            _ => unreachable!(),
+        }
 
-        self.amount -= amount;
-        self.received_amount += total;
-
-        if self.amount == 0 {
+        self.fill += amount;
+        if self.fill == self.size {
             self.is_available = false;
         }
 

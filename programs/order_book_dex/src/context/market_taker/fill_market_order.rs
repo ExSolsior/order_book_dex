@@ -222,6 +222,7 @@ impl<'info> FillMarketOrder<'info> {
             ..
         } = Clock::get()?;
 
+        // probably need to rethink the names of these?
         emit!(MarketOrderFillEvent {
             market_pointer: self.market_pointer.key(),
             book_config: self.order_book_config.key(),
@@ -229,8 +230,12 @@ impl<'info> FillMarketOrder<'info> {
             order_type: self.market_pointer.order_type.clone(),
             price: self.order_position.price,
             total: total,
+            // this should be ...???
             amount: amount,
-            new_size: self.order_position.amount,
+            // I don't like this.. should be amount
+            new_size: self.order_position.size - self.order_position.fill,
+            // fill
+            // size
             slot: slot,
             timestamp: unix_timestamp,
             is_available: self.order_position.is_available,

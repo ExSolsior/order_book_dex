@@ -113,7 +113,10 @@ impl<'info> CancelOrderPosition<'info> {
             pos_config: self.order_position_config.key(),
             order_type: self.order_position.order_type.clone(),
             price: self.order_position.price,
-            amount: self.order_position.amount,
+            // not sure if this should be a thing or if it is correct?
+            amount: self.order_position.size - self.order_position.fill,
+            // size?
+            // fill?
             is_available: self.order_position.is_available,
         });
 
