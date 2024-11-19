@@ -31,7 +31,7 @@ impl OrderPosition {
         + (PUBKEY_BYTES * 4)
         + (BYTE + PUBKEY_BYTES)
         + Order::LEN
-        + (U64_BYTES * 4)
+        + (U64_BYTES * 5)
         + I64_BYTES
         + BYTE;
 

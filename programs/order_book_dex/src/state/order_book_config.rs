@@ -18,7 +18,7 @@ pub struct OrderBookConfig {
 }
 
 impl OrderBookConfig {
-    pub const LEN: usize = DISCRIMINATOR + PUBKEY_BYTES * 4 + (BYTE * 12) * 2 + BYTE * 2;
+    pub const LEN: usize = DISCRIMINATOR + (PUBKEY_BYTES * 4) + ((BYTE * 12) * 2) + (BYTE * 2);
 
     pub fn init(
         &mut self,

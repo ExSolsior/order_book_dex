@@ -27,7 +27,7 @@ impl MarketPointer {
         + Order::LEN
         + PUBKEY_BYTES
         + (BYTE + PUBKEY_BYTES)
-        + U64_BYTES * 3
+        + (U64_BYTES * 3)
         + (BYTE + MarketOrder::LEN)
         + (BYTE + ExecutionStats::LEN);
 
