@@ -2,7 +2,7 @@ use crate::{
     constants::ORDER_BOOK_CONFIG_SEED,
     errors::ErrorCode,
     events::CloseLimitOrderEvent,
-    state::{OrderBookConfig, OrderPosition, OrderPositionConfig},
+    state::{Order, OrderBookConfig, OrderPosition, OrderPositionConfig},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
@@ -98,6 +98,10 @@ impl<'info> CloseOrderPosition<'info> {
             bump,
         ][..]];
 
+        let balance = self.order_position.balance;
+        let amount = self.order_position.size - self.order_position.fill;
+
+        // works for both sell and buy
         // if remaining balance and open reference is 0 then transfer remaining balance
         if self.source.amount != 0 && self.order_position_config.reference == 0 {
             transfer_checked(
@@ -116,6 +120,7 @@ impl<'info> CloseOrderPosition<'info> {
             )?;
         }
 
+        // works for both sell and buy
         // if remaining balance and open reference is 0 then transfer remaining balance
         if self.dest.amount != 0 && self.order_position_config.reference == 0 {
             transfer_checked(
@@ -134,7 +139,11 @@ impl<'info> CloseOrderPosition<'info> {
             )?;
         }
 
-        if self.order_position.amount != 0 && self.order_position_config.reference != 0 {
+        // works for buy?
+        if self.order_position.order_type == Order::Ask
+            && amount != 0
+            && self.order_position_config.reference != 0
+        {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.source_program.to_account_info(),
@@ -146,12 +155,15 @@ impl<'info> CloseOrderPosition<'info> {
                     },
                     signer_seeds,
                 ),
-                self.order_position.amount,
+                amount,
                 self.token_mint_source.decimals,
             )?;
         }
 
-        if self.order_position.received_amount != 0 && self.order_position_config.reference != 0 {
+        if self.order_position.order_type == Order::Ask
+            && balance != 0
+            && self.order_position_config.reference != 0
+        {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.dest_program.to_account_info(),
@@ -163,7 +175,47 @@ impl<'info> CloseOrderPosition<'info> {
                     },
                     signer_seeds,
                 ),
-                self.order_position.received_amount,
+                balance,
+                self.token_mint_dest.decimals,
+            )?;
+        }
+
+        if self.order_position.order_type == Order::Bid
+            && balance != 0
+            && self.order_position_config.reference != 0
+        {
+            transfer_checked(
+                CpiContext::new_with_signer(
+                    self.source_program.to_account_info(),
+                    TransferChecked {
+                        from: self.source.to_account_info(),
+                        to: self.capital_source.to_account_info(),
+                        authority: self.order_book_config.to_account_info(),
+                        mint: self.token_mint_source.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                balance,
+                self.token_mint_source.decimals,
+            )?;
+        }
+
+        if self.order_position.order_type == Order::Bid
+            && amount != 0
+            && self.order_position_config.reference != 0
+        {
+            transfer_checked(
+                CpiContext::new_with_signer(
+                    self.dest_program.to_account_info(),
+                    TransferChecked {
+                        from: self.dest.to_account_info(),
+                        to: self.capital_dest.to_account_info(),
+                        authority: self.order_book_config.to_account_info(),
+                        mint: self.token_mint_dest.to_account_info(),
+                    },
+                    signer_seeds,
+                ),
+                amount,
                 self.token_mint_dest.decimals,
             )?;
         }

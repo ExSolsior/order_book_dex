@@ -93,6 +93,34 @@ pub struct CreateOrderPosition<'info> {
 //          an issue then we'll make that change.
 impl<'info> CreateOrderPosition<'info> {
     pub fn exec(&mut self, order_type: Order, price: u64, amount: u64) -> Result<()> {
+        let (balance, transfer_amount, shift) = match self.order_position.order_type {
+            Order::Ask => (0, amount, 0),
+            Order::Bid => {
+                let decimals = if !self.order_book_config.is_reverse {
+                    self.token_mint_b.decimals as u32
+                } else {
+                    self.token_mint_a.decimals as u32
+                };
+                let shift = u64::pow(10, decimals) as u128;
+                let amount = (price as u128 * amount as u128 / shift + 1) as u64;
+                (amount, amount, shift)
+            }
+            _ => unreachable!(),
+        };
+
+        require!(
+            price as u128 * amount as u128 > shift as u128,
+            ErrorCode::TransferOfBidIsZero
+        );
+
+        let source_mint = self.source.mint;
+
+        let (token_program, token_mint) = if source_mint == self.token_mint_a.key() {
+            (self.token_program_a.clone(), self.token_mint_a.clone())
+        } else {
+            (self.token_program_b.clone(), self.token_mint_b.clone())
+        };
+
         self.order_position_config.inc_nonce();
 
         self.order_position.init(
@@ -103,35 +131,8 @@ impl<'info> CreateOrderPosition<'info> {
             order_type,
             price,
             amount,
+            balance,
         )?;
-
-        let source_mint = self.source.mint;
-
-        let (token_program, token_mint) = if source_mint == self.token_mint_a.key() {
-            (self.token_program_a.clone(), self.token_mint_a.clone())
-        } else {
-            (self.token_program_b.clone(), self.token_mint_b.clone())
-        };
-
-        let decimals = if !self.order_book_config.is_reverse {
-            self.token_mint_b.decimals as u32
-        } else {
-            self.token_mint_a.decimals as u32
-        };
-
-        // u128 should be enough buffer to prevent overflow
-        let (transfer_amount, shift) = if self.order_position.order_type == Order::Bid {
-            let shift = u64::pow(10, decimals);
-            let total = (price as u128 * amount as u128 / shift as u128) as u64;
-            (total, shift)
-        } else {
-            (amount, 0)
-        };
-
-        require!(
-            price as u128 * amount as u128 > shift as u128,
-            ErrorCode::TransferOfBidIsZero
-        );
 
         transfer_checked(
             CpiContext::new(
