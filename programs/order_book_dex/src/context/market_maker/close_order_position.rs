@@ -139,7 +139,6 @@ impl<'info> CloseOrderPosition<'info> {
             )?;
         }
 
-        // works for buy?
         if self.order_position.order_type == Order::Ask
             && amount != 0
             && self.order_position_config.reference != 0
@@ -201,7 +200,7 @@ impl<'info> CloseOrderPosition<'info> {
         }
 
         if self.order_position.order_type == Order::Bid
-            && amount != 0
+            && self.order_position.fill != 0
             && self.order_position_config.reference != 0
         {
             transfer_checked(
@@ -215,7 +214,7 @@ impl<'info> CloseOrderPosition<'info> {
                     },
                     signer_seeds,
                 ),
-                amount,
+                self.order_position.fill,
                 self.token_mint_dest.decimals,
             )?;
         }
