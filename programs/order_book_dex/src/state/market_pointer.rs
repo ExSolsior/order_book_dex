@@ -55,7 +55,7 @@ impl MarketPointer {
         order_type: Order,
         fill: Fill,
         target_amount: u64,
-        allocated_amount: u64,
+        source_balance: u64,
         owner: Pubkey,
         source: Pubkey,
         dest: Pubkey,
@@ -79,7 +79,8 @@ impl MarketPointer {
         });
 
         self.execution_stats = Some(ExecutionStats {
-            buy_allocated_amount: allocated_amount,
+            source_balance: source_balance,
+            dest_balance: 0,
             total_amount: 0,
             total_cost: 0,
             last_price: 0,
@@ -114,7 +115,9 @@ impl MarketPointer {
     pub fn update(
         &mut self,
         order_position: &mut OrderPosition,
+        // base_amount
         amount: u64,
+        // quote_amount
         pay_amount: u64,
     ) -> Result<()> {
         let Clock {
@@ -130,10 +133,12 @@ impl MarketPointer {
         self.timestamp = unix_timestamp;
         self.slot = slot;
 
-        self.execution_stats
-            .as_mut()
-            .unwrap()
-            .update(amount, pay_amount, order_position.price);
+        self.execution_stats.as_mut().unwrap().update(
+            &self.order_type,
+            amount,
+            pay_amount,
+            order_position.price,
+        );
 
         Ok(())
     }
@@ -381,6 +386,7 @@ impl MarketOrder {
     pub const LEN: usize = Order::LEN + Fill::LEN + U64_BYTES;
 }
 
+// need to include balance of both vaults for market orders
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct ExecutionStats {
     pub owner: Pubkey,
@@ -389,18 +395,32 @@ pub struct ExecutionStats {
     pub source: Pubkey,
     pub dest: Pubkey,
     pub next_position_pointer: Option<Pubkey>,
-    pub buy_allocated_amount: u64,
+
+    pub source_balance: u64,
+    pub dest_balance: u64,
     pub total_amount: u64,
     pub total_cost: u64,
     pub last_price: u64,
 }
 
 impl ExecutionStats {
-    pub const LEN: usize = (PUBKEY_BYTES * 5) + (BYTE + PUBKEY_BYTES) + (U64_BYTES * 4);
+    pub const LEN: usize = (PUBKEY_BYTES * 5) + (BYTE + PUBKEY_BYTES) + (U64_BYTES * 5);
 
-    pub fn update(&mut self, amount: u64, pay_amount: u64, price: u64) {
-        self.total_amount += amount;
-        self.total_cost += pay_amount;
+    pub fn update(&mut self, side: &Order, base_amount: u64, quote_amount: u64, price: u64) {
+        self.total_amount += base_amount;
+        self.total_cost += base_amount;
         self.last_price = price;
+
+        match side {
+            Order::Buy => {
+                self.source_balance -= quote_amount;
+                self.dest_balance += base_amount;
+            }
+            Order::Sell => {
+                self.source_balance -= base_amount;
+                self.dest_balance += quote_amount;
+            }
+            _ => unreachable!(),
+        }
     }
 }

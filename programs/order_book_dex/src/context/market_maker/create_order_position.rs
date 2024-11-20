@@ -105,6 +105,7 @@ impl<'info> CreateOrderPosition<'info> {
                 let amount = (price as u128 * amount as u128 / shift + 1) as u64;
                 (amount, amount, shift)
             }
+            // should throw error
             _ => unimplemented!(),
         };
 

@@ -2,7 +2,7 @@ use crate::{
     constants::ORDER_BOOK_CONFIG_SEED,
     errors::ErrorCode,
     events::MarketOrderCompleteEvent,
-    state::{MarketPointer, Order, OrderBookConfig},
+    state::{MarketPointer, OrderBookConfig},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{transfer_checked, Mint, TokenAccount, TransferChecked};
@@ -72,7 +72,7 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
             bump,
         ][..]];
 
-        if self.market_pointer.order_type == Order::Sell && market_data.total_amount != 0 {
+        if market_data.source_balance != 0 {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.source_program.to_account_info(),
@@ -84,12 +84,12 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
                     },
                     signer_seeds,
                 ),
-                market_data.total_amount,
+                market_data.source_balance,
                 self.token_mint_source.decimals,
             )?;
         }
 
-        if self.market_pointer.order_type == Order::Sell && market_data.total_cost != 0 {
+        if market_data.dest_balance != 0 {
             transfer_checked(
                 CpiContext::new_with_signer(
                     self.dest_program.to_account_info(),
@@ -101,46 +101,7 @@ impl<'info> ReturnExecutionMarketOrder<'info> {
                     },
                     signer_seeds,
                 ),
-                market_data.total_cost,
-                self.token_mint_dest.decimals,
-            )?;
-        }
-
-        let total_cost = (market_data.buy_allocated_amount != 0)
-            .then(|| market_data.buy_allocated_amount - market_data.total_cost);
-        if self.market_pointer.order_type == Order::Buy
-            && total_cost.is_some()
-            && total_cost.unwrap() != 0
-        {
-            transfer_checked(
-                CpiContext::new_with_signer(
-                    self.source_program.to_account_info(),
-                    TransferChecked {
-                        from: self.source.to_account_info(),
-                        to: self.capital_source.to_account_info(),
-                        authority: self.order_book_config.to_account_info(),
-                        mint: self.token_mint_source.to_account_info(),
-                    },
-                    signer_seeds,
-                ),
-                total_cost.unwrap(),
-                self.token_mint_source.decimals,
-            )?;
-        }
-
-        if self.market_pointer.order_type == Order::Buy && market_data.total_amount != 0 {
-            transfer_checked(
-                CpiContext::new_with_signer(
-                    self.dest_program.to_account_info(),
-                    TransferChecked {
-                        from: self.dest.to_account_info(),
-                        to: self.capital_dest.to_account_info(),
-                        authority: self.order_book_config.to_account_info(),
-                        mint: self.token_mint_dest.to_account_info(),
-                    },
-                    signer_seeds,
-                ),
-                market_data.total_amount,
+                market_data.dest_balance,
                 self.token_mint_dest.decimals,
             )?;
         }

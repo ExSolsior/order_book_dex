@@ -10,5 +10,3 @@ pub const SELL_SEED: &str = "sell-market-pointer";
 pub const MARKET_POINTER_SEED: &str = "market-pointer";
 pub const ORDER_POSITION_SEED: &str = "order-position";
 pub const VAULT_ACCOUNT_SEED: &str = "vault-account";
-
-// pub launch_vault: InterfaceAccount<'info, TokenAccount>,
