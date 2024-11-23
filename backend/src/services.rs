@@ -515,6 +515,7 @@ pub async fn parse_market_order_fill_event(data: &[u8], app_state: &AppState) {
 // insert -> other?
 pub async fn parse_market_order_complete_event(data: &[u8], app_state: &AppState) {
     let mut offset = 8;
+    let _market_taker = get_pubkey(&data, &mut offset);
     let _market_pointer = get_pubkey(&data, &mut offset);
     let book_config = get_pubkey(&data, &mut offset);
     let _new_pointer = get_option_pubkey(&data, &mut offset);

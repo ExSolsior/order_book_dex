@@ -258,6 +258,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
+    println!("order type: {}", trade.order_type);
     match sqlx::raw_sql(&format!(
         r#"
         INSERT INTO real_time_trade_data (
@@ -269,7 +270,7 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) 
             "turnover",
             "timestamp",
             "slot"
-        ) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');
+        ) VALUES ('{}', '{}'::order_type, '{}', '{}', '{}', '{}', '{}', '{}');
     "#,
         trade.book_config,
         trade.order_type,
