@@ -152,16 +152,14 @@ impl<'info> FillMarketOrder<'info> {
             self.token_mint_a.decimals as u32
         };
 
-        let balance = match self.market_pointer.order_type {
-            Order::Buy => self.taker_source.amount,
-            Order::Sell => self.maker_source.amount,
-            _ => unreachable!(),
-        };
 
+
+        let delta_amount = self.market_pointer.delta_amount();
+        let balance = self.market_pointer.balance(&self.order_position);
         let (amount, total) = self.order_position.update(
-            self.market_pointer.delta_amount(),
-            balance,
-            decimals as u32,
+            delta_amount as u128,
+            balance as u128,
+            decimals,
         );
 
         self.market_pointer

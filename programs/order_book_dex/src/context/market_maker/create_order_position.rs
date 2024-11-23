@@ -102,8 +102,14 @@ impl<'info> CreateOrderPosition<'info> {
                     self.token_mint_a.decimals as u32
                 };
                 let shift = u64::pow(10, decimals) as u128;
-                let amount = (price as u128 * amount as u128 / shift + 1) as u64;
-                (amount, amount, shift)
+                let total = price as u128 * amount as u128;
+                let total = if total % shift != 0 {
+                    (total / shift) + 1
+                } else {
+                    total / shift
+                } as u64;
+
+                (total, total, shift)
             }
             // should throw error
             _ => unimplemented!(),

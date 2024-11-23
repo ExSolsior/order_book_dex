@@ -144,8 +144,19 @@ impl MarketPointer {
     }
 
     pub fn delta_amount(&self) -> u64 {
-        self.market_order.as_ref().unwrap().target_amount
-            - self.execution_stats.as_ref().unwrap().total_amount
+        let stats = self.execution_stats.as_ref().unwrap();
+        let delta = self.market_order.as_ref().unwrap().target_amount - stats.total_amount;
+        return delta;
+    }
+
+    pub fn balance(&self, order_position: &OrderPosition) -> u64 {
+        let balance = match self.order_type {
+            Order::Buy => self.execution_stats.as_ref().unwrap().source_balance,
+            Order::Sell => order_position.balance,
+            _ => unreachable!(),
+        };
+
+        return balance;
     }
 
     pub fn validate_mutable_status(

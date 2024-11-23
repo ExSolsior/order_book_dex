@@ -71,97 +71,6 @@ impl OrderPosition {
         Ok(())
     }
 
-    // this is wrong, need to get rid of this
-    pub fn get_total(balance: u64, cost: u64) -> u64 {
-        return if balance > cost { cost } else { balance };
-    }
-
-    // how to handle fees?
-    // this is phased out, found a better way to compute the amount and total
-    pub fn _update_deprecated(
-        &mut self,
-        delta_amount: u64,
-        balance: u64,
-        decimals: u32,
-    ) -> (u64, u64) {
-        let amount = self.size - self.fill;
-        let shift = OrderPosition::BASE10.pow(decimals) as u128;
-        let (_amount, _total) = if delta_amount > amount {
-            let total = self.price as u128 * amount as u128;
-            let contra_total = self.price as u128 * delta_amount as u128 / shift;
-            let quote_total = total / shift;
-
-            let total = if total % shift != 0 && contra_total > quote_total {
-                quote_total + 1
-            } else if total % shift == 0 {
-                quote_total
-            } else {
-                // need to adjust amount to be less
-                quote_total
-            };
-            (amount, OrderPosition::get_total(balance, total as u64))
-        } else {
-            let amount = delta_amount;
-            let total = self.price as u128 * amount as u128;
-            let total = total / shift;
-            (amount, OrderPosition::get_total(balance, total as u64))
-        };
-
-        let amount = self.size - self.fill;
-        let amount = if delta_amount > amount {
-            amount
-        } else {
-            delta_amount
-        };
-
-        let total = self.price as u128 * amount as u128;
-        let quote_total = total / shift;
-
-        let contra_total = if delta_amount != amount {
-            self.price as u128 * delta_amount as u128 / shift
-        } else {
-            quote_total
-        };
-
-        let (total, amount) = if total % shift != 0 && contra_total >= quote_total {
-            ((quote_total + 1) as u64, amount)
-        } else if total % shift == 0 {
-            (quote_total as u64, amount)
-        } else {
-            // need to adjust amount to be less
-            (quote_total as u64, amount)
-        };
-
-        match self.order_type {
-            Order::Ask => {
-                // old note::: need to rethink if this still applies or if another issues is possible?
-                // this could be an issue if balance is 0? but if balance is 0 then no trade should take place?
-                // new note... if min traded amount results in zero and is rounded up, then the accumulated total
-                // will be significantly higher if it was just one trade that took the who limit order
-                // for example
-                // size 17 -> decimal 1 -> min base trade is 0.1
-                // price 5 -> decimal 0 -> min quote would be 0 at min trade or 1 with base at 0.2
-                // at min base trade need to round quote to 1, but market maker will be
-                // over paying by 0.5
-                // if all trades were like this total will be 170 instead of 85
-                // need a process to handle this in the correct manner
-                let total = if total == 0 { 1 } else { total };
-                self.balance += total;
-            }
-            Order::Bid => {
-                self.balance -= total;
-            }
-            _ => unreachable!(),
-        }
-
-        self.fill += amount;
-        if self.fill == self.size {
-            self.is_available = false;
-        }
-
-        return (amount, total);
-    }
-
     pub fn update(&mut self, delta_amount: u128, balance: u128, decimals: u32) -> (u64, u64) {
         let shift = OrderPosition::BASE10.pow(decimals) as u128;
         let amount = (self.size - self.fill) as u128;
@@ -169,7 +78,7 @@ impl OrderPosition {
         let current_total = price * amount / shift;
         let delta_total = price * delta_amount / shift;
 
-        let total = if balance < delta_total {
+        let total = if balance < delta_total && self.order_type == Order::Ask {
             balance
         } else if delta_total < current_total {
             delta_total
@@ -194,7 +103,12 @@ impl OrderPosition {
             _ => unreachable!(),
         }
 
-        self.fill += amount;
+        if self.fill + amount > self.size {
+            self.fill += self.size - self.fill;
+        } else {
+            self.fill += amount;
+        }
+
         if self.fill == self.size {
             self.is_available = false;
         }
