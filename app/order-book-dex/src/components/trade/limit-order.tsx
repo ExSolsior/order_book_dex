@@ -55,14 +55,11 @@ export default function LimitOrder({
   // WIP:: need to improve validations. they are jank and don't work
   const formSchema = z.object({
     price: z.string().refine((val) => {
-      console.log(val)
       return true
     }, {
       message: "Expected number, received a string"
     }),
     quantity: z.string().refine((val) => {
-      console.log(val)
-
       return type === 'sell'
         ? true
         : true
@@ -71,14 +68,8 @@ export default function LimitOrder({
     }),
 
     orderValue: z.string().refine((val) => {
-      console.log(
-        "val",
-        val,
-        BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)),
-        availableBalance, BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
-      )
       return type === 'buy'
-        ? BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
+        ? BigInt(convertNum(val.split(",").join(""), !isReverse ? decimalsA : decimalsB)) < availableBalance
         : true
     }, {
 
@@ -121,8 +112,8 @@ export default function LimitOrder({
       return [list[0].replace(/^0+/, ''), list[1].padEnd(decimals, "0")].join("");
     }
 
-    const price = convertNum(values.price, priceDeicmals);
-    const amount = convertNum(values.quantity, amountDecimals);
+    const price = convertNum(values.price.split(",").join(""), priceDeicmals);
+    const amount = convertNum(values.quantity.split(",").join(""), amountDecimals);
     // const total = BigInt(price) * BigInt(amount);
     // validate total against quote balance
 

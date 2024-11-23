@@ -81,25 +81,17 @@ export default function MarketOrder({
     // need to validate total against the avialable balance
     // need to implement correct decimals
     if (type === 'buy' ?
-      (BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA)) > availableBalance)
+      (BigInt(convertNum(values.quantity.split(",").join(""), !isReverse ? decimalsB : decimalsA)) > availableBalance)
       : total > availableBalance) {
       return
     }
-
-    console.log(total > availableBalance, total, availableBalance)
-    console.log((BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA)) > availableBalance)
-      , BigInt(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA))
-      , availableBalance)
-
-
-    console.log(convertNum(values.quantity, !isReverse ? decimalsB : decimalsA))
 
     const params = new URLSearchParams({
       "book_config": marketId.toString(),
       "signer": userWallet!.publicKey.toString(),
       "position_config": market!.orderBook!.accounts!.userPositionConfig!.toString(),
       "order_type": type,
-      "target_amount": convertNum(values.quantity, !isReverse ? decimalsB : decimalsA),
+      "target_amount": convertNum(values.quantity.split(",").join(""), !isReverse ? decimalsB : decimalsA),
     });
 
     const base = new URL("./api/", API_ENDPOINT);
