@@ -1653,20 +1653,37 @@ pub async fn get_open_positions(
     Ok(data)
 }
 
-pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
+// maybe not delete?
+pub async fn cancel_order_position(pubkey_id: Pubkey, app_state: &AppState) {
     match sqlx::raw_sql(&format!(
         r#"
             WITH replace AS (
                 SELECT * FROM order_position
                 WHERE pubkey_id = '{postion}'
-            ), up AS (
+
+            ), next_position AS (
                 UPDATE order_position
                 SET next_position = (SELECT next_position FROM replace)
                 WHERE next_position = '{postion}'
+
+            ), udpate_is_head_next AS (
+                UPDATE order_position
+                SET is_head = true::BOOLEAN
+                WHERE (SELECT is_head FROM replace)
+                AND (SELECT next_position FROM replace) IS NOT NULL
+                AND pubkey_id = (SELECT next_position FROM replace)
+                AND pubkey_id IS NOT NULL
+            
             )
 
-            DELETE FROM order_position
+            UPDATE order_position
+            SET is_available = false::BOOLEAN,
+            is_head = false::BOOLEAN,
+            next_position = NULL
             WHERE pubkey_id = '{postion}';
+
+            -- DELETE FROM order_position
+            -- WHERE pubkey_id = '{postion}';
 
         "#,
         postion = pubkey_id.to_string()
@@ -1674,8 +1691,8 @@ pub async fn delete_order_position(pubkey_id: Pubkey, app_state: &AppState) {
     .execute(&app_state.pool)
     .await
     {
-        Ok(data) => println!("DELETE ORDER POSIITON: {:?}", data),
-        Err(error) => println!("DELETE ORDER POSIITON ERROR: {}", error),
+        Ok(data) => println!("CANCEL ORDER POSIITON: {:?}", data),
+        Err(error) => println!("CANCEL ORDER POSIITON ERROR: {}", error),
     };
 }
 
@@ -1740,21 +1757,23 @@ pub async fn update_order_position(
                 WHERE p.pubkey_id = '{id}'
 
             ), current AS (
-                UPDATE order_position AS p
-                SET p.is_head = false::BOOLEAN 
-                WHERE p.pubkey_id = '{id}'
+                UPDATE order_position
+                SET is_head = false::BOOLEAN 
+                WHERE pubkey_id = '{id}'
                 AND (SELECT size FROM position) = '{fill}'
 
             ), next AS (
-                UPDATE order_position AS p
-                SET p.is_head = false::BOOLEAN 
-                WHERE p.pubkey_id = (SELECT next_position FROM position)
+                UPDATE order_position
+                SET is_head = false::BOOLEAN 
+                WHERE pubkey_id = (SELECT next_position FROM position)
                 AND (SELECT size FROM position) = '{fill}'
 
             )
 
-            UPDATE order_position AS p SET "is_available" = {is_available}, "fill" = p.size - {fill}
-            WHERE p.pubkey_id = '{id}'
+            UPDATE order_position
+            SET "is_available" = {is_available}, 
+            "fill" = "size" - {fill}
+            WHERE pubkey_id = '{id}'
             -- need implement delete when fill == size
         "#,
         is_available = is_available,

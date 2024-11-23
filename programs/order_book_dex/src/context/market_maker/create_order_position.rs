@@ -93,7 +93,7 @@ pub struct CreateOrderPosition<'info> {
 //          an issue then we'll make that change.
 impl<'info> CreateOrderPosition<'info> {
     pub fn exec(&mut self, order_type: Order, price: u64, amount: u64) -> Result<()> {
-        let (balance, transfer_amount, shift) = match self.order_position.order_type {
+        let (balance, transfer_amount, shift) = match order_type {
             Order::Ask => (0, amount, 0),
             Order::Bid => {
                 let decimals = if !self.order_book_config.is_reverse {
@@ -102,10 +102,17 @@ impl<'info> CreateOrderPosition<'info> {
                     self.token_mint_a.decimals as u32
                 };
                 let shift = u64::pow(10, decimals) as u128;
-                let amount = (price as u128 * amount as u128 / shift + 1) as u64;
-                (amount, amount, shift)
+                let total = price as u128 * amount as u128;
+                let total = if total % shift != 0 {
+                    (total / shift) + 1
+                } else {
+                    total / shift
+                } as u64;
+
+                (total, total, shift)
             }
-            _ => unreachable!(),
+            // should throw error
+            _ => unimplemented!(),
         };
 
         require!(

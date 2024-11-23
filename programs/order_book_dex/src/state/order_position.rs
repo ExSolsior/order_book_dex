@@ -71,48 +71,30 @@ impl OrderPosition {
         Ok(())
     }
 
-    pub fn get_total(balance: u64, cost: u64) -> u64 {
-        return if balance > cost { cost } else { balance };
-    }
+    pub fn update(&mut self, delta_amount: u128, balance: u128, decimals: u32) -> (u64, u64) {
+        let shift = OrderPosition::BASE10.pow(decimals) as u128;
+        let amount = (self.size - self.fill) as u128;
+        let price = self.price as u128;
+        let current_total = price * amount / shift;
+        let delta_total = price * delta_amount / shift;
 
-    // how to handle fees?
-    pub fn update(&mut self, delta_amount: u64, balance: u64, decimals: u32) -> (u64, u64) {
-        let amount = self.size - self.fill;
-        let (amount, total) = if delta_amount >= amount {
-            (
-                amount,
-                OrderPosition::get_total(
-                    balance,
-                    ((self.price as u128 * amount as u128)
-                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
-                ),
-            )
+        let total = if balance < delta_total && self.order_type == Order::Ask {
+            balance
+        } else if delta_total < current_total {
+            delta_total
+        } else if price * amount % shift != 0 {
+            current_total + 1
         } else {
-            let amount = amount - delta_amount;
-            (
-                amount,
-                OrderPosition::get_total(
-                    balance,
-                    ((self.price as u128 * amount as u128)
-                        / OrderPosition::BASE10.pow(decimals) as u128) as u64,
-                ),
-            )
+            current_total
         };
+
+        let amount = total * shift / price;
+
+        let total = total as u64;
+        let amount = amount as u64;
 
         match self.order_type {
             Order::Ask => {
-                // old note::: need to rethink if this still applies or if another issues is possible?
-                // this could be an issue if balance is 0? but if balance is 0 then no trade should take place?
-                // new note... if min traded amount results in zero and is rounded up, then the accumulated total
-                // will be significantly higher if it was just one trade that took the who limit order
-                // for example
-                // size 17 -> decimal 1 -> min base trade is 0.1
-                // price 5 -> decimal 0 -> min quote would be 0 at min trade or 1 with base at 0.2
-                // at min base trade need to round quote to 1, but market maker will be
-                // over paying by 0.5
-                // if all trades were like this total will be 170 instead of 85
-                // need a process to handle this in the correct manner
-                let total = if total == 0 { 1 } else { total };
                 self.balance += total;
             }
             Order::Bid => {
@@ -121,7 +103,12 @@ impl OrderPosition {
             _ => unreachable!(),
         }
 
-        self.fill += amount;
+        if self.fill + amount > self.size {
+            self.fill += self.size - self.fill;
+        } else {
+            self.fill += amount;
+        }
+
         if self.fill == self.size {
             self.is_available = false;
         }

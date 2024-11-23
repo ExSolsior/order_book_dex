@@ -24,7 +24,7 @@ pub struct CreateMarketOrder<'info> {
         constraint = order_type == Order::Buy || order_type == Order::Sell
             @ ErrorCode::InvalidMarketOrder,
     )]
-    pub market_pointer: Account<'info, MarketPointer>,
+    pub market_pointer: Box<Account<'info, MarketPointer>>,
 
     #[account(
         constraint = market_pointer.order_position_pointer.unwrap() == order_position.key()
@@ -34,7 +34,7 @@ pub struct CreateMarketOrder<'info> {
             && order_position.next_order_position.is_none())
             @ ErrorCode::InvalidNextPointer,
     )]
-    pub order_position: Account<'info, OrderPosition>,
+    pub order_position: Box<Account<'info, OrderPosition>>,
 
     #[account(
         mut,
@@ -101,7 +101,7 @@ impl<'info> CreateMarketOrder<'info> {
     // I don't think I need the order_type since it already exist on the market pointer
     pub fn exec(&mut self, order_type: Order, fill: Fill, target_amount: u64) -> Result<()> {
 
-        let transfer_amount = match order_type {
+        let transfer_amount = match self.market_pointer.order_type {
             Order::Buy => {
                 // price * amount / 10 ** amount_decimal
                 let decimals = self.token_mint_dest.decimals as u32;
@@ -109,22 +109,16 @@ impl<'info> CreateMarketOrder<'info> {
                 if self.capital_source.amount >= amount && amount != 0 {self.capital_source.amount} else {amount}
             }
             Order::Sell => target_amount,
-            _ => 0,
+            _ => unreachable!(),
         };
 
         require!(self.capital_source.amount >= transfer_amount && transfer_amount != 0, ErrorCode::InvalidTransferAmount);
-
-        let allocated_amount = if self.market_pointer.order_type == Order::Buy {
-            transfer_amount
-        } else {
-            0
-        };
 
         self.market_pointer.add_market_order(
             order_type.clone(),
             fill,
             target_amount,
-            allocated_amount,
+            transfer_amount,
             self.signer.key(),
             self.source.key(),
             self.dest.key(),
@@ -167,6 +161,10 @@ impl<'info> CreateMarketOrder<'info> {
             is_available: self.market_pointer.market_order.is_none(),
             slot: slot,
             timestamp: unix_timestamp,
+            // capital source balance
+            // capital source mint
+            // capital destination balance
+            // capital destination mint
         });
 
         Ok(())

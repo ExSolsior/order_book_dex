@@ -25,6 +25,7 @@ export default function OrderDetails({
 
   const { marketId } = market!.orderBook.accounts;
   const data = useContext(MarketContext)
+  console.log(data)
   const userBalance = data.userBalance
     .find((user: UserBalance) => user.marketId.toString() === marketId.toString());
 

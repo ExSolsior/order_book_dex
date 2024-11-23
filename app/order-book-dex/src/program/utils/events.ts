@@ -78,6 +78,8 @@ const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: s
             const decoded = Buffer.from(eventData as string, 'base64');
             const discrimniator = decoded.subarray(0, 8)
 
+            console.log(discrimniator, decoded)
+
             switch (discrimniator.toString()) {
                 case OPEN_LIMIT_ORDER_EVENT.toString():
                     openLimitOrderEvent(OPEN_LIMIT_ORDER_EVENT, listen, decoded, callback);
