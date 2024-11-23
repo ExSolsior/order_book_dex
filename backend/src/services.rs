@@ -354,7 +354,7 @@ pub async fn parse_order_book_event(data: &[u8], app_state: &AppState) {
     let ticker = if !is_reverse {
         format!("{}/{}", token_symbol_b, token_symbol_a)
     } else {
-        format!("{}/{}", token_symbol_b, token_symbol_a)
+        format!("{}/{}", token_symbol_a, token_symbol_b)
     };
 
     insert_trade_pair(

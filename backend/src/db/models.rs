@@ -1666,23 +1666,19 @@ pub async fn cancel_order_position(pubkey_id: Pubkey, app_state: &AppState) {
                 SET next_position = (SELECT next_position FROM replace)
                 WHERE next_position = '{postion}'
 
-            ), update_is_head_current AS (
-                UPDATE order_position
-                SET is_head = false::BOOLEAN
-                WHERE (SELECT is_head FROM replace)
-                AND pubkey_id = (SELECT pubkey_id FROM replace)
-
             ), udpate_is_head_next AS (
                 UPDATE order_position
                 SET is_head = true::BOOLEAN
                 WHERE (SELECT is_head FROM replace)
                 AND (SELECT next_position FROM replace) IS NOT NULL
                 AND pubkey_id = (SELECT next_position FROM replace)
+                AND pubkey_id IS NOT NULL
             
             )
 
             UPDATE order_position
             SET is_available = false::BOOLEAN,
+            is_head = false::BOOLEAN,
             next_position = NULL
             WHERE pubkey_id = '{postion}';
 
@@ -1761,21 +1757,23 @@ pub async fn update_order_position(
                 WHERE p.pubkey_id = '{id}'
 
             ), current AS (
-                UPDATE order_position AS p
-                SET p.is_head = false::BOOLEAN 
-                WHERE p.pubkey_id = '{id}'
+                UPDATE order_position
+                SET is_head = false::BOOLEAN 
+                WHERE pubkey_id = '{id}'
                 AND (SELECT size FROM position) = '{fill}'
 
             ), next AS (
-                UPDATE order_position AS p
-                SET p.is_head = false::BOOLEAN 
-                WHERE p.pubkey_id = (SELECT next_position FROM position)
+                UPDATE order_position
+                SET is_head = false::BOOLEAN 
+                WHERE pubkey_id = (SELECT next_position FROM position)
                 AND (SELECT size FROM position) = '{fill}'
 
             )
 
-            UPDATE order_position AS p SET "is_available" = {is_available}, "fill" = p.size - {fill}
-            WHERE p.pubkey_id = '{id}'
+            UPDATE order_position
+            SET "is_available" = {is_available}, 
+            "fill" = "size" - {fill}
+            WHERE pubkey_id = '{id}'
             -- need implement delete when fill == size
         "#,
         is_available = is_available,
