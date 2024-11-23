@@ -106,7 +106,7 @@ class Queue {
                 }
             })
 
-        }, 10000)
+        }, 400)
     }
 
     set(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
@@ -512,11 +512,12 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "fill-market-order": {
+                        console.log("fill payload", payload)
                         queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: payload.price! as bigint,
-                            size: payload.size! as bigint,
+                            price: BigInt(payload.price as bigint || 0),
+                            size: BigInt(payload.amount as bigint || 0),
                         });
 
                         // need add to trade history list as well.
@@ -536,8 +537,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         queue.push({
                             method: "add",
                             order: payload.orderType!,
-                            price: payload.price! as bigint,
-                            size: payload.size! as bigint,
+                            price: BigInt(payload.price as bigint || 0),
+                            size: BigInt(payload.size as bigint || 0),
                         });
 
                         break;
@@ -547,8 +548,8 @@ export const useTransaction = (marketId: PublicKey) => {
                         queue.push({
                             method: "sub",
                             order: payload.orderType!,
-                            price: payload.price! as bigint,
-                            size: payload.size! as bigint,
+                            price: BigInt(payload.price as bigint || 0),
+                            size: BigInt(payload.size as bigint || 0),
                         });
 
                         break;

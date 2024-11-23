@@ -69,13 +69,13 @@ export const useMarkets = () => {
                         tokenSymbolB: el.tokenSymbolB,
                         quoteToken: {
                             pubkeyId: new PublicKey(!el.isReverse ? el.tokenMintB : el.tokenMintA),
-                            decimals: !el.isReverse ? el.tokenDecimalsB : el.tokenDecimalsA,
-                            symbol: !el.isReverse ? el.tokenSymbolB : el.tokenSymbolA,
+                            decimals: !el.isReverse ? el.tokenDecimalsA : el.tokenDecimalsB,
+                            symbol: !el.isReverse ? el.tokenSymbolA : el.tokenSymbolB,
                         },
                         baseToken: {
                             pubkeyId: new PublicKey(!el.isReverse ? el.tokenMintA : el.tokenMintB),
-                            decimals: !el.isReverse ? el.tokenDecimalsA : el.tokenDecimalsB,
-                            symbol: !el.isReverse ? el.tokenSymbolA : el.tokenSymbolB,
+                            decimals: !el.isReverse ? el.tokenDecimalsB : el.tokenDecimalsA,
+                            symbol: !el.isReverse ? el.tokenSymbolB : el.tokenSymbolA,
                         },
                         ticker: el.ticker,
                         isReverse: el.isReverse,
@@ -158,6 +158,7 @@ export const useMarkets = () => {
         })
     }
 
+    // this is being loaded 4 times. how to load only once?
     const loadBalance = async () => {
         if (params.marketId === undefined) {
             return
@@ -172,7 +173,6 @@ export const useMarkets = () => {
         ) {
             return
         }
-
 
         const book = market?.accounts
 
@@ -211,6 +211,9 @@ export const useMarkets = () => {
             getAccount(connection, userVaultB),
         ]).then((results) => {
             return results.map(data => {
+                if (data.status === "fulfilled") {
+                    console.log(data.value.address.toString(), data.value.amount)
+                }
                 return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
             })
         })
@@ -375,13 +378,20 @@ export const useMarkets = () => {
 
                 case "fill-market-order": {
                     setOpenLimitOrders((prev: OpenOrder[]) => {
-                        const order = prev.find((order: OpenOrder) => order.positionId === payload.position)
+                        const order = prev.find((order: OpenOrder) => order.positionId.toString() === payload.position!.toString())
+
+                        if (order === undefined) {
+                            return prev
+
+                        }
 
                         order!.fillAmount += payload.amount!;
                         return [
                             order,
-                            ...(prev.filter((order: OpenOrder) => order.positionId !== payload.position)),
+                            ...(prev.filter((order: OpenOrder) => order.positionId.toString() !== payload.position!.toString())),
                         ] as OpenOrder[]
+
+
                     })
 
                     // need to update balance info
@@ -469,8 +479,16 @@ export const useMarkets = () => {
                 }
 
                 case "close-limit-order": {
-                    setOpenLimitOrders((prev: OpenOrder[]) => prev
-                        .filter((order: OpenOrder) => order.positionId !== payload.position))
+                    console.log("close-limit-order???")
+                    console.log("payload :: ", payload)
+                    console.log("payload :: ", payload.position!.toString())
+
+
+                    setOpenLimitOrders((prev: OpenOrder[]) => {
+                        console.log(prev)
+                        return prev
+                            .filter((order: OpenOrder) => order.positionId.toString() !== payload.position!.toString())
+                    })
 
                     setUserBalance((prev: UserBalance[]) => {
 
