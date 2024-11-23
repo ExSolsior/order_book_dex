@@ -555,7 +555,10 @@ solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.js
 --account DzJaF4xWqKt2DFUKhzej6bQv91jsNhojMff3hBS8uvXH ./token/DzJaF4xWqKt2DFUKhzej6bQv91jsNhojMff3hBS8uvXH \
 --account 3MoaEdRWaECcrWPfNLTsGUexQryrBe7XdW5jwSjwfxeo ./token/3MoaEdRWaECcrWPfNLTsGUexQryrBe7XdW5jwSjwfxeo \
 --account ALtoPNMcc3LfNj17hax3iwVz8dHiCit2oEpMQN4uiKh3 ./token/ALtoPNMcc3LfNj17hax3iwVz8dHiCit2oEpMQN4uiKh3 \
---account J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q ./token/J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q 
+--account J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q ./token/J6M7LYnCukKHKuaNwFX9A8vvLsoYuttrH71tLg3ShC4Q \
+--account 48AzCyUN6aEKNHGmDi785AKMnjoSXmyVkx2RGB6qjnxQ ./token/48AzCyUN6aEKNHGmDi785AKMnjoSXmyVkx2RGB6qjnxQ \
+--account 3R9sMSPwPBJEpF2d1yy4Sjn7XFUvvsTjQrhQ1euvMsmR ./token/3R9sMSPwPBJEpF2d1yy4Sjn7XFUvvsTjQrhQ1euvMsmR 
+
 
 
 spl-token create-account --url https://rpc.devnet.soo.network/rpc --fee-payer /home/nomadic/.config/solana/id.json 3DFGvE9XjuT8TtRi3yQ1rFZwTmntDyc5qC5MGdWv53Yw --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ
@@ -576,104 +579,13 @@ NOTES ON PORTFOLIO
 
 
 
-    ----
-    BTC
-    token mint b
-    DWjrMTiuAqizpp1d4zHQtFm8agkgLYmCzt2ToDF2fbnH
-    
-    USDC
-    token mint a
-    Cvs1FzKtQJUpXY7YNuojYgvvHV2moDRGPDpVmTVH8zFB
 
-    isReverse
-    BTC / USDC
+-----------
 
-
-
-
-    ----------
-    nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-token --decimals 8 --url https://rpc.devnet.soo.network/rpc
-Creating token AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
-
-Address:  AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq
-Decimals:  8
-
-Signature: QRY8FAogd4zcGCrCubZBuiXWVSiivzC9ix4nKzXMHpGiP4md3snzdkXmLwgJUKu984dz3sMkSVRXpbNW4Q3SdUm
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-token --decimals 6 --url https://rpc.devnet.soo.network/rpc
-Creating token 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J under program TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
-
-Address:  7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J
-Decimals:  6
-
-Signature: 2fpvVCALyzLVZZEu9UYi1VnbQaAdnDS6Fd9giSXQPRRxvz7JQfeY9UcR7dbiHyVvwiMEgBYN5udjhUxzQQuKgXpq
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq --url https://rpc.devnet.soo.network/rpc --
-fee-payer /home/nomadic/.config/solana/id.json --owner 82Pm3thxH2tuAQihVQQvWfyWSZeej2bgFEJAk8PK7QHm
-Creating account ZKmbwCxGuFsmQn6HETpgpaYsAX8JAUtEijEM2bnNUzo
-
-Signature: 3gVfve8juFzTbqLphm9uZBPxNScjDxXnXtefrr7xL31ZG72B98AAMGY1RnFfQoJAUswk5PJDPXQhvT7GGXRTuwHP
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J --url https://rpc.devnet.soo.network/rpc --
-fee-payer /home/nomadic/.config/solana/id.json --owner 82Pm3thxH2tuAQihVQQvWfyWSZeej2bgFEJAk8PK7QHm
-Creating account Fwo8fngePHpB1EZJh6bTYma2YeMuUgNcZp4rw9sSj8Mb
-
-Signature: 2xTYGQoMJcTgR2H44dXq9b31fAZ755raiH9yNdQzxB9CDVsRSmudqVWDPFpLmMZcLCPEKztjGaHMbF4zb6YsSppU
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token mint --url https://rpc.devnet.soo.network/rpc AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq 10000 ZKmbwCxGuFsmQn6HETpgpaYsAX8JAUtEijEM2bnNUzo
-Minting 10000 tokens
-  Token: AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq
-  Recipient: ZKmbwCxGuFsmQn6HETpgpaYsAX8JAUtEijEM2bnNUzo
-
-Signature: 3JphUUpirchYGTipTDCgj7Eiqvt3Xg1n3eBee1PQMWvUBL5fgUj54K5espC3mkZgb32TCa5xYriJTqbptZPQXMX8
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token mint --url https://rpc.devnet.soo.network/rpc 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J 10000 Fwo8fngePHpB1EZJh6bTYma2YeMuUgNcZp4rw9sSj8Mb
-Minting 10000 tokens
-  Token: 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J
-  Recipient: Fwo8fngePHpB1EZJh6bTYma2YeMuUgNcZp4rw9sSj8Mb
-
-
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token mint --url https://rpc.devnet.soo.network/rpc 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J 10000 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw
-Minting 10000 tokens
-  Token: 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J
-  Recipient: 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw
-
-Signature: 2MH6X69XbHuJL7DaxXpBmTNF2kTHNH2JQmETiVF3vA4o75h2NLWe3crBnqN41cBMrZ4yW6QgXrATywN6aAbkgzrT
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J --url https://rpc.devnet.soo.network/rpc
-Creating account 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw
-Error: "Error: Account already exists: 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw"
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J --url https://rpc.devnet.soo.network/rpc --owner 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw
-Error: "fee payer is required, please specify a valid fee payer using the --fee-payer argument, or by identifying a valid configuration file using the --config argument, or by creating a valid config at the default location of ~/.config/solana/cli/config.yml using the solana config command"
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J --url https://rpc.devnet.soo.network/rpc --owner 2RkgFLng8we9z5Ccv6QytkKaiEwoFrQF9MvaTzuuYWqw --fee-payer /home/nomadic/.config/solana/id.json
-Creating account 8hGMxqumASYW6eNq68Rg8LTPihTVNLZ5LZmSE9fa4V9S
-
-Signature: 5aRF72Po4acHbWsY3ZitjzTeFdPbwgEfkCY7HnzNNz56iTBHaL6o9Gncicws4QyCDuBikC1fz3iDZ9ZWBsMiqHpQ
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq --url https://rpc.devnet.soo.network/rpc --
-owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ --fee-payer /home/nomadic/.config/solana/id.json
-Creating account GDBraCxXyKb7E9Sr9mcF6txLs8qg7rPa2AzWrKwX6r2a
-
-Signature: n4PyAyo11wvQ68MX3zvU7PQL7dxMdnXa3Cka73Sx7mzM3Dk1kM7kXe7Z28i89UMyR753jSEwDXNh7mfAYsuTYNZ
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token create-account 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J --url https://rpc.devnet.soo.network/rpc --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ --fee-payer /home/nomadic/.config/solana/id.json
-Creating account CzBiYfiw1n6rf5iG2EdVFdEN7P8QmBAaSeChbYpRjepC
-
-Signature: 2VbDcD7KxQcmo8T3XZafUAUjS5qne7YA4Jkvguy4VesnJTfMA43bDMVRs7xfBS6YRn6zXcHho4mMoKqLkVemvH5v
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token mint --url https://rpc.devnet.soo.network/rpc 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J 10000 CzBiYfiw1n6rf5iG2EdVFdEN7P8QmBAaSeChbYpRjepC
-Minting 10000 tokens
-  Token: 7hfu91uR52RgBjjSwywEcVqbrsxASuMZUXbZausCQp5J
-  Recipient: CzBiYfiw1n6rf5iG2EdVFdEN7P8QmBAaSeChbYpRjepC
-
-Signature: wXGrcZfGieqzdtfTbEJUeLgt7ffDeiLRkqC2LVbzuT63Dg7KwzqfuvMg2yhVrUkqmQnR5HXZcTFd9w7LRa5F5kb
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$ spl-token mint --url https://rpc.devnet.soo.network/rpc AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq 10000 GDBraCxXyKb7E9Sr9mcF6txLs8qg7rPa2AzWrKwX6r2a
-Minting 10000 tokens
-  Token: AW3PDw4oBDd7RafoVmLfdqY6titv16YE91NzCsVBcoAq
-  Recipient: GDBraCxXyKb7E9Sr9mcF6txLs8qg7rPa2AzWrKwX6r2a
-
-Signature: Ghwa7mnmocjvYeWnDLDW4yax4KY1Yd8DuQeJLT5sjFVWHXnoYusgpPdsYrJeVcu2eZaKBj3QTytxxBWkFqZWct4
-
-nomadic@DESKTOP-EG7FF0B:~/dev-workspace/solana/projects/order_book_dex$
+TODO::
+- market order
+    - if market order matches against limit order and doesn't take all of the limit order
+        then must not create a closed order position instruction on the backend
+    - need to set is head to false in DB when head order position becomes unavailable
+    - avaialbe didn't become false... ??? hmm this was with buy market order
+        need to investigate
