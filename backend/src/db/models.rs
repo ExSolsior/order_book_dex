@@ -1460,6 +1460,11 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    println!("pubkey_id :: {}", pubkey_id.to_string());
+    println!("interval :: {}", interval);
+    println!("limit :: {}", limit);
+    println!("offset :: {}", offset);
+
     let query = sqlx::raw_sql(&format!(
         r#"
                 -- can't do this like this
@@ -1469,7 +1474,7 @@ pub async fn get_market_order_history(
                     SELECT * FROM (
                     VALUES  (
                         '{}',
-                        '{}',
+                        '{}'::interval,
                         {}, 
                         {}
                     )) AS t ("book_config", "interval", "limit", "offset")

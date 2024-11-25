@@ -348,6 +348,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
         const candleParams = new URLSearchParams();
         candleParams.append("book_config", marketId.toString());
+        candleParams.append("interval", '1m');
         candleParams.append("limit", (1000).toString());
         candleParams.append("offset", (0).toString());
 
@@ -426,7 +427,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
                 image: "",
                 page: 0,
-                candles: updateCandles(candles.market, book.decimalsA, book.decimalsB, book.isReverse)
+                candles: updateCandles(candles.market, book.tokenDecimalsA, book.tokenDecimalsB, book.isReverse)
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
@@ -506,6 +507,8 @@ export const useTransaction = (marketId: PublicKey) => {
 
             const response = await fetch(candleDataURL);
             const candles = await response.json();
+
+            console.log(candles)
 
             const { isReverse, decimalsA, decimalsB } = data!.orderBook.marketDetails;
 
@@ -656,18 +659,20 @@ export const useTransaction = (marketId: PublicKey) => {
     return run();
 }
 
-const updateCandles = (candles: Candle[], decimalsA: number, decimalsB: number, isReverse: boolean) => {
+const updateCandles = (candles: DBCandle[], decimalsA: number, decimalsB: number, isReverse: boolean) => {
     // not sure if this is correct deriving the decimals, will come back to this later
     // also need a simple algo to handle tuncation
+    const decimal = !isReverse ? decimalsA : decimalsB;
+    return candles.map((data: DBCandle) => {
 
-    const decimal = isReverse ? decimalsA : decimalsB;
-    return candles.map((data: Candle) => ({
-        time: Number(displayValue(BigInt(data.time), decimal)),
-        open: Number(displayValue(BigInt(data.open), decimal)),
-        high: Number(displayValue(BigInt(data.high), decimal)),
-        low: Number(displayValue(BigInt(data.low), decimal)),
-        close: Number(displayValue(BigInt(data.close), decimal)),
-    }));
+        return {
+            time: data.timestamp,
+            open: Number(displayValue(BigInt(data.open), decimal)),
+            high: Number(displayValue(BigInt(data.high), decimal)),
+            low: Number(displayValue(BigInt(data.low), decimal)),
+            close: Number(displayValue(BigInt(data.close), decimal)),
+        }
+    });
 }
 
 interface Payload {
@@ -694,6 +699,14 @@ export interface Order {
 
 export type Candle = {
     time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+};
+
+export type DBCandle = {
+    timestamp: number;
     open: number;
     high: number;
     low: number;
