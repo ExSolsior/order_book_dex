@@ -460,7 +460,7 @@ export const useTransaction = (marketId: PublicKey) => {
                         volume: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         turnover: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         change: BigInt(
-                            book.marketData === undefined || book.marketData.prevLastPrice === 0
+                            book.marketData === undefined || book.marketData.prevLastPrice === "0"
                                 ? 0
                                 : BigInt(book.marketData.changeDelta) * BigInt(100_000) / BigInt(book.marketData.prevLastPrice)
                         ),
@@ -589,7 +589,27 @@ export const useTransaction = (marketId: PublicKey) => {
                     case "complete-market-order": {
                         marketOrder.update(payload.orderType, null);
 
-                        // need to set the last price from here
+                        setData((prev: Market | null) => {
+                            if (prev === null) {
+                                // I don't think this is right?
+                                return null
+                            }
+
+                            return {
+                                ...prev,
+                                orderBook: {
+                                    ...prev.orderBook,
+                                    marketData: {
+                                        lastPrice: BigInt(payload.price! as bigint),
+                                        volume: prev.orderBook.marketData.volume + BigInt(payload!.totalAmount! as bigint),
+                                        change: BigInt(0),
+                                        turnover: prev.orderBook.marketData.turnover + BigInt(payload.totalCost! as bigint),
+                                    }
+                                }
+
+                            }
+                        })
+
                         // need to set candles from here?
 
                         break;

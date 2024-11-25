@@ -24,11 +24,17 @@ export default function Book({ market }: { market: Market | null }) {
   const {
     decimalsA,
     decimalsB,
+    symbolA,
+    symbolB,
     isReverse,
   } = market!.orderBook!.marketDetails;
   const { lastPrice } = market!.orderBook!.marketData;
   const { feedData: asks } = market!.orderBook!.asks;
   const { feedData: bids } = market!.orderBook!.bids;
+
+  // not sure if this is correct, will know when there is a difference in decimals
+  const ticerPrice = displayValue(lastPrice, (isReverse ? decimalsB : decimalsA));
+  const tickerSymbol = isReverse ? symbolB : symbolA
 
   return (
     <>
@@ -58,13 +64,8 @@ export default function Book({ market }: { market: Market | null }) {
       </Table>
 
       <div className="font-mono font-semibold px-2 py-1 border-t-2 border-b-2 text-green-500">
-        {/* this is being handled incorrectly */}
-        {lastPrice.toLocaleString('en-US', {
-          style: "currency",
-          currency: "USD",
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 10
-        })}
+        {/* should include currency symbol some how*/}
+        {tickerSymbol === "USDC" ? "$" : ""} {ticerPrice}
       </div>
 
       <Table>

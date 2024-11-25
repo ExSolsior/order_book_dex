@@ -1,3 +1,4 @@
+import { displayValue } from "@/program/utils/helper";
 import { Market } from "../../../../program/utils/useTransaction";
 import { MarketSwitcher } from "./market-switcher";
 
@@ -13,26 +14,41 @@ export function Header({ market }: { market: Market }) {
     return <>{"LOADING..."}</>
   }
 
-  const price = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 10
-  }).format(market!.orderBook!.marketData.lastPrice);
+  // const price = new Intl.NumberFormat("en-US", {
+  //   style: "currency",
+  //   currency: "USD",
+  //   minimumFractionDigits: 2,
+  //   maximumFractionDigits: 10
+  // }).format(market!.orderBook!.marketData.lastPrice);
 
-  let volume;
-  if (market!.orderBook!.marketData.volume >= 1_000_000) {
-    volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000_000).toFixed(2) + "M";
-  } else if (parseInt(market!.orderBook!.marketData.volume.toString()) >= 1_000) {
-    volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000).toFixed(2) + "K";
-  } else {
-    volume = parseInt(market!.orderBook!.marketData.volume.toString()).toFixed(2);
-  }
+  // let volume;
+  // if (market!.orderBook!.marketData.volume >= 1_000_000) {
+  //   volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000_000).toFixed(2) + "M";
+  // } else if (parseInt(market!.orderBook!.marketData.volume.toString()) >= 1_000) {
+  //   volume = (parseInt(market!.orderBook!.marketData.volume.toString()) / 1_000).toFixed(2) + "K";
+  // } else {
+  //   volume = parseInt(market!.orderBook!.marketData.volume.toString()).toFixed(2);
+  // }
+
+
+
+  const {
+    decimalsA,
+    decimalsB,
+    symbolA,
+    symbolB,
+    isReverse,
+  } = market!.orderBook!.marketDetails;
+  const { lastPrice } = market!.orderBook!.marketData;
+  const ticerPrice = displayValue(lastPrice, (isReverse ? decimalsB : decimalsA));
+  const tickerSymbol = isReverse ? symbolB : symbolA
+  const volume = displayValue(market!.orderBook!.marketData.volume, !isReverse ? decimalsA : decimalsB);
+  console.log(market!.orderBook!.marketData.volume)
 
   return (
     <div className="flex items-center gap-7">
       <MarketSwitcher market={market} />
-      <span className="text-lg font-semibold font-sans">{price}</span>
+      <span className="text-lg font-semibold font-sans">{tickerSymbol === "USDC" ? "$" : ""} {ticerPrice}</span>
       <div className="flex flex-col items-center">
         <span className="text-sm text-muted-foreground">24H Change</span>
         <span
@@ -43,7 +59,9 @@ export function Header({ market }: { market: Market }) {
         </span>
       </div>
       <div className="flex flex-col items-center">
-        <span className="text-sm text-muted-foreground">24H Volume (USD)</span>
+        {/* <span className="text-sm text-muted-foreground">24H Volume (USD)</span> */}
+        <span className="text-sm text-muted-foreground">24H Volume</span>
+
         <span className="font-semibold font-sans">{volume}</span>
       </div>
     </div>
