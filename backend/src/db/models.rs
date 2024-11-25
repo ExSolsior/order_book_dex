@@ -2391,6 +2391,8 @@ pub async fn open_limit_order(
                             && head_ask_price.is_some()
                             && head_bid_price.unwrap() < price
                             && price < head_ask_price.unwrap())
+                        || (data.6 == Order::Ask && head_bid_price.is_none())
+                        || (data.6 == Order::Bid && head_ask_price.is_none())
                         || (data.6 == Order::Ask
                             && head_bid_price.is_some()
                             && head_bid_price.unwrap() < price)
