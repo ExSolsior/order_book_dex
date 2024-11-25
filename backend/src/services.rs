@@ -99,13 +99,6 @@ pub async fn market_history(
     query: web::Query<MarketTradeQuery>,
     app_state: web::Data<AppState>,
 ) -> impl Responder {
-    // let interval = match query.interval.as_str() {
-    //     "1m" => PgInterval::try_from(Duration::from_secs(60)),
-    //     _ => PgInterval::try_from(Duration::from_secs(60)),
-    // };
-
-    println!("{:?}", query);
-
     match get_market_order_history(
         Pubkey::from_str(&query.book_config).unwrap(),
         // interval.unwrap(),
@@ -245,8 +238,6 @@ pub async fn execute_market_order(
         target_amount: query.target_amount,
     };
 
-    println!("target_amount :: {}", query.target_amount);
-
     match transactions::execute_market_order::execute_market_order(app_state, market_order).await {
         Ok(data) =>
         // should should as structured message
@@ -310,9 +301,6 @@ const OPEN_LIMIT_ORDER_EVENT: [u8; 8] = [106, 24, 71, 85, 57, 169, 158, 216];
 pub async fn decode(data: &String, app_state: &AppState) {
     let decoded = general_purpose::STANDARD.decode(data).unwrap();
     let discriminator = decoded[..8].try_into().expect("u8 array size 8");
-
-    println!("{}", data);
-    println!("{:?}, {}", decoded, decoded.len());
 
     match discriminator {
         NEW_ORDER_BOOK_CONFIG_EVENT => parse_order_book_event(&decoded, app_state).await,
