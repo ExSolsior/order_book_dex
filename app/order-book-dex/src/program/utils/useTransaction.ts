@@ -27,29 +27,55 @@ const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT;
 // LimitOrderQueue
 class Queue {
     current: string;
-    listA: Payload[];
-    listB: Payload[];
+    orderBook: {
+        listA: Payload[],
+        listB: Payload[],
+    };
+    tradeHistory: {
+        listA: Payload[],
+        listB: Payload[],
+    };
+    // listA: Payload[];
+    // listB: Payload[];
     data: Market | null | undefined;
     setData: Dispatch<SetStateAction<Market | null>> | undefined;
 
     constructor() {
         this.current = "init";
-        this.listA = [];
-        this.listB = [];
+        this.orderBook = {
+            listA: [],
+            listB: [],
+        };
+
+        this.tradeHistory = {
+            listA: [],
+            listB: [],
+        };
+        // this.listA = [];
+        // this.listB = [];
     }
 
     update(setData: Dispatch<SetStateAction<Market | null>>) {
         this.setData = setData;
     }
 
-    push(data: Payload) {
+    // OrderBookPayload | TradeHistoryPayload
+    push(method: string, data: Payload) {
 
-        if (this.current === "init" || this.current === "a") {
-            this.listA.push(data);
+        if (method === 'order-book' && (this.current === "init" || this.current === "a")) {
+            this.orderBook.listA.push(data);
         }
 
-        if (this.current === "b") {
-            this.listB.push(data);
+        if (method === 'order-book' && this.current === "b") {
+            this.orderBook.listB.push(data);
+        }
+
+        if (method === 'trade-history' && (this.current === "init" || this.current === 'a')) {
+            this.tradeHistory.listA.push(data)
+        }
+
+        if (method === 'trade-history' && this.current === 'b') {
+            this.tradeHistory.listB.push(data)
         }
     }
 
@@ -61,36 +87,48 @@ class Queue {
 
         if (this.current === "a") {
             this.current = "b";
-            const list = this.listA;
-            this.listA = [];
-            return list;
+
+            const orderBook = this.orderBook.listA;
+            const tradeHistory = this.tradeHistory.listA;
+
+            this.orderBook.listA = [];
+            this.tradeHistory.listA = [];
+
+            return [orderBook, tradeHistory];
         }
 
         if (this.current === "b") {
             this.current = "a";
-            const list = this.listB;
-            this.listB = [];
-            return list;
+
+            const orderbook = this.orderBook.listB;
+            const tradeHistory = this.tradeHistory.listB;
+
+            this.orderBook.listB = [];
+            this.tradeHistory.listB = [];
+
+            return [orderbook, tradeHistory];
         }
 
-        return this.listA;
+        return [[], []];
     }
 
     run() {
 
         setInterval(() => {
-            const data = this.get();
+            const [orderBook, tradeHistory] = this.get();
 
-            if (data.length === 0) {
+
+            if (orderBook.length === 0 && tradeHistory.length === 0) {
                 return
             }
 
             this.setData!((prev) => {
-                const { asks, bids } = this.set(
+                const { asks, bids } = this.setOrderBook(
                     prev!.orderBook!.asks.feedData,
                     prev!.orderBook!.bids.feedData,
-                    data
+                    orderBook
                 )
+
 
                 return {
                     ...prev!,
@@ -101,7 +139,22 @@ class Queue {
                         },
                         asks: {
                             feedData: asks,
-                        }
+                        },
+                        trades: tradeHistory
+                            .map(data => {
+                                return {
+                                    id: crypto.randomUUID(),
+                                    price: BigInt(data.price),
+                                    qty: BigInt(data.size),
+                                    // need a better way to do this -> timestamp
+                                    time: Date.now(),
+                                    action: data.order,
+                                } as Trade
+                            })
+                            // how to properly sort?
+                            // .sort()
+                            .reverse()
+                            .concat(prev!.orderBook.trades),
                     }
                 }
             })
@@ -109,7 +162,7 @@ class Queue {
         }, 400)
     }
 
-    set(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
+    setOrderBook(asks: Map<bigint, Order>, bids: Map<bigint, Order>, data: Payload[]) {
         data.forEach(data => {
 
             if (data.order === 'ask' && asks.has(data.price)) {
@@ -231,6 +284,7 @@ class Queue {
 
         return { asks, bids }
     }
+
 }
 
 // MarketOrderQueue
@@ -294,6 +348,7 @@ export const useTransaction = (marketId: PublicKey) => {
 
         const candleParams = new URLSearchParams();
         candleParams.append("book_config", marketId.toString());
+        candleParams.append("interval", '1m');
         candleParams.append("limit", (1000).toString());
         candleParams.append("offset", (0).toString());
 
@@ -355,10 +410,10 @@ export const useTransaction = (marketId: PublicKey) => {
                 });
             });
 
-            const feedData = queue.set(
+            const feedData = queue.setOrderBook(
                 asks,
                 bids,
-                queue.get(),
+                queue.get()[0],
             )
 
             const userPositionConfig = PublicKey.findProgramAddressSync([
@@ -372,7 +427,7 @@ export const useTransaction = (marketId: PublicKey) => {
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
                 image: "",
                 page: 0,
-                candles: updateCandles(candles.market, book.decimalsA, book.decimalsB, book.isReverse)
+                candles: updateCandles(candles.market, book.tokenDecimalsA, book.tokenDecimalsB, book.isReverse)
                     .sort((a: Candle, b: Candle) => a.time - b.time),
 
                 user: {
@@ -406,7 +461,7 @@ export const useTransaction = (marketId: PublicKey) => {
                         volume: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         turnover: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         change: BigInt(
-                            book.marketData === undefined || book.marketData.prevLastPrice === 0
+                            book.marketData === undefined || book.marketData.prevLastPrice === "0"
                                 ? 0
                                 : BigInt(book.marketData.changeDelta) * BigInt(100_000) / BigInt(book.marketData.prevLastPrice)
                         ),
@@ -452,6 +507,8 @@ export const useTransaction = (marketId: PublicKey) => {
 
             const response = await fetch(candleDataURL);
             const candles = await response.json();
+
+            console.log(candles)
 
             const { isReverse, decimalsA, decimalsB } = data!.orderBook.marketDetails;
 
@@ -513,14 +570,21 @@ export const useTransaction = (marketId: PublicKey) => {
 
                     case "fill-market-order": {
                         console.log("fill payload", payload)
-                        queue.push({
+                        queue.push('order-book', {
                             method: "sub",
                             order: payload.orderType!,
                             price: BigInt(payload.price as bigint || 0),
                             size: BigInt(payload.amount as bigint || 0),
                         });
 
-                        // need add to trade history list as well.
+                        queue.push('trade-history', {
+                            method: "sub",
+                            order: payload.orderType!,
+                            price: BigInt(payload.price as bigint || 0),
+                            size: BigInt(payload.amount as bigint || 0),
+                        });
+
+                        // need to set candles from here?
 
                         break;
                     }
@@ -528,13 +592,34 @@ export const useTransaction = (marketId: PublicKey) => {
                     case "complete-market-order": {
                         marketOrder.update(payload.orderType, null);
 
-                        // need to set the last price from here
+                        setData((prev: Market | null) => {
+                            if (prev === null) {
+                                // I don't think this is right?
+                                return null
+                            }
+
+                            return {
+                                ...prev,
+                                orderBook: {
+                                    ...prev.orderBook,
+                                    marketData: {
+                                        lastPrice: BigInt(payload.price! as bigint),
+                                        volume: prev.orderBook.marketData.volume + BigInt(payload!.totalAmount! as bigint),
+                                        change: BigInt(0),
+                                        turnover: prev.orderBook.marketData.turnover + BigInt(payload.totalCost! as bigint),
+                                    }
+                                }
+
+                            }
+                        })
+
+                        // need to set candles from here?
 
                         break;
                     }
 
                     case "open-limit-order": {
-                        queue.push({
+                        queue.push('order-book', {
                             method: "add",
                             order: payload.orderType!,
                             price: BigInt(payload.price as bigint || 0),
@@ -545,7 +630,7 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
 
                     case "cancel-limit-order": {
-                        queue.push({
+                        queue.push('order-book', {
                             method: "sub",
                             order: payload.orderType!,
                             price: BigInt(payload.price as bigint || 0),
@@ -574,18 +659,20 @@ export const useTransaction = (marketId: PublicKey) => {
     return run();
 }
 
-const updateCandles = (candles: Candle[], decimalsA: number, decimalsB: number, isReverse: boolean) => {
+const updateCandles = (candles: DBCandle[], decimalsA: number, decimalsB: number, isReverse: boolean) => {
     // not sure if this is correct deriving the decimals, will come back to this later
     // also need a simple algo to handle tuncation
+    const decimal = !isReverse ? decimalsA : decimalsB;
+    return candles.map((data: DBCandle) => {
 
-    const decimal = isReverse ? decimalsA : decimalsB;
-    return candles.map((data: Candle) => ({
-        time: Number(displayValue(BigInt(data.time), decimal)),
-        open: Number(displayValue(BigInt(data.open), decimal)),
-        high: Number(displayValue(BigInt(data.high), decimal)),
-        low: Number(displayValue(BigInt(data.low), decimal)),
-        close: Number(displayValue(BigInt(data.close), decimal)),
-    }));
+        return {
+            time: data.timestamp,
+            open: Number(displayValue(BigInt(data.open), decimal)),
+            high: Number(displayValue(BigInt(data.high), decimal)),
+            low: Number(displayValue(BigInt(data.low), decimal)),
+            close: Number(displayValue(BigInt(data.close), decimal)),
+        }
+    });
 }
 
 interface Payload {
@@ -612,6 +699,14 @@ export interface Order {
 
 export type Candle = {
     time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+};
+
+export type DBCandle = {
+    timestamp: number;
     open: number;
     high: number;
     low: number;

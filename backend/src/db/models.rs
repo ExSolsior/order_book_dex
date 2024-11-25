@@ -258,6 +258,7 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
+    println!("order type: {}", trade.order_type);
     match sqlx::raw_sql(&format!(
         r#"
         INSERT INTO real_time_trade_data (
@@ -269,7 +270,7 @@ pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) 
             "turnover",
             "timestamp",
             "slot"
-        ) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');
+        ) VALUES ('{}', '{}'::order_type, '{}', '{}', '{}', '{}', '{}', '{}');
     "#,
         trade.book_config,
         trade.order_type,
@@ -1459,6 +1460,11 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
+    println!("pubkey_id :: {}", pubkey_id.to_string());
+    println!("interval :: {}", interval);
+    println!("limit :: {}", limit);
+    println!("offset :: {}", offset);
+
     let query = sqlx::raw_sql(&format!(
         r#"
                 -- can't do this like this
@@ -1468,7 +1474,7 @@ pub async fn get_market_order_history(
                     SELECT * FROM (
                     VALUES  (
                         '{}',
-                        '{}',
+                        '{}'::interval,
                         {}, 
                         {}
                     )) AS t ("book_config", "interval", "limit", "offset")
@@ -2390,6 +2396,8 @@ pub async fn open_limit_order(
                             && head_ask_price.is_some()
                             && head_bid_price.unwrap() < price
                             && price < head_ask_price.unwrap())
+                        || (data.6 == Order::Ask && head_bid_price.is_none())
+                        || (data.6 == Order::Bid && head_ask_price.is_none())
                         || (data.6 == Order::Ask
                             && head_bid_price.is_some()
                             && head_bid_price.unwrap() < price)

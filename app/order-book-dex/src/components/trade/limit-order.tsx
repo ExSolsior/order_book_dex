@@ -52,17 +52,18 @@ export default function LimitOrder({
     ? !isReverse ? balance!.capitalAAmount : balance!.capitalBAmount
     : !isReverse ? balance!.capitalBAmount : balance!.capitalAAmount;
 
+  const { lastPrice } = market!.orderBook!.marketData
+
   // WIP:: need to improve validations. they are jank and don't work
   const formSchema = z.object({
     price: z.string().refine((val) => {
-      console.log(val)
+      console.log(val, 'need to come back to fix this lol.')
       return true
     }, {
       message: "Expected number, received a string"
     }),
     quantity: z.string().refine((val) => {
-      console.log(val)
-
+      console.log(val, 'need to come back to fix this lol.')
       return type === 'sell'
         ? true
         : true
@@ -71,14 +72,8 @@ export default function LimitOrder({
     }),
 
     orderValue: z.string().refine((val) => {
-      console.log(
-        "val",
-        val,
-        BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)),
-        availableBalance, BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
-      )
       return type === 'buy'
-        ? BigInt(convertNum(val, !isReverse ? decimalsA : decimalsB)) < availableBalance
+        ? BigInt(convertNum(val.split(",").join(""), !isReverse ? decimalsA : decimalsB)) < availableBalance
         : true
     }, {
 
@@ -93,7 +88,7 @@ export default function LimitOrder({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      price: market!.orderBook!.marketData.lastPrice.toString(),
+      price: displayValue(lastPrice, !isReverse ? decimalsA : decimalsB).split(",").join(""),
       quantity: '0',
       orderValue: '0'
     },
@@ -121,8 +116,8 @@ export default function LimitOrder({
       return [list[0].replace(/^0+/, ''), list[1].padEnd(decimals, "0")].join("");
     }
 
-    const price = convertNum(values.price, priceDeicmals);
-    const amount = convertNum(values.quantity, amountDecimals);
+    const price = convertNum(values.price.split(",").join(""), priceDeicmals);
+    const amount = convertNum(values.quantity.split(",").join(""), amountDecimals);
     // const total = BigInt(price) * BigInt(amount);
     // validate total against quote balance
 
@@ -200,69 +195,6 @@ export default function LimitOrder({
       .catch(err => {
         console.log(err)
       })
-
-
-    // cancel
-    // {
-    //   const params = new URLSearchParams({
-    //     "book_config": marketId.toString(),
-    //     "signer": userWallet!.publicKey.toString(),
-    //     "order_type": type,
-    //     "order_position": "8tM47g5UduXFyF6GmyPhA4JHzHyGGp2qhFECM9KMGvfW",
-    //   });
-    //   const base = new URL("./api/", API_ENDPOINT);
-    //   const path = new URL("./cancel_limit_order?" + params.toString(), base.toString());
-
-    //   console.log(path)
-
-    //   fetch(path)
-    //     .then((data) => {
-    //       return data.json();
-    //     })
-    //     .then((data) => {
-
-    //       const vMessage = new MessageV0({
-
-    //         addressTableLookups: data.message[1].addressTableLookups.slice(1).map((data: TransactionOrder) => {
-    //           return {
-    //             accountKey: data.accountKey,
-    //             readonlyIndexes: data.readonlyIndexes,
-    //             writableIndexes: data.writeableIndexes,
-    //           }
-    //         }),
-
-    //         compiledInstructions: data.message[1].instructions.slice(1).map((data: TransactionOrder) => {
-    //           return {
-    //             accountKeyIndexes: data.accounts.slice(1),
-    //             data: new Uint8Array(data.data.slice(1)),
-    //             programIdIndex: data.programIdIndex,
-    //           }
-    //         }),
-
-    //         header: data.message[1].header,
-    //         recentBlockhash: new PublicKey(Buffer.from(data.message[1].recentBlockhash)).toString(),
-    //         staticAccountKeys: data.message[1].accountKeys.slice(1).map((data: number[]) => {
-    //           return new PublicKey(Buffer.from(data));
-    //         }),
-    //       })
-
-    //       const vTransaction = new VersionedTransaction(vMessage);
-    //       return userWallet?.signTransaction(vTransaction);
-
-    //     })
-    //     .then((signedTransaction) => {
-
-    //       // why does the wallet provider popup twice?
-    //       return program!.provider!.sendAndConfirm!(signedTransaction as VersionedTransaction)
-    //     })
-    //     .then((data) => {
-    //       // is a txSig, what to do with it?
-    //       console.log(data)
-    //     })
-    //     .catch(err => {
-    //       console.log(err)
-    //     })
-    // }
   }
 
   const convertNum = (value: string, decimals: number) => {

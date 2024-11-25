@@ -178,22 +178,28 @@ pub async fn execute_market_order(
                 )
                 .unwrap(),
             );
-            println!("prep next position {:?}", next);
+
             if let Some(bids) = order_book_data["book"]["bids"].as_array() {
                 for bid in bids {
-                    // price and size are coming as string
-                    // so need to parse as u64
                     let price: u64 = bid["price"]
                         .as_str()
                         .unwrap()
                         .parse()
                         .expect("expected to be u64");
 
-                    let amount: u64 = bid["size"]
+                    let size: u64 = bid["size"]
                         .as_str()
                         .unwrap()
                         .parse()
                         .expect("expected to be u64");
+
+                    let fill: u64 = bid["fill"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
+
+                    let amount = size - fill;
 
                     let pubkey_id = Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -209,6 +215,7 @@ pub async fn execute_market_order(
                         break;
                     };
 
+                    let is_closed = amount <= target_amount;
                     target_amount = if amount <= target_amount {
                         target_amount - amount
                     } else {
@@ -242,32 +249,6 @@ pub async fn execute_market_order(
                     let postion_config =
                         Pubkey::from_str(bid["positionConfig"].as_str().unwrap()).unwrap();
 
-                    println!("");
-                    println!("pubkey_id: {}", pubkey_id);
-                    println!("postion_config: {}", postion_config);
-                    println!("next_position: {}", next_position.is_some());
-                    println!("next_position: {:?}", next_position);
-                    println!(
-                        "NEXT POSITION POINTER: {:?}",
-                        (target_amount == 0 && next_position.is_some())
-                            .then(|| next_position.unwrap())
-                    );
-
-                    println!("market_maker: {}", market_maker);
-                    println!("source_vault: {}", source_vault);
-                    println!("destination_vault: {}", destination_vault);
-                    println!("source_capital: {}", source_capital);
-                    println!("destination_capital: {}", destination_capital);
-
-                    println!("source_mint: {}", source_mint);
-                    println!("destination_mint: {}", destination_mint);
-                    println!("source_program: {}", source_program);
-                    println!("destination_program: {}", destination_program);
-
-                    println!("price: {}", price);
-                    println!("amount: {}", amount);
-                    println!("target_amount: {}", target_amount);
-
                     next = next_position.clone();
                     list.push((
                         pubkey_id,
@@ -285,6 +266,7 @@ pub async fn execute_market_order(
                         price,
                         amount,
                         target_amount,
+                        is_closed,
                     ));
                 }
             };
@@ -302,7 +284,7 @@ pub async fn execute_market_order(
                 )
                 .unwrap(),
             );
-            println!("prep next position {:?}", next);
+
             if let Some(asks) = order_book_data["book"]["asks"].as_array() {
                 for ask in asks {
                     let price: u64 = ask["price"]
@@ -310,11 +292,20 @@ pub async fn execute_market_order(
                         .unwrap()
                         .parse()
                         .expect("expected to be u64");
-                    let amount: u64 = ask["size"]
+
+                    let size: u64 = ask["size"]
                         .as_str()
                         .unwrap()
                         .parse()
                         .expect("expected to be u64");
+
+                    let fill: u64 = ask["fill"]
+                        .as_str()
+                        .unwrap()
+                        .parse()
+                        .expect("expected to be u64");
+
+                    let amount = size - fill;
 
                     let pubkey_id = Pubkey::from_str(ask["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
@@ -330,6 +321,7 @@ pub async fn execute_market_order(
                         break;
                     };
 
+                    let is_closed = amount <= target_amount;
                     target_amount = if amount <= target_amount {
                         target_amount - amount
                     } else {
@@ -380,6 +372,7 @@ pub async fn execute_market_order(
                         price,               // 12
                         amount,              // 13
                         target_amount,       // 14
+                        is_closed,           // 15
                     ));
                 }
             };
@@ -388,8 +381,6 @@ pub async fn execute_market_order(
 
         _ => unreachable!(),
     };
-
-    println!("THIS??? :: {:?}", positions[0].2);
 
     let mut list: Vec<VersionedTransaction> = Vec::new();
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
@@ -406,74 +397,6 @@ pub async fn execute_market_order(
         let maker_destination = positions[0].5;
         let capital_source = positions[0].6;
         let capital_destination = positions[0].7;
-
-        println!("is null? {}", order_book_data["positionConfig"].is_null());
-
-        if order_book_data["positionConfig"].is_null() {
-            let capital_a = get_associated_token_address_with_program_id(
-                &market_order.signer,
-                &token_mint_a,
-                &token_program_a,
-            );
-            let capital_b = get_associated_token_address_with_program_id(
-                &market_order.signer,
-                &token_mint_b,
-                &token_program_b,
-            );
-
-            ixs.push(Instruction {
-                program_id,
-                accounts: ToAccountMetas::to_account_metas(
-                    &accounts::CreateVaultAccounts {
-                        signer: market_order.signer,
-                        order_book_config: market_order.order_book_config,
-                        token_mint_a,
-                        token_mint_b,
-                        vault_a: get_vault_account_pda(
-                            market_order.order_book_config,
-                            token_mint_a,
-                            market_order.signer,
-                        ),
-                        vault_b: get_vault_account_pda(
-                            market_order.order_book_config,
-                            token_mint_b,
-                            market_order.signer,
-                        ),
-                        token_program_a,
-                        token_program_b,
-                        system_program,
-                    },
-                    None,
-                ),
-                data: InstructionData::data(&instruction::CreateVaultAccounts {}),
-            });
-
-            ixs.push(Instruction {
-                program_id,
-                accounts: ToAccountMetas::to_account_metas(
-                    &accounts::CreateOrderPositionConfig {
-                        signer: market_order.signer,
-                        order_book_config: market_order.order_book_config,
-                        order_position_config: market_order.position_config,
-                        capital_a,
-                        capital_b,
-                        token_mint_a,
-                        token_mint_b,
-                        system_program,
-                    },
-                    None,
-                ),
-                data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
-            });
-        }
-        println!(
-            "NEXT POSITION POINTER: {:?}",
-            (target_amount == 0 && next_position_pointer.is_some())
-                .then(|| next_position_pointer.unwrap())
-        );
-
-        println!("TARGET AMOUNT: {:?}", target_amount);
-        println!("ORDER POSITION: {:?}", order_position);
 
         ixs.push(create_market_order(
             market_order.signer,
@@ -509,7 +432,7 @@ pub async fn execute_market_order(
             token_program_b,
         ));
 
-        (target_amount == 0).then(|| {
+        if positions[0].15 {
             ixs.push(close_order_position(
                 market_order.signer,
                 positions[0].3,
@@ -525,10 +448,7 @@ pub async fn execute_market_order(
                 source_program,
                 destination_program,
             ))
-        });
-
-        println!("SOURCE MINT: {:?}", source_mint);
-        println!("SOURCE MINT: {:?}", positions[0].8);
+        }
 
         ixs.push(return_execution_market_order(
             market_order.signer,
@@ -617,14 +537,6 @@ pub async fn execute_market_order(
             });
         }
 
-        println!(
-            "NEXT POSITION POINTER: {:?}",
-            (target_amount == 0 && next_position_pointer.is_some())
-                .then(|| next_position_pointer.unwrap())
-        );
-        println!("TARGET AMOUNT: {:?}", target_amount);
-        println!("NEXT POSITION POINTER: {:?}", next_position_pointer);
-
         ixs.push(create_market_order(
             market_order.signer,
             market_order.order_book_config,
@@ -670,8 +582,7 @@ pub async fn execute_market_order(
                 token_program_b,
             ));
 
-            let amount = position.13;
-            (amount == 0).then(|| {
+            if position.15 {
                 ixs.push(close_order_position(
                     market_order.signer,
                     position.3,
@@ -687,7 +598,7 @@ pub async fn execute_market_order(
                     position.10,
                     position.11,
                 ))
-            });
+            }
 
             list.push(
                 VersionedTransaction::try_new(

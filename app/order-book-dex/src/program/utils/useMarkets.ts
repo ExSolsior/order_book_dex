@@ -128,8 +128,6 @@ export const useMarkets = () => {
         // hack impl, need to fixed on server side but it works
         const positions = response.ok ? await response.json() || [] : [];
 
-        console.log("Fetched Open Limit Orders: ", positions);
-
         // I wonder if this could cause issues, let's say event listner gets data first
         // then this loads data. data becomes mismatched and doesn't reflect the real state.
         // will come back to this later
@@ -211,9 +209,6 @@ export const useMarkets = () => {
             getAccount(connection, userVaultB),
         ]).then((results) => {
             return results.map(data => {
-                if (data.status === "fulfilled") {
-                    console.log(data.value.address.toString(), data.value.amount)
-                }
                 return BigInt(data.status === "fulfilled" ? data.value.amount : 0);
             })
         })

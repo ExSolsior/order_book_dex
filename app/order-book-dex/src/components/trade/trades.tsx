@@ -20,10 +20,10 @@ export default function Trades({ market }: { market: Market }) {
       <TableHeader>
         <TableRow>
           <TableHead className="font-semibold">
-            Price ({!isReverse ? symbolB : symbolA})
+            Price ({!isReverse ? symbolA : symbolB})
           </TableHead>
           <TableHead className="font-semibold text-right">
-            Qty ({!isReverse ? symbolA : symbolB})
+            Qty ({!isReverse ? symbolB : symbolA})
           </TableHead>
           <TableHead className="font-semibold text-right">Time</TableHead>
         </TableRow>
