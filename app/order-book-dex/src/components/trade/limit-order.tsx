@@ -57,11 +57,13 @@ export default function LimitOrder({
   // WIP:: need to improve validations. they are jank and don't work
   const formSchema = z.object({
     price: z.string().refine((val) => {
+      console.log(val, 'need to come back to fix this lol.')
       return true
     }, {
       message: "Expected number, received a string"
     }),
     quantity: z.string().refine((val) => {
+      console.log(val, 'need to come back to fix this lol.')
       return type === 'sell'
         ? true
         : true
