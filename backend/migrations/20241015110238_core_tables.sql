@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS order_position (
 );
 
 -- real time data
+-- should I include the order position id? I don't think so
 CREATE TABLE IF NOT EXISTS real_time_trade_data (
     "book_config"           varchar(44) NOT NULL REFERENCES order_book_config (pubkey_id),
     "order_type"            order_type NOT NULL,
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS market_order_history (
     "turnover"              bigint NOT NULL,
     "timestamp"             bigint NOT NULL,
 
-    UNIQUE ("book_config", "timestamp")
+    UNIQUE ("book_config", "timestamp", "interval")
 );
 
 CREATE TABLE IF NOT EXISTS trade_data_24_hour (
