@@ -113,6 +113,7 @@ pub struct MarketOrderFillEvent {
     pub total: u64,
     pub amount: u64,
     pub new_size: u64,
+    pub fill: u64,
     // order_position
     pub is_available: bool,
     pub slot: u64,
