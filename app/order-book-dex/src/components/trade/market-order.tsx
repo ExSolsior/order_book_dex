@@ -143,17 +143,27 @@ export default function MarketOrder({
             }),
           })
 
+          console.log(vMessage)
+
           const vTransaction = new VersionedTransaction(vMessage);
+          console.log(vTransaction)
+
           // return userWallet?.signTransaction(vTransaction);
           return vTransaction
         })
+
+        console.log(v0TransactionList.length, v0TransactionList)
 
         return userWallet?.signAllTransactions(v0TransactionList)
       })
       .then((v0TransactionList) => {
 
-        return Promise.allSettled(v0TransactionList!.map((signedTransaction) => {
-          return program!.provider!.sendAndConfirm!(signedTransaction)
+        console.log(v0TransactionList?.length, v0TransactionList)
+
+        return Promise.allSettled(v0TransactionList!.map(async (signedTransaction) => {
+          console.log("signedTransaction: ", signedTransaction)
+          const tx = await program!.provider!.connection!.sendRawTransaction(signedTransaction.serialize())
+          return tx
         }))
 
       })

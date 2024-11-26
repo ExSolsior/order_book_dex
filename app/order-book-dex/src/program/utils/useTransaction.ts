@@ -376,7 +376,8 @@ export const useTransaction = (marketId: PublicKey) => {
 
             const candles = await (async () => {
                 if (response[1].status === 200) {
-                    return await response[1].json();
+                    const data = await response[1].json();
+                    return data === null ? { market: [] } : data;
                 }
                 return { market: [] };
             })();
@@ -422,6 +423,11 @@ export const useTransaction = (marketId: PublicKey) => {
                 Buffer.from("order-position-config"),
             ], PROGRAM_ID)[0];
 
+            console.log(response)
+            console.log(candles)
+
+            console.log(book)
+
             const store = {
                 // how to handle including image?
                 // image: "https://dd.dexscreener.com/ds-data/tokens/ethereum/0x28561b8a2360f463011c16b6cc0b0cbef8dbbcad.png?size=lg&key=f7c99e",
@@ -461,7 +467,7 @@ export const useTransaction = (marketId: PublicKey) => {
                         volume: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         turnover: BigInt(book.marketData === undefined ? 0 : book.marketData.volume),
                         change: BigInt(
-                            book.marketData === undefined || book.marketData.prevLastPrice === "0"
+                            book.marketData === undefined || book.marketData.prevLastPrice === "0" || book.marketData.prevLastPrice === 0
                                 ? 0
                                 : BigInt(book.marketData.changeDelta) * BigInt(100_000) / BigInt(book.marketData.prevLastPrice)
                         ),

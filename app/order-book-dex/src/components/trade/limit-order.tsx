@@ -185,8 +185,7 @@ export default function LimitOrder({
       })
       .then((signedTransaction) => {
 
-        // why does the wallet provider popup twice?
-        return program!.provider!.sendAndConfirm!(signedTransaction as VersionedTransaction)
+        return program!.provider!.connection.sendRawTransaction(signedTransaction!.serialize())
       })
       .then((data) => {
         // is a txSig, what to do with it?
