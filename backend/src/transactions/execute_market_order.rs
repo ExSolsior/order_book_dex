@@ -398,6 +398,64 @@ pub async fn execute_market_order(
         let capital_source = positions[0].6;
         let capital_destination = positions[0].7;
 
+        if order_book_data["positionConfig"].is_null() {
+            let capital_a = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_a,
+                &token_program_a,
+            );
+            let capital_b = get_associated_token_address_with_program_id(
+                &market_order.signer,
+                &token_mint_b,
+                &token_program_b,
+            );
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateVaultAccounts {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        token_mint_a,
+                        token_mint_b,
+                        vault_a: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_a,
+                            market_order.signer,
+                        ),
+                        vault_b: get_vault_account_pda(
+                            market_order.order_book_config,
+                            token_mint_b,
+                            market_order.signer,
+                        ),
+                        token_program_a,
+                        token_program_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateVaultAccounts {}),
+            });
+
+            ixs.push(Instruction {
+                program_id,
+                accounts: ToAccountMetas::to_account_metas(
+                    &accounts::CreateOrderPositionConfig {
+                        signer: market_order.signer,
+                        order_book_config: market_order.order_book_config,
+                        order_position_config: market_order.position_config,
+                        capital_a,
+                        capital_b,
+                        token_mint_a,
+                        token_mint_b,
+                        system_program,
+                    },
+                    None,
+                ),
+                data: InstructionData::data(&instruction::CreateOrderPositionConfig {}),
+            });
+        }
+
         ixs.push(create_market_order(
             market_order.signer,
             market_order.order_book_config,
@@ -478,7 +536,7 @@ pub async fn execute_market_order(
 
         let mut ixs = vec![];
 
-        if !order_book_data["positionConfig"].is_null() {
+        if order_book_data["positionConfig"].is_null() {
             let capital_a = get_associated_token_address_with_program_id(
                 &market_order.signer,
                 &token_mint_a,
@@ -571,11 +629,11 @@ pub async fn execute_market_order(
                 market_order.signer,
                 market_order.order_book_config,
                 market_pointer,
+                position.0,
                 source_vault,
                 position.5,
                 position.4,
                 dest_vault,
-                position.0,
                 token_mint_a,
                 token_mint_b,
                 token_program_a,
@@ -636,6 +694,9 @@ pub async fn execute_market_order(
             .unwrap(),
         );
     };
+
+    println!("LEN :: {}", list.len());
+    println!("LIST :: {:?}", list);
 
     Ok(list)
 }

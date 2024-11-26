@@ -550,6 +550,12 @@ solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.js
 
 
 solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.json ./target/deploy/order_book_dex.so \
+--account AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb ./token/AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb \
+--account 93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7 ./token/93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7 \
+--account A36jJdQvdt9XTbkTkgQsfnFwVgNrpuBErirfMjS45ci3 ./token/A36jJdQvdt9XTbkTkgQsfnFwVgNrpuBErirfMjS45ci3 \
+--account B95rGaG9uuC7vPKxn9Kwab2KWBhi1mjhpaPhrYrAuE3z ./token/B95rGaG9uuC7vPKxn9Kwab2KWBhi1mjhpaPhrYrAuE3z \
+--account BBtS8nCJHQuJDGYwvHvcu9TBiDJExq4YfRJhLm5ubum3 ./token/BBtS8nCJHQuJDGYwvHvcu9TBiDJExq4YfRJhLm5ubum3 \
+--account CmGo5gx2ud8MBdz6e52rJnTYmQ7L8D9dqrZnje9Ttt9a ./token/CmGo5gx2ud8MBdz6e52rJnTYmQ7L8D9dqrZnje9Ttt9a \
 --account 42FM1S6j8cBkuuHcD63BrrhFgn6k3N53k39oLuuvhyb6 ./token/42FM1S6j8cBkuuHcD63BrrhFgn6k3N53k39oLuuvhyb6 \
 --account 9G4FwtEmzCG4Fnuco87TNrB6ZtYmgvrKv7qj4wT9zjfu ./token/9G4FwtEmzCG4Fnuco87TNrB6ZtYmgvrKv7qj4wT9zjfu \
 --account DzJaF4xWqKt2DFUKhzej6bQv91jsNhojMff3hBS8uvXH ./token/DzJaF4xWqKt2DFUKhzej6bQv91jsNhojMff3hBS8uvXH \
@@ -559,6 +565,30 @@ solana-test-validator -r --bpf-program ./target/deploy/order_book_dex-keypair.js
 --account 48AzCyUN6aEKNHGmDi785AKMnjoSXmyVkx2RGB6qjnxQ ./token/48AzCyUN6aEKNHGmDi785AKMnjoSXmyVkx2RGB6qjnxQ \
 --account 3R9sMSPwPBJEpF2d1yy4Sjn7XFUvvsTjQrhQ1euvMsmR ./token/3R9sMSPwPBJEpF2d1yy4Sjn7XFUvvsTjQrhQ1euvMsmR 
 
+// USDC
+AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb
+// BTC
+93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7
+
+EnWUBbYRrYS2eDwvJ9gVANCszRJkjFfCJNjs1uuNaDJm
+6KXbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhRD
+
+spl-token create-account --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner EnWUBbYRrYS2eDwvJ9gVANCszRJkjFfCJNjs1uuNaDJm AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb
+spl-token create-account --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner EnWUBbYRrYS2eDwvJ9gVANCszRJkjFfCJNjs1uuNaDJm 93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7
+
+spl-token create-account --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner 6KXbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhRD AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb
+spl-token create-account --url localhost --fee-payer /home/nomadic/.config/solana/id.json --owner 6KXbttSdiSf73sgPY3A7qdFGfHyA1NBW5ffHHDyNbhRD 93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7
+
+AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb
+A36jJdQvdt9XTbkTkgQsfnFwVgNrpuBErirfMjS45ci3
+B95rGaG9uuC7vPKxn9Kwab2KWBhi1mjhpaPhrYrAuE3z
+
+93iso9Menx4Y6kwE1kF3z4AuA1FMirTgrUgtV3YyVmK7
+BBtS8nCJHQuJDGYwvHvcu9TBiDJExq4YfRJhLm5ubum3
+CmGo5gx2ud8MBdz6e52rJnTYmQ7L8D9dqrZnje9Ttt9a
+
+
+spl-token mint --url localhost --fee-payer /home/nomadic/.config/solana/id.json AyGCswE7kW4ah8zuASJQmk7FT3tS29c19NXimX9X9Bpb 100000 A36jJdQvdt9XTbkTkgQsfnFwVgNrpuBErirfMjS45ci3
 
 
 spl-token create-account --url https://rpc.devnet.soo.network/rpc --fee-payer /home/nomadic/.config/solana/id.json 3DFGvE9XjuT8TtRi3yQ1rFZwTmntDyc5qC5MGdWv53Yw --owner CkaTJV4siVkMzDikm2HpbbNDwHX8tCxbkP77wv2CCWzJ

@@ -258,7 +258,6 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
-    println!("order type: {}", trade.order_type);
     match sqlx::raw_sql(&format!(
         r#"
         INSERT INTO real_time_trade_data (
@@ -1460,11 +1459,6 @@ pub async fn get_market_order_history(
     offset: u64,
     app_state: web::Data<AppState>,
 ) -> Result<Box<Value>, sqlx::Error> {
-    println!("pubkey_id :: {}", pubkey_id.to_string());
-    println!("interval :: {}", interval);
-    println!("limit :: {}", limit);
-    println!("offset :: {}", offset);
-
     let query = sqlx::raw_sql(&format!(
         r#"
                 -- can't do this like this
@@ -1808,13 +1802,6 @@ pub async fn open_limit_order(
         Order::Bid => "bid",
         _ => unreachable!(),
     };
-
-    println!(
-        "price {}, order_type {}, pubkey {}",
-        price,
-        order_type,
-        position_config.to_string()
-    );
 
     match sqlx::raw_sql(&format!(
         r#"
@@ -2210,25 +2197,8 @@ pub async fn open_limit_order(
                         };
 
                     let is_reverse =
-                        // doing this because apparently the DB returns boolean value as t/f
-                        // not as 0 or 1... why?? no idea.
-                        // though was not an issue when I was playing around with this eariler
-                        // UPDATE:
-                        // I found out the possible reason why this is happening
-                        // locally the way to do it is by deserialize the bytes
-                        // but supabase environment returns everything as a string
-                        // the reason why integers and booleans are failing
-                        // is there a configuration that sets postgress to do this?
-                        // or is supa base handinging this on there own? and why send
-                        // everything as a string?
                         query.try_get_raw("is_reverse").unwrap().as_str().unwrap() != "f";
 
-                    // query.try_get_raw("is_reverse").unwrap().as_bytes().unwrap()[0] != 0;
-                    println!(
-                        "PRE:: {:?}, {:?}",
-                        query.try_get_raw("is_reverse").unwrap().as_bytes(),
-                        query.try_get_raw("is_reverse").unwrap().as_str(),
-                    );
                     (
                         book_config,
                         market_pointer,
@@ -2313,21 +2283,6 @@ pub async fn open_limit_order(
 
             let head_ask_price: Option<u64> =
                 (!query.try_get_raw("head_ask_price").unwrap().is_null()).then(|| {
-                    println!(
-                        "PRE ASK PRICE:: {:?}, {:?}",
-                        query.try_get_raw("head_ask_price").unwrap().as_bytes(),
-                        query.try_get_raw("head_ask_price").unwrap().as_str(),
-                    );
-                    // u64::from_be_bytes(
-                    //     query
-                    //         .try_get_raw("head_ask_price")
-                    //         .unwrap()
-                    //         .as_bytes()
-                    //         .unwrap()[..8]
-                    //         .try_into()
-                    //         .expect("8 bytes"),
-                    // )
-
                     return query
                         .try_get_raw("head_ask_price")
                         .unwrap()
@@ -2339,20 +2294,6 @@ pub async fn open_limit_order(
 
             let head_bid_price: Option<u64> =
                 (!query.try_get_raw("head_bid_price").unwrap().is_null()).then(|| {
-                    println!(
-                        "PRE BID PRICE:: {:?}, {:?}",
-                        query.try_get_raw("head_bid_price").unwrap().as_bytes(),
-                        query.try_get_raw("head_bid_price").unwrap().as_str(),
-                    );
-                    // u64::from_be_bytes(
-                    //     query
-                    //         .try_get_raw("head_bid_price")
-                    //         .unwrap()
-                    //         .as_bytes()
-                    //         .unwrap()[..8]
-                    //         .try_into()
-                    //         .expect("8 bytes"),
-                    // )
                     return query
                         .try_get_raw("head_bid_price")
                         .unwrap()
@@ -2406,10 +2347,6 @@ pub async fn open_limit_order(
                             && price < head_ask_price.unwrap()))),
             );
 
-            println!("prev_pubkey_id {:?}", prev_pubkey_id);
-            println!("next_pubkey_id {:?}", next_pubkey_id);
-            println!("\n");
-
             let next_pubkey_id =
                 if prev_pubkey_id.is_none() && next_pubkey_id.is_none() && data.6 == Order::Bid {
                     head_bid_pubkey_id
@@ -2418,19 +2355,6 @@ pub async fn open_limit_order(
                 } else {
                     next_pubkey_id
                 };
-
-            println!("head_bid_pubkey_id {:?}", head_bid_pubkey_id);
-            println!("head_ask_pubkey_id {:?}", head_ask_pubkey_id);
-
-            println!("prev_pubkey_id {:?}", prev_pubkey_id);
-            println!("next_pubkey_id {:?}", next_pubkey_id);
-            println!("head_bid_price {:?}", head_bid_price);
-            println!("head_ask_price {:?}", head_ask_price);
-            println!("market_pointer {:?}", market_pointer.0);
-            println!("contra_pointer {:?}", data.8);
-            println!("market_pointer_write? {:?}", market_pointer.1);
-
-            println!("price {:?}", price);
 
             Ok(OpenLimitOrder {
                 _book_config: data.0,

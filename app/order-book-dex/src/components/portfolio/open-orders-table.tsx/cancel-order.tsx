@@ -40,7 +40,7 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
   const { program } = useContext(ProgramContext)!;
 
   const handleCancelOrder = () => {
-    
+
     console.log(`Canceling order with ID: ${orderPosition}`);
 
     // order_book_config: Pubkey,
@@ -104,8 +104,7 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
       })
       .then((signedTransaction) => {
 
-        // why does the wallet provider popup twice?
-        return program!.provider!.sendAndConfirm!(signedTransaction as VersionedTransaction)
+        return program!.provider!.connection!.sendRawTransaction(signedTransaction!.serialize())
       })
       .then((data) => {
         // is a txSig, what to do with it?
@@ -114,15 +113,15 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
       .catch(err => {
         console.log(err)
       })
-   
+
   };
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           className="bg-red-600 text-white font-bold transition duration-200 ease-in-out transform hover:scale-105 hover:bg-red-700"
         >
           Cancel
@@ -134,50 +133,50 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-        <AlertDialogHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-t-lg shadow-md">
+          <AlertDialogHeader className="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-t-lg shadow-md">
             <AlertDialogTitle className="text-2xl font-bold">Confirm Order Cancellation</AlertDialogTitle>
             <AlertDialogDescription className="text-red-100 mt-2 text xs">
-            Are you sure you want to cancel this order? <br /> This action cannot be <strong>undone</strong>.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="bg-white p-6">
-          <div className="grid gap-4 py-4 text-black">
-            <div className="grid grid-cols-2 items-center gap-4 flex justify-between items-center ">
-              <span className="font-medium">Pair:</span>
-              {/* <AvatarImage
+              Are you sure you want to cancel this order? <br /> This action cannot be <strong>undone</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="bg-white p-6">
+            <div className="grid gap-4 py-4 text-black">
+              <div className="grid grid-cols-2 items-center gap-4 flex justify-between items-center ">
+                <span className="font-medium">Pair:</span>
+                {/* <AvatarImage
                   src=
                   alt=
                 /> */}
-              <span className="font-semibold">{orderDetails.pair}</span>
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <span className="font-medium ">Type:</span>
-              <span className={`font-mono font-bold ${orderDetails.type === "bid" ? "text-green-500" : "text-red-500"}`}>
-                {orderDetails.type === "bid" ? "BID" : "ASK"}</span>
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <span className="font-medium">Amount:</span>
-              <span className="font-semibold font-mono">{displayValue(orderDetails.amount, orderDetails.isReverse ? orderDetails.decimalsA : orderDetails.decimalsB)} {!orderDetails.isReverse ? orderDetails.tokenB : orderDetails.tokenA}</span>
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <span className="font-medium">Price:</span>
-              <span className="font-semibold font-mono">{displayValue(orderDetails.price, orderDetails.isReverse ? orderDetails.decimalsB : orderDetails.decimalsA)} {!orderDetails.isReverse ? orderDetails.tokenA : orderDetails.tokenB}</span>
-            </div>
-            <div className="grid grid-cols-2 items-center gap-4">
-              <span className="font-medium">Value (USD):</span>
-              <span className="font-semibold font-mono">${orderDetails.value} </span>
+                <span className="font-semibold">{orderDetails.pair}</span>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-4">
+                <span className="font-medium ">Type:</span>
+                <span className={`font-mono font-bold ${orderDetails.type === "bid" ? "text-green-500" : "text-red-500"}`}>
+                  {orderDetails.type === "bid" ? "BID" : "ASK"}</span>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-4">
+                <span className="font-medium">Amount:</span>
+                <span className="font-semibold font-mono">{displayValue(orderDetails.amount, orderDetails.isReverse ? orderDetails.decimalsA : orderDetails.decimalsB)} {!orderDetails.isReverse ? orderDetails.tokenB : orderDetails.tokenA}</span>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-4">
+                <span className="font-medium">Price:</span>
+                <span className="font-semibold font-mono">{displayValue(orderDetails.price, orderDetails.isReverse ? orderDetails.decimalsB : orderDetails.decimalsA)} {!orderDetails.isReverse ? orderDetails.tokenA : orderDetails.tokenB}</span>
+              </div>
+              <div className="grid grid-cols-2 items-center gap-4">
+                <span className="font-medium">Value (USD):</span>
+                <span className="font-semibold font-mono">${orderDetails.value} </span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <AlertDialogFooter className="p-4 rounded-b-lg">
-          <AlertDialogCancel>Keep Order</AlertDialogCancel>
-          <AlertDialogAction 
-          className="bg-red-600 text-destructive-foreground hover:bg-destructive/90"
-          onClick={handleCancelOrder} >
-            Cancel Order
-          </AlertDialogAction>
-        </AlertDialogFooter>
+
+          <AlertDialogFooter className="p-4 rounded-b-lg">
+            <AlertDialogCancel>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleCancelOrder} >
+              Cancel Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </motion.div>
       </AlertDialogContent>
     </AlertDialog>

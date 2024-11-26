@@ -176,7 +176,9 @@ impl MarketPointer {
     }
 
     pub fn is_valid_availability(&self) -> bool {
-        self.market_order.is_none()
+        let Clock { slot, .. } = Clock::get().unwrap();
+        let delta = slot - self.slot;
+        self.market_order.is_none() || delta >= 25
     }
 
     pub fn is_valid_execution(&self) -> bool {
