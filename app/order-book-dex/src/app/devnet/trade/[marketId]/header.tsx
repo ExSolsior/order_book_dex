@@ -40,9 +40,9 @@ export function Header({ market }: { market: Market }) {
     isReverse,
   } = market!.orderBook!.marketDetails;
   const { lastPrice } = market!.orderBook!.marketData;
-  const ticerPrice = displayValue(lastPrice, (isReverse ? decimalsB : decimalsA));
-  const tickerSymbol = isReverse ? symbolB : symbolA
-  const volume = displayValue(market!.orderBook!.marketData.volume, !isReverse ? decimalsA : decimalsB);
+  const ticerPrice = displayValue(lastPrice, (!isReverse ? decimalsA : decimalsB));
+  const tickerSymbol = !isReverse ? symbolA : symbolB
+  const volume = displayValue(market!.orderBook!.marketData.volume, !isReverse ? decimalsB : decimalsA);
 
   return (
     <div className="flex items-center gap-7">

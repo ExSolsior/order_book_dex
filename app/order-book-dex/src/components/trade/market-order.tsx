@@ -156,15 +156,20 @@ export default function MarketOrder({
 
         return userWallet?.signAllTransactions(v0TransactionList)
       })
-      .then((v0TransactionList) => {
+      .then(async (v0TransactionList) => {
 
         console.log(v0TransactionList?.length, v0TransactionList)
+        function pause(ms: number) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
 
-        return Promise.allSettled(v0TransactionList!.map(async (signedTransaction) => {
-          console.log("signedTransaction: ", signedTransaction)
+        const list = []
+        for await (const signedTransaction of v0TransactionList!) {
           const tx = await program!.provider!.connection!.sendRawTransaction(signedTransaction.serialize())
-          return tx
-        }))
+          list.push(tx)
+        }
+
+        return Promise.allSettled(list)
 
       })
       .then((data) => data?.forEach((txSig: PromiseSettledResult<TransactionSignature>) => console.log(txSig)))

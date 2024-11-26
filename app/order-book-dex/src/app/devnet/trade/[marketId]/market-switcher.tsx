@@ -33,11 +33,11 @@ export function MarketSwitcher({ market }: { market: Market }) {
           <Avatar className="h-5 w-5">
             <AvatarImage
               src={image}
-              alt={isReverse ? symbolB : symbolA}
+              alt={!isReverse ? symbolB : symbolA}
             />
           </Avatar>
           <span className="font-semibold">
-            {isReverse ? symbolB : symbolA} / {isReverse ? symbolA : symbolB}
+            {!isReverse ? symbolB : symbolA} / {!isReverse ? symbolA : symbolB}
           </span>
 
           <CaretDownIcon className="h-[1.2rem] w-[1.2rem] scale-100" />
