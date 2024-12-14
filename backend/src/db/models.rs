@@ -176,6 +176,23 @@ pub async fn insert_order_position_config(position_config: PositionConfig, app_s
 
 // issue with prepared statement
 pub async fn insert_order_position(order_position: OrderPosition, app_state: &AppState) {
+    let dt: DateTime<Utc> = Utc::now();
+
+    if sqlx::query(r#"SELECT * FROM order_position WHERE pubkey_id = $1"#)
+        .bind(order_position.pubkey_id.to_string())
+        .fetch_optional(&app_state.pool)
+        .await
+        .unwrap()
+        .is_some()
+    {
+        println!(
+            " --- --- --- NO INSERT :: {} :: {}",
+            order_position.pubkey_id.to_string(),
+            dt
+        );
+        return;
+    }
+
     match sqlx::raw_sql(&format!(
         r#"
                 BEGIN;
@@ -252,9 +269,24 @@ pub async fn insert_order_position(order_position: OrderPosition, app_state: &Ap
     .execute(&app_state.pool)
     .await
     {
-        Ok(success) => println!("INSERT ORDER POSITION SUCCESS :: {:?}", success),
-        Err(error) => println!("INSERT ORDER POSITION FAIL :: {}", error),
+        Ok(success) => println!(
+            "INSERT ORDER POSITION SUCCESS :: {:?} :: {} :: {}",
+            success,
+            order_position.pubkey_id.to_string(),
+            dt
+        ),
+        Err(error) => println!(
+            "INSERT ORDER POSITION FAIL :: {} :: {} :: {}",
+            error,
+            order_position.pubkey_id.to_string(),
+            dt
+        ),
     };
+    println!(
+        "INSERT :: {} :: {}",
+        order_position.pubkey_id.to_string(),
+        dt
+    )
 }
 
 pub async fn insert_real_time_trade(trade: RealTimeTrade, app_state: &AppState) {
@@ -1746,38 +1778,41 @@ pub async fn delete_real_trade(pool: &Pool<Postgres>) {
 // missing replacing head when fill == size
 pub async fn update_order_position(
     id: Pubkey,
-    size: u64,
+    fill: u64,
     is_available: bool,
     app_state: &AppState,
 ) {
     match sqlx::raw_sql(&format!(
         r#"
             WITH position AS (
-                SELECT next_position, size FROM order_position AS p
+                SELECT next_position, size, is_head FROM order_position AS p
                 WHERE p.pubkey_id = '{id}'
 
-            ), current AS (
-                UPDATE order_position
-                SET is_head = false::BOOLEAN 
-                WHERE pubkey_id = '{id}'
-                AND (SELECT size FROM position) = '{fill}'
+            -- ), current AS (
+                -- probably don't need this anymore
+                -- UPDATE order_position
+                -- SET is_head = false::BOOLEAN 
+                -- WHERE pubkey_id = '{id}'
+                -- AND (SELECT size FROM position) = '{fill}'
 
             ), next AS (
                 UPDATE order_position
-                SET is_head = false::BOOLEAN 
+                SET is_head = true::BOOLEAN 
                 WHERE pubkey_id = (SELECT next_position FROM position)
+                AND pubkey_id IS NOT NULL
                 AND (SELECT size FROM position) = '{fill}'
 
             )
 
             UPDATE order_position
-            SET "is_available" = {is_available}, 
-            "fill" = "size" - {fill}
+            SET is_available = {is_available},
+            is_head = (SELECT is_head FROM position) AND (SELECT size FROM position) != '{fill}',
+            fill = '{fill}'
             WHERE pubkey_id = '{id}'
             -- need implement delete when fill == size
         "#,
         is_available = is_available,
-        fill = size.to_string(),
+        fill = fill.to_string(),
         id = id.to_string(),
     ))
     .execute(&app_state.pool)

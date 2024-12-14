@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS order_position (
     "price"                 bigint NOT NULL,
     "size"                  bigint NOT NULL,
     "fill"                  bigint NOT NULL DEFAULT 0,
+    -- "available_amount"
     "is_available"          boolean NOT NULL,
     "slot"                  bigint NOT NULL,
     "timestamp"             bigint NOT NULL,

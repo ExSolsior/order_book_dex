@@ -201,6 +201,10 @@ pub async fn execute_market_order(
 
                     let amount = size - fill;
 
+                    println!("size :: {}", size);
+                    println!("fill :: {}", fill);
+                    println!("amount :: {}", amount);
+
                     let pubkey_id = Pubkey::from_str(bid["pubkeyId"].as_str().unwrap()).unwrap();
                     if next.is_some() && next.unwrap() != pubkey_id {
                         // return error?
@@ -211,6 +215,7 @@ pub async fn execute_market_order(
                         break;
                     };
 
+                    println!("target_amount before :: {}", target_amount);
                     if target_amount == 0 {
                         break;
                     };
@@ -221,6 +226,7 @@ pub async fn execute_market_order(
                     } else {
                         0
                     };
+                    println!("target_amount after  :: {}", target_amount);
 
                     let (source_mint, source_program) = if !is_reverse {
                         (token_mint_a, token_program_a)
@@ -268,6 +274,10 @@ pub async fn execute_market_order(
                         target_amount,
                         is_closed,
                     ));
+
+                    if target_amount == 0 {
+                        break;
+                    }
                 }
             };
             list
@@ -374,6 +384,10 @@ pub async fn execute_market_order(
                         target_amount,       // 14
                         is_closed,           // 15
                     ));
+
+                    if target_amount == 0 {
+                        break;
+                    }
                 }
             };
             list
@@ -385,6 +399,23 @@ pub async fn execute_market_order(
     let mut list: Vec<VersionedTransaction> = Vec::new();
     let recent_blockhash = rpc_client.get_latest_blockhash().await?;
     let payer = market_order.signer;
+
+    println!("pubkey_id :: {:?}", positions[0].0);
+    println!("postion_config :: {:?}", positions[0].1);
+    println!("next_position :: {:?}", positions[0].2);
+    println!("market_maker :: {:?}", positions[0].3);
+    // println!("pubkey_id :: {:?}", positions[0].4);
+    // println!("pubkey_id :: {:?}", positions[0].5);
+    // println!("pubkey_id :: {:?}", positions[0].6);
+    // println!("pubkey_id :: {:?}", positions[0].7);
+    // println!("pubkey_id :: {:?}", positions[0].8);
+    // println!("pubkey_id :: {:?}", positions[0].9);
+    // println!("pubkey_id :: {:?}", positions[0].10);
+    // println!("pubkey_id :: {:?}", positions[0].11);
+    // println!("pubkey_id :: {:?}", positions[0].12);
+    // println!("pubkey_id :: {:?}", positions[0].13);
+    // println!("pubkey_id :: {:?}", positions[0].14);
+    // println!("pubkey_id :: {:?}", positions[0].15);
 
     if positions.len() == 1 {
         let mut ixs = vec![];
