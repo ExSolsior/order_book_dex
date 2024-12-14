@@ -29,26 +29,35 @@ export default function Trades({ market }: { market: Market }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {trades.slice(0, 12).map((trade) => (
-          <TableRow key={trade.id}>
-            <TableCell
-              className={`font-mono ${trade.action === "buy" ? "text-green-500" : "text-red-500"
-                }`}
-            >
-              {displayValue(trade.price, !isReverse ? decimalsA : decimalsB)}
+        {trades.slice(0, 12).map((trade) => {
+          console.log(trade.time)
+          console.log(new Date(trade.time))
+          console.log(new Date(trade.time).toLocaleTimeString())
 
-            </TableCell>
-            <TableCell className="text-right font-mono">
-              {displayValue(trade.qty, !isReverse ? decimalsB : decimalsA)}
 
-            </TableCell>
-            <TableCell className="text-right font-mono ">
-              {new Date(trade.time * 1000).toLocaleTimeString("en-GB", {
-                hour12: false
-              })}
-            </TableCell>
-          </TableRow>
-        ))}
+
+          return (
+            <TableRow key={trade.id}>
+              <TableCell
+                className={`font-mono ${trade.action === "buy" ? "text-green-500" : "text-red-500"
+                  }`}
+              >
+                {displayValue(trade.price, !isReverse ? decimalsA : decimalsB)}
+
+              </TableCell>
+              <TableCell className="text-right font-mono">
+                {displayValue(trade.qty, !isReverse ? decimalsB : decimalsA)}
+
+              </TableCell>
+              <TableCell className="text-right font-mono ">
+                {new Date(trade.time * 1000).toLocaleTimeString("en-GB", {
+                  hour12: false
+                })}
+              </TableCell>
+            </TableRow>
+          )
+        }
+        )}
       </TableBody>
     </Table>
   );

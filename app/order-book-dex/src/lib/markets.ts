@@ -2,6 +2,9 @@ export type Market = {
   marketId: string;
   tokenA: string;
   tokenB: string;
+  // need to convert to bigint... but will break a lot of things
+  // so for now this will have to stay as is, when I have time
+  // I'll come back and fix this
   price: number;
   change: number;
   volume: number;

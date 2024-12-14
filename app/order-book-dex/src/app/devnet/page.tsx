@@ -24,8 +24,10 @@ export default function Home() {
               // baseToken
               // tokenA: data.details.baseToken.symbol,
               // tokenB: data.details.quoteToken.symbol,
+              // this seems broken, will come back to fix this later
               tokenA: !data.details.isReverse ? data.details.quoteToken.symbol : data.details.baseToken.symbol,
               tokenB: !data.details.isReverse ? data.details.baseToken.symbol : data.details.quoteToken.symbol,
+              // using Number is an issue, will fix later
               price: Number(data.status.lastPrice.toString()),
               change: Number(data.status.changePercent.toString()),
               turnover: Number(data.status.turnover.toString()),

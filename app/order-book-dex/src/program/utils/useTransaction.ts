@@ -147,7 +147,7 @@ class Queue {
                                     price: BigInt(data.price),
                                     qty: BigInt(data.size),
                                     // need a better way to do this -> timestamp
-                                    time: Date.now(),
+                                    time: Date.now() / 1000,
                                     action: data.order,
                                 } as Trade
                             })
