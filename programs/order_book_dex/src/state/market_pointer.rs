@@ -129,6 +129,11 @@ impl MarketPointer {
             self.order_position_pointer = order_position.next();
         }
 
+        // note about current price, need to think about this
+        // need to determine the actual role of current price
+        // and if I should be updating the curreint price
+        // in accosiation with the order_position that was matched against
+        // or to the the next order position?
         self.current_price = order_position.price;
         self.timestamp = unix_timestamp;
         self.slot = slot;
@@ -191,19 +196,26 @@ impl MarketPointer {
 
     // is this correct?
     // I actually have no idea what this is for?
+    // I now understand this is for. this logic is wrong.. but I remember what I was trying to do
+    // the but old logic got lost.
     pub fn is_valid_order_pointer(&self, order_position: Pubkey) -> bool {
-        self.execution_stats
-            .as_ref()
-            .unwrap()
-            .next_position_pointer
-            .is_some()
-            && self
-                .execution_stats
-                .as_ref()
-                .unwrap()
-                .next_position_pointer
-                .unwrap()
-                == order_position
+        // I was trying to consider the next_position_pointer. I'll come back to this later
+        // for now this is enough for to work in demo
+        // self.execution_stats
+        //     .as_ref()
+        //     .unwrap()
+        //     .next_position_pointer
+        //     .is_some()
+        //     && self
+        //         .execution_stats
+        //         .as_ref()
+        //         .unwrap()
+        //         .next_position_pointer
+        //         .unwrap()
+        //         == order_position
+
+        self.order_position_pointer.as_ref().is_some()
+            && self.order_position_pointer.as_ref().unwrap() == &order_position
     }
 
     pub fn is_valid_position_add(
@@ -421,7 +433,7 @@ impl ExecutionStats {
 
     pub fn update(&mut self, side: &Order, base_amount: u64, quote_amount: u64, price: u64) {
         self.total_amount += base_amount;
-        self.total_cost += base_amount;
+        self.total_cost += quote_amount;
         self.last_price = price;
 
         match side {

@@ -28,9 +28,8 @@ pub struct FillMarketOrder<'info> {
         mut,
         constraint = order_position.is_valid_order_book_config(order_book_config.key())
             @ ErrorCode::InvalidOrderPosition,
-        // this doesn't seem correct
-        // constraint = market_pointer.is_valid_order_pointer(order_position.key())
-        //     @ ErrorCode::InvalidOrderPosition,
+        constraint = market_pointer.is_valid_order_pointer(order_position.key())
+            @ ErrorCode::InvalidOrderPosition,
     )]
     pub order_position: Account<'info, OrderPosition>,
 
@@ -108,51 +107,32 @@ pub struct FillMarketOrder<'info> {
 impl<'info> FillMarketOrder<'info> {
     pub fn exec(&mut self) -> Result<()> {
         let (token_mint_a, token_mint_b, token_program_a, token_program_b) =
-            match self.market_pointer.order_type {
-                Order::Buy => {
-                    if !self.order_book_config.is_reverse {
-                        (
-                            &self.token_mint_a,
-                            &self.token_mint_b,
-                            &self.token_program_a,
-                            &self.token_program_b,
-                        )
-                    } else {
-                        (
-                            &self.token_mint_b,
-                            &self.token_mint_a,
-                            &self.token_program_b,
-                            &self.token_program_a,
-                        )
-                    }
-                }
-                Order::Sell => {
-                    if !self.order_book_config.is_reverse {
-                        (
-                            &self.token_mint_b,
-                            &self.token_mint_a,
-                            &self.token_program_b,
-                            &self.token_program_a,
-                        )
-                    } else {
-                        (
-                            &self.token_mint_a,
-                            &self.token_mint_b,
-                            &self.token_program_a,
-                            &self.token_program_b,
-                        )
-                    }
-                }
-                _ => unreachable!()
-            };
+        if self.market_pointer.order_type == Order::Buy && !self.order_book_config.is_reverse
+        || self.market_pointer.order_type == Order::Sell && self.order_book_config.is_reverse {
+            (
+                &self.token_mint_a,
+                &self.token_mint_b,
+                &self.token_program_a,
+                &self.token_program_b,
+            )
+        } else if self.market_pointer.order_type == Order::Buy && self.order_book_config.is_reverse
+        || self.market_pointer.order_type == Order::Sell && !self.order_book_config.is_reverse  {
+            (
+                &self.token_mint_b,
+                &self.token_mint_a,
+                &self.token_program_b,
+                &self.token_program_a,
+            )
+        } else {
+            unreachable!()
+        };
 
+        // base decimals
         let decimals = if !self.order_book_config.is_reverse {
             self.token_mint_b.decimals as u32
         } else {
             self.token_mint_a.decimals as u32
         };
-
-
 
         let delta_amount = self.market_pointer.delta_amount();
         let balance = self.market_pointer.balance(&self.order_position);

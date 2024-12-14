@@ -26,13 +26,14 @@ pub struct CreateMarketOrder<'info> {
     )]
     pub market_pointer: Box<Account<'info, MarketPointer>>,
 
+    // may no longer need this since I am removing the calculation for simplicity
     #[account(
         constraint = market_pointer.order_position_pointer.unwrap() == order_position.key()
             @ ErrorCode::InvalidFillOrderPosition,
-        constraint = next_position_pointer.is_some() || 
-            (next_position_pointer.is_none() 
-            && order_position.next_order_position.is_none())
-            @ ErrorCode::InvalidNextPointer,
+        // constraint = next_position_pointer.is_some() || 
+        //     (next_position_pointer.is_none() 
+        //     && order_position.next_order_position.is_none())
+        //     @ ErrorCode::InvalidNextPointer,
     )]
     pub order_position: Box<Account<'info, OrderPosition>>,
 
@@ -100,19 +101,36 @@ pub struct CreateMarketOrder<'info> {
 impl<'info> CreateMarketOrder<'info> {
     // I don't think I need the order_type since it already exist on the market pointer
     pub fn exec(&mut self, order_type: Order, fill: Fill, target_amount: u64) -> Result<()> {
-
         let transfer_amount = match self.market_pointer.order_type {
-            Order::Buy => {
-                // price * amount / 10 ** amount_decimal
-                let decimals = self.token_mint_dest.decimals as u32;
-                let amount = (self.order_position.price as u128 * target_amount as u128 / u64::pow(10, decimals) as u128) as u64;
-                if self.capital_source.amount >= amount && amount != 0 {self.capital_source.amount} else {amount}
+            // FORMULA
+            // price * amount / 10 ** amount_decimal
+            // NOTE
+            // This doesn't accuretly calculate the total transfer amount to reach target amount if there is more than
+            // one order position that must be matched. so it takes the larget value either
+            // computed amount of the first position to matched agaisnt or the taker capital source amount
+            // if the computed amount is the largets it is most likely going to only match against one order position
+            // ... the simplist way to do this is just use all of the capital source amount and avoid this computation
+            // any remaining amount left in the source vault will be transfered back anyway.
+            // should be something like this
+            // self.capital_source.amount
+            // let decimals = self.token_mint_dest.decimals as u32;
+            // let amount = (self.order_position.price as u128 * target_amount as u128 / u64::pow(10, decimals) as u128) as u64;
+            // if self.capital_source.amount >= amount && amount != 0 {self.capital_source.amount} else {amount}
+            Order::Buy => self.capital_source.amount,
+
+            // should be something like this
+            // if self.capital_source.amount > target_amount {target_amount} else {self.capital_source.amount}
+            Order::Sell => {
+                if self.capital_source.amount > target_amount {
+                    target_amount
+                } else {
+                    self.capital_source.amount
+                }
             }
-            Order::Sell => target_amount,
             _ => unreachable!(),
         };
 
-        require!(self.capital_source.amount >= transfer_amount && transfer_amount != 0, ErrorCode::InvalidTransferAmount);
+        require!(transfer_amount != 0, ErrorCode::InvalidTransferAmount);
 
         self.market_pointer.add_market_order(
             order_type.clone(),
@@ -152,10 +170,13 @@ impl<'info> CreateMarketOrder<'info> {
         emit!(MarketOrderTriggerEvent {
             market_pointer: self.market_pointer.key(),
             book_config: self.order_book_config.key(),
+            // capital token account
             capital_source: self.capital_source.key(),
             capital_dest: self.capital_dest.key(),
+            // vault token account
             source: self.source.key(),
             dest: self.dest.key(),
+            // matched order position
             pointer: self.market_pointer.order_position_pointer,
             order_type: self.market_pointer.order_type.clone(),
             is_available: self.market_pointer.market_order.is_none(),
