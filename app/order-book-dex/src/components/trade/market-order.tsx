@@ -16,7 +16,7 @@ import { Input } from "../ui/input";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageHeader, MessageV0, PublicKey, TransactionError, TransactionSignature, VersionedTransaction } from "@solana/web3.js";
+import { MessageHeader, MessageV0, PublicKey, /*TransactionError, TransactionSignature,*/ VersionedTransaction } from "@solana/web3.js";
 import { useContext, useState } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
