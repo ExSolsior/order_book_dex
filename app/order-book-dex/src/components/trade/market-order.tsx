@@ -16,7 +16,7 @@ import { Input } from "../ui/input";
 import { Avatar, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { MessageHeader, MessageV0, PublicKey, TransactionSignature, VersionedTransaction } from "@solana/web3.js";
+import { MessageHeader, MessageV0, PublicKey, TransactionError, TransactionSignature, VersionedTransaction } from "@solana/web3.js";
 import { useContext, useState } from "react";
 import { ProgramContext } from "@/program/ProgramProvider";
 import { TransactionOrder } from "@/lib/types";
@@ -163,16 +163,21 @@ export default function MarketOrder({
           return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        const list = []
+        // const list = []
         for await (const signedTransaction of v0TransactionList!) {
-          const tx = await program!.provider!.connection!.sendRawTransaction(signedTransaction.serialize())
-          list.push(tx)
+          await program!.provider!.connection!.sendRawTransaction(signedTransaction.serialize())
+            .then(data => console.log(data))
+            .catch(err => console.log(err))
+
+          await pause(600)
+
+          // list.push(tx)
         }
 
-        return Promise.allSettled(list)
+        // return Promise.allSettled(list)
 
       })
-      .then((data) => data?.forEach((txSig: PromiseSettledResult<TransactionSignature>) => console.log(txSig)))
+      // .then((data) => data?.forEach((txSig: PromiseSettledResult<TransactionSignature | TransactionError>) => console.log(txSig)))
       .catch((err) => console.log(err))
   }
 
