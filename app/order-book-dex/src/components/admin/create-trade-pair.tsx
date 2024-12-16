@@ -67,6 +67,16 @@ export default function TradePairCreator() {
       }
 
       // TokenMintA is guaranteed to have less or equal bytes than tokenMintB
+      console.log(
+        tokenSymbolA,
+        tokenSymbolB,
+        tokenMintA,
+        tokenMintB,
+        // new web3.PublicKey(tokenMintA), 
+        // new web3.PublicKey(tokenMintB),
+        isReversed
+      )
+
       await createTradePair(tokenSymbolA, tokenSymbolB, new web3.PublicKey(tokenMintA), new web3.PublicKey(tokenMintB), isReversed);
     } catch (error) {
       console.error(error);

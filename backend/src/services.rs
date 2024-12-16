@@ -491,13 +491,14 @@ pub async fn parse_market_order_fill_event(data: &[u8], app_state: &AppState) {
     let _total = get_slot(&data, &mut offset);
     let _amount = get_slot(&data, &mut offset);
     let new_size = get_slot(&data, &mut offset);
+    let fill = get_slot(&data, &mut offset);
     let _is_available = get_reverse(&data, &mut offset);
     let _slot = get_slot(&data, &mut offset);
     let _timestamp = get_timestamp(&data, &mut offset);
 
     let is_available = if new_size == 0 { false } else { true };
 
-    update_order_position(pos_pubkey, new_size, is_available, app_state).await;
+    update_order_position(pos_pubkey, fill, is_available, app_state).await;
 }
 
 // insert -> other?
@@ -520,7 +521,9 @@ pub async fn parse_market_order_complete_event(data: &[u8], app_state: &AppState
             book_config: book_config.to_string(),
             order_type: order_type,
             last_price,
-            avg_price: total_cost / total_amount,
+            // need to come back to this later
+            // avg_price: total_cost / total_amount,
+            avg_price: 0,
             amount: total_amount,
             turnover: total_cost,
             timestamp: timestamp as u64,

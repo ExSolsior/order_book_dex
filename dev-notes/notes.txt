@@ -619,3 +619,9 @@ TODO::
     - need to set is head to false in DB when head order position becomes unavailable
     - avaialbe didn't become false... ??? hmm this was with buy market order
         need to investigate
+
+
+QUESTION::
+- "INSERT ORDER POSITION FAIL :: error returned from database: duplicate key value violates unique constraint "order_position_pkey""
+    -- why does this happen? doesn't make sense, since the order position should always be different... so what is going on here?
+    -- when this happens, the last transaction doesn't get indexed, I need to implement some system that allows the indexer to be resilient 

@@ -123,6 +123,8 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
     isReverse: boolean
   ) => {
 
+    console.log(connection.rpcEndpoint)
+
     try {
       const orderBookConfig = getOrderBookConfigPDA(tokenMintA, tokenMintB);
       const buyMarketPointer = getBuyMarketPointerPDA(orderBookConfig);
@@ -131,6 +133,10 @@ export const ProgramProvider = ({ children }: { children: ReactNode }) => {
       // Derive token programs from mints
       const mintA = await connection.getAccountInfo(tokenMintA);
       const mintB = await connection.getAccountInfo(tokenMintB);
+
+      console.log(mintA)
+      console.log(mintB)
+
 
       const txHash = await program.methods
         .createTradePair(tokenSymbolA, tokenSymbolB, isReverse)
