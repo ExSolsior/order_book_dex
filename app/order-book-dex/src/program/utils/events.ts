@@ -43,33 +43,32 @@ interface ResponseData {
     tokenSymbolB: string | undefined,
 
     orderType: string | undefined,
-    price: bigint | BN | undefined,
-    size: bigint | BN | undefined,
+    price: bigint | undefined,
+    size: bigint | undefined,
+    fill: bigint | undefined,
     amount: bigint | undefined,
-    totalCost: bigint | BN | undefined,
-    totalAmount: bigint | BN | undefined,
+    totalCost: bigint | undefined,
+    totalAmount: bigint | undefined,
 
-    capitalSourceBalance: bigint | BN | undefined,
-    capitalDestBalance: bigint | BN | undefined,
+    capitalSourceBalance: bigint | undefined,
+    capitalDestBalance: bigint | undefined,
 
 
     isReverse: boolean | undefined,
     isAvailable: boolean | undefined,
     isExecution: boolean | undefined,
-    nonce: bigint | BN | undefined,
-    slot: bigint | BN | undefined,
-    timestamp: bigint | BN | undefined,
-
-
+    nonce: bigint | undefined,
+    slot: bigint | undefined,
+    timestamp: bigint | undefined,
 }
 
-const NEXT_PUBLIC_API_SVM = process.env.NEXT_PUBLIC_API_SVM as string;
+const eventListner = (
+    conn: Connection,
+    address: PublicKey,
+    listen: Buffer[],
+    callback: (method: string, data: ResponseData) => void
+) => {
 
-const eventListner = (address: PublicKey, listen: Buffer[], callback: (method: string, data: ResponseData) => void) => {
-
-    console.log("NEXT_PUBLIC_API_SVM", NEXT_PUBLIC_API_SVM);
-
-    const conn = new Connection(NEXT_PUBLIC_API_SVM);
     const subscriptionId = conn.onLogs(address, (logs) => {
 
         for (const event of logs.logs.filter((log) => log.startsWith("Program data: "))) {
@@ -147,6 +146,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         orderType: getOrderType(decoded, offset),
         price: getBN(decoded, offset),
         size: getBN(decoded, offset),
+        // need double check smart contract event
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
         isAvailable: getIsAvailable(decoded, offset),
@@ -181,6 +181,7 @@ const openLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: B
         capitalDest: undefined,
         marketTaker: undefined,
         amount: undefined,
+        fill: undefined,
     }
 
     callback("open-limit-order", data)
@@ -239,6 +240,7 @@ const newOrderBookconfigEvent = (discriminator: Buffer, listen: Buffer[], decode
         capitalDest: undefined,
         marketTaker: undefined,
         amount: undefined,
+        fill: undefined,
     }
 
     callback("new-order-book", data);
@@ -295,7 +297,7 @@ const newOrderPositionConfigEvent = (discriminator: Buffer, listen: Buffer[], de
         capitalDest: undefined,
         marketTaker: undefined,
         amount: undefined,
-
+        fill: undefined,
     }
 
     callback("new-position-config", data);
@@ -353,7 +355,7 @@ const createOrderPositionEvent = (discriminator: Buffer, listen: Buffer[], decod
         capitalDest: undefined,
         marketTaker: undefined,
         amount: undefined,
-
+        fill: undefined,
     }
 
     callback("create-order-position", data);
@@ -409,7 +411,8 @@ const cancelLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded:
         capitalSource: undefined,
         capitalDest: undefined,
         marketTaker: undefined,
-        amount: undefined
+        amount: undefined,
+        fill: undefined,
     }
 
     callback("cancel-limit-order", data);
@@ -466,7 +469,7 @@ const closeLimitOrderEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         capitalDest: undefined,
         marketTaker: undefined,
         amount: undefined,
-
+        fill: undefined,
     }
 
     callback("close-limit-order", data);
@@ -524,7 +527,7 @@ const marketOrderTriggerEvent = (discriminator: Buffer, listen: Buffer[], decode
         tokenSymbolB: undefined,
         marketTaker: undefined,
         amount: undefined,
-
+        fill: undefined,
     }
 
     callback("trigger-market-order", data);
@@ -547,7 +550,8 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         price: getBN(decoded, offset),
         total: getBN(decoded, offset),
         amount: getBN(decoded, offset),
-        newSize: getBN(decoded, offset),
+        size: getBN(decoded, offset),
+        fill: getBN(decoded, offset),
         isExecution: getIsAvailable(decoded, offset),
         slot: getSlot(decoded, offset),
         timestamp: getTimestamp(decoded, offset),
@@ -568,7 +572,6 @@ const marketOrderFillEvent = (discriminator: Buffer, listen: Buffer[], decoded: 
         vaultA: undefined,
         vaultB: undefined,
         nextPointer: undefined,
-        size: undefined,
         totalCost: undefined,
         totalAmount: undefined,
         nonce: undefined,
@@ -644,7 +647,7 @@ const marketOrderCompleteEvent = (discriminator: Buffer, listen: Buffer[], decod
         capitalSource: undefined,
         capitalDest: undefined,
         amount: undefined,
-
+        fill: undefined,
     }
 
     callback("complete-market-order", data);
