@@ -7,9 +7,6 @@ import { PortfolioOpenOrders } from "./open-orders";
 import { PastOrders } from "./past-orders";
 import { PortfolioSummary } from "./summary";
 
-// I think this is wrong and causing a bug some where
-import { MarketContextProvider } from "@/components/provider/market-provider";
-
 export default function PortfolioPage() {
   const wallet = useWallet();
 
@@ -22,9 +19,7 @@ export default function PortfolioPage() {
     <div className="space-y-6">
       <PortfolioHeader />
       <PortfolioSummary />
-      {/* <MarketContextProvider> */}
       <PortfolioOpenOrders />
-      {/* </MarketContextProvider> */}
       <PastOrders />
     </div>
   );

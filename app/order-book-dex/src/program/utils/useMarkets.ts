@@ -14,7 +14,6 @@ import { PROGRAM_ID } from "./constants";
 import { CachedMarket } from "./types";
 import { useParams } from "next/navigation";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
-import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 
 
 // should place these under constants.ts file
@@ -364,6 +363,7 @@ export const useMarkets = () => {
 
     useEffect(() => {
         if (eventId !== undefined) {
+            console.log(eventId)
             return () => {
                 connection.removeOnLogsListener(eventId)
             }
@@ -448,8 +448,6 @@ export const useMarkets = () => {
                         const current = prev
                             .find((user: UserBalance) => user.marketId.toString() === payload.bookConfig!.toString())
 
-                        console.log(current)
-
                         const update = {
                             capitalAAmount: current!.capitalAAmount,
                             capitalBAmount: current!.capitalBAmount,
@@ -461,8 +459,6 @@ export const useMarkets = () => {
                         } else {
                             update.capitalBAmount = payload.capitalSourceBalance as bigint;
                         }
-
-                        console.log(update)
 
                         return [
                             {
@@ -477,7 +473,6 @@ export const useMarkets = () => {
 
                     break;
                 }
-
 
                 //  fixed bug, but still is incomplete
                 case "open-limit-order": {
@@ -514,10 +509,6 @@ export const useMarkets = () => {
 
                 // there may be a bug with user balance here
                 case "close-limit-order": {
-                    console.log("close-limit-order???")
-                    console.log("payload :: ", payload)
-                    console.log("payload :: ", payload.position!.toString())
-
 
                     setOpenLimitOrders((prev: OpenOrder[]) => {
                         console.log(prev)
@@ -545,8 +536,6 @@ export const useMarkets = () => {
                             update!.capitalAAmount = payload.capitalDestBalance as bigint;
                         }
 
-                        console.log(current)
-
                         return [
                             {
                                 ...current!,
@@ -565,7 +554,7 @@ export const useMarkets = () => {
 
         setEventId(id)
 
-    }, [eventId, userWallet, connection])
+    }, [eventId, userWallet, connection, connection])
 
     useEffect(() => {
         if (isLoading == false) {

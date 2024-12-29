@@ -1,4 +1,3 @@
-import { BN } from "@coral-xyz/anchor";
 import { PublicKey, Connection } from "@solana/web3.js";
 // import { OrderType } from "../ProgramProvider";
 
@@ -77,7 +76,7 @@ const eventListner = (
             const decoded = Buffer.from(eventData as string, 'base64');
             const discrimniator = decoded.subarray(0, 8)
 
-            console.log(discrimniator, decoded)
+            // console.log(discrimniator, decoded)
 
             switch (discrimniator.toString()) {
                 case OPEN_LIMIT_ORDER_EVENT.toString():

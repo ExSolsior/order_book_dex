@@ -116,15 +116,6 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
 
   };
 
-  console.log(bookConfig)
-  console.log(orderType,)
-  console.log(orderPosition)
-  console.log(orderDetails)
-  console.log(orderDetails.symbolA)
-  console.log(orderDetails.symbolB)
-
-
-
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
