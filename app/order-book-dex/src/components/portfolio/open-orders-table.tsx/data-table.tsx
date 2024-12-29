@@ -36,6 +36,7 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
   columns,
   data
 }: DataTableProps<TData, TValue>) {
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -55,6 +56,44 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
       columnFilters
     }
   });
+
+  // table.getHeaderGroups -> []
+  //    - headerGroup.headers -> []
+  //    - header.id
+  //    - header.isPlaceholder
+  //    - header.columnDef.header
+  //    - header.getContext()
+  //    Table -> TableHeder -> TableRow -> TableHead
+
+  // table.getRowModel
+  //    - .rows.length
+  //    - .rows []
+  //    - row
+  //    - row.id
+  //    - row.getIsSeleted
+  //    - row.getVisibleCells []
+  //    - cell
+  //    - cell.id
+  //    - cell.column.columnDef.cell
+  //    - cell.getContext
+  //    Table -> TableBody -> TableRow -> TableCell
+
+
+  //    - row.original.marketid
+  //    - row.original.orderType
+  //    - row.original.positionId
+  //    - row.original.tokenA
+  //    - row.original.tokenB
+  //    - row.original.ticker
+  //    - row.original.orderType
+  //    - row.original.amount
+  //    - row.original.price
+  //    - row.original.valueUSD
+  //    - row.original.decimalsA
+  //    - row.original.decimalsB
+  //    - row.original.isReverse
+  //    Table -> TableBody -> TableRow -> TableCell -> CancelOrder
+
 
   return (
     <div className="p-1">
@@ -80,9 +119,9 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}
@@ -105,14 +144,14 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
                     </TableCell>
                   ))}
                   <TableCell className="px-2 text-center">
-                    <CancelOrder 
-                      bookConfig={row.original.marketId.toBase58()} 
-                      orderType={row.original.orderType} 
-                      orderPosition={row.original.positionId.toBase58()}   
+                    <CancelOrder
+                      bookConfig={row.original.marketId.toBase58()}
+                      orderType={row.original.orderType}
+                      orderPosition={row.original.positionId.toBase58()}
 
                       orderDetails={{
-                        tokenA: row.original.tokenA,
-                        tokenB: row.original.tokenB,
+                        symbolA: row.original.symbolA,
+                        symbolB: row.original.symbolB,
                         pair: row.original.ticker,
                         type: row.original.orderType,
                         amount: row.original.amount,
@@ -121,7 +160,7 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
                         decimalsA: row.original.decimalsA,
                         decimalsB: row.original.decimalsB,
                         isReverse: row.original.isReverse,
-                      }}                  />
+                      }} />
                   </TableCell>
                 </TableRow>
               ))

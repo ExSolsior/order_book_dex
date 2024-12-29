@@ -14,6 +14,7 @@ import { PROGRAM_ID } from "./constants";
 import { CachedMarket } from "./types";
 import { useParams } from "next/navigation";
 import { getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
+import { token } from "@coral-xyz/anchor/dist/cjs/utils";
 
 
 // should place these under constants.ts file
@@ -54,47 +55,54 @@ export const useMarkets = () => {
 
                 return {
                     accounts: {
-                        marketId: new PublicKey(el.pubkeyId),
-                        tokenMintA: new PublicKey(el.tokenMintA),
-                        tokenMintB: new PublicKey(el.tokenMintB),
-                        tokenProgramA: new PublicKey(el.tokenProgramA),
-                        tokenProgramB: new PublicKey(el.tokenProgramB),
-                        sellMarketPointer: new PublicKey(el.sellMarketPointer),
-                        buyMarketPointer: new PublicKey(el.buyMarketPointer),
-                        tokenDecimalsA: new PublicKey(el.tokenDecimalsA),
-                        tokenDecimalsB: new PublicKey(el.tokenDecimalsB),
+                        marketId: new PublicKey(el.pubkeyId as string),
+                        mintB: new PublicKey(el.tokenMintB as string),
+                        mintA: new PublicKey(el.tokenMintA as string),
+                        programA: new PublicKey(el.tokenProgramA as string),
+                        programB: new PublicKey(el.tokenProgramB as string),
+                        sellMarketPointer: new PublicKey(el.sellMarketPointer as string),
+                        buyMarketPointer: new PublicKey(el.buyMarketPointer as string),
                     },
+
                     details: {
-                        tokenSymbolA: el.tokenSymbolA,
-                        tokenSymbolB: el.tokenSymbolB,
+                        symbolA: el.tokenSymbolA,
+                        symbolB: el.tokenSymbolB,
+                        decimalsA: el.tokenDecimalsA,
+                        decimalsB: el.tokenDecimalsB,
+
                         quoteToken: {
-                            pubkeyId: new PublicKey(!el.isReverse ? el.tokenMintB : el.tokenMintA),
+                            pubkeyId: new PublicKey((!el.isReverse ? el.tokenMintA : el.tokenMintB) as string),
+                            programId: new PublicKey((!el.isReverse ? el.tokenProgramA : el.tokenProgramB) as string),
                             decimals: !el.isReverse ? el.tokenDecimalsA : el.tokenDecimalsB,
                             symbol: !el.isReverse ? el.tokenSymbolA : el.tokenSymbolB,
                         },
+
                         baseToken: {
-                            pubkeyId: new PublicKey(!el.isReverse ? el.tokenMintA : el.tokenMintB),
+                            pubkeyId: new PublicKey((!el.isReverse ? el.tokenMintB : el.tokenMintA) as string),
+                            programId: new PublicKey((!el.isReverse ? el.tokenProgramB : el.tokenProgramA) as string),
                             decimals: !el.isReverse ? el.tokenDecimalsB : el.tokenDecimalsA,
                             symbol: !el.isReverse ? el.tokenSymbolB : el.tokenSymbolA,
                         },
+
                         ticker: el.ticker,
                         isReverse: el.isReverse,
                         image: "",
                     },
+
                     status: {
-                        lastPrice: BigInt(el.marketData.lastPrice),
-                        volume: BigInt(el.marketData.volume),
-                        turnover: BigInt(el.marketData.turnover),
-                        changeDelta: BigInt(el.marketData.changeDelta),
+                        lastPrice: BigInt(el.marketData.lastPrice as string),
+                        volume: BigInt(el.marketData.volume as string),
+                        turnover: BigInt(el.marketData.turnover as string),
+                        changeDelta: BigInt(el.marketData.changeDelta as string),
                         // need to display as percentage
                         changePercent: el.marketData.prevLastPrice === 0 ? BigInt(0) :
-                            BigInt(el.marketData.changeDelta) * BigInt(100_000) / BigInt(el.marketData.prevLastPrice),
+                            BigInt(el.marketData.changeDelta as string) * BigInt(100_000) / BigInt(el.marketData.prevLastPrice),
                     }
                 }
             })
 
             const balanceList = data.map((el: FetchedMarket) => {
-                const marketId = new PublicKey(el.pubkeyId);
+                const marketId = new PublicKey(el.pubkeyId as string);
                 return {
                     marketId: marketId,
                     isSet: false,
@@ -135,20 +143,23 @@ export const useMarkets = () => {
             return [
                 ...prev,
                 ...(positions.map((position: ReceivedOpenLimitOrder) => ({
-                    marketId: new PublicKey(position.marketId),
-                    positionConfig: new PublicKey(position.positionConfig),
-                    positionId: new PublicKey(position.positionId),
-                    tokenA: position.symbolA,
-                    tokenB: position.symbolB,
+                    marketId: new PublicKey(position.marketId as string),
+                    positionConfig: new PublicKey(position.positionConfig as string),
+                    positionId: new PublicKey(position.positionId as string),
+                    symbolA: position.symbolA,
+                    symbolB: position.symbolB,
                     decimalsA: position.decimalsA,
                     decimalsB: position.decimalsB,
                     isReverse: position.isReverse,
                     ticker: position.ticker,
                     orderType: position.orderType,
-                    price: BigInt(position.price),
-                    amount: BigInt(position.size),
-                    fillAmount: BigInt(0), // how to handle this?
-                    value: BigInt(position.price) * BigInt(position.size) / BigInt((10 ** (!position.isReverse ? Number(position.decimalsA) : Number(position.decimalsB)))),
+                    price: BigInt(position.price as string),
+                    size: BigInt(position.size as string), // -> change :: amount -> size
+                    amount: BigInt(position.size as string) - BigInt(position.fill as string),
+                    fill: BigInt(position.fill as string),
+                    value: BigInt(position.price as string)
+                        * BigInt(position.size as string)
+                        / BigInt((10 ** (!position.isReverse ? Number(position.decimalsA) : Number(position.decimalsB)))),
                     valueUSD: BigInt(0), // need oracle to handle this
                     createdAt: position.timestamp,
                 })))
@@ -175,29 +186,29 @@ export const useMarkets = () => {
         const book = market?.accounts
 
         const userCapitalA = await getAssociatedTokenAddress(
-            new PublicKey(book!.tokenMintA),
+            new PublicKey(book!.mintA),
             userWallet!.publicKey!,
             true,
-            new PublicKey(book!.tokenProgramA),
+            new PublicKey(book!.programA),
         );
 
         const userCapitalB = await getAssociatedTokenAddress(
-            new PublicKey(book!.tokenMintB),
+            new PublicKey(book!.mintB),
             userWallet!.publicKey!,
             true,
-            new PublicKey(book!.tokenProgramB),
+            new PublicKey(book!.programB),
         );
 
         const userVaultA = PublicKey.findProgramAddressSync([
             new PublicKey(book!.marketId).toBuffer(),
-            new PublicKey(book!.tokenMintA).toBuffer(),
+            new PublicKey(book!.mintA).toBuffer(),
             userWallet!.publicKey!.toBuffer(),
             Buffer.from("vault-account"),
         ], PROGRAM_ID)[0];
 
         const userVaultB = PublicKey.findProgramAddressSync([
             new PublicKey(book!.marketId).toBuffer(),
-            new PublicKey(book!.tokenMintB).toBuffer(),
+            new PublicKey(book!.mintB).toBuffer(),
             userWallet!.publicKey!.toBuffer(),
             Buffer.from("vault-account"),
         ], PROGRAM_ID)[0];
@@ -362,7 +373,9 @@ export const useMarkets = () => {
             return
         }
 
-        const id = eventListner(userWallet.publicKey, [
+        const id = eventListner(
+            connection,
+            userWallet.publicKey, [
             MARKET_ORDER_FILL_EVENT,
             CREATE_ORDER_POSITION_EVENT,
             CLOSE_LIMIT_ORDER_EVENT,
@@ -380,7 +393,16 @@ export const useMarkets = () => {
 
                         }
 
-                        order!.fillAmount += payload.amount!;
+                        order!.fill = payload.fill!;
+                        // size -> newSize
+                        order.amount = payload.size!;
+
+                        if (order.amount === BigInt(0)) {
+                            return [
+                                ...(prev.filter((order: OpenOrder) => order.positionId.toString() !== payload.position!.toString())),
+                            ] as OpenOrder[]
+                        }
+
                         return [
                             order,
                             ...(prev.filter((order: OpenOrder) => order.positionId.toString() !== payload.position!.toString())),
@@ -429,7 +451,7 @@ export const useMarkets = () => {
                         console.log(current)
 
                         const update = {
-                            capitalAAmount: current!.capitalBAmount,
+                            capitalAAmount: current!.capitalAAmount,
                             capitalBAmount: current!.capitalBAmount,
 
                         }
@@ -456,23 +478,41 @@ export const useMarkets = () => {
                     break;
                 }
 
+
+                //  fixed bug, but still is incomplete
                 case "open-limit-order": {
+                    const market = markets.find((market) => market.accounts.marketId.toString() === payload.bookConfig?.toString())
                     const state = {
+                        marketId: payload.bookConfig,
+                        positionConfig: payload.positionConfig,
+                        tokenA: market!.details.symbolA,
+                        tokenB: market!.details.symbolB,
+                        decimalsA: market!.details.decimalsA,
+                        decimalsB: market!.details.decimalsB,
+                        isReverse: market!.details.isReverse,
+                        ticker: market!.details.ticker,
                         positionId: payload.position,
-                        ticker: "ticker... need include in event or derive from book config",
                         orderType: payload.orderType,
                         price: payload.price,
-                        amount: payload.size, // size
-                        fillAmount: BigInt(0),
-                        value: (payload.price as bigint) * (payload.size as bigint),
-                        valueUSD: BigInt(0), // need oracle to make this work
-                        createdAt: Date.now(),
+                        size: payload.size,
+                        amount: payload.size,
+                        fill: BigInt(0),
+                        value: (payload.price as bigint)
+                            * (payload.size as bigint)
+                            / BigInt((10 ** (!market!.details.isReverse ? market!.details.decimalsA : market!.details.decimalsB))),
+                        // valueUSD: bigint, // need oracle to make this work
+                        // need oracle to make this work 
+                        valueUSD: BigInt(0),
+                        // this could be a bug or mismatch on what exist on the indexer
+
+                        createdAt: Date.now() / 1000,
                     }
 
                     setOpenLimitOrders((prev: OpenOrder[]) => [state, ...prev] as OpenOrder[])
                     break;
                 }
 
+                // there may be a bug with user balance here
                 case "close-limit-order": {
                     console.log("close-limit-order???")
                     console.log("payload :: ", payload)
@@ -490,17 +530,30 @@ export const useMarkets = () => {
                         const current = prev
                             .find((user: UserBalance) => user.marketId.toString() === payload.bookConfig!.toString())
 
-                        if (!current!.isReverse && payload.orderType == 'bid' || current!.isReverse && payload.orderType == 'ask') {
-                            current!.capitalAAmount = payload.capitalSourceBalance as bigint;
-                            current!.capitalBAmount = payload.capitalDestBalance as bigint;
+                        const update = {
+                            capitalAAmount: current!.capitalAAmount,
+                            capitalBAmount: current!.capitalBAmount,
 
-                        } else {
-                            current!.capitalBAmount = payload.capitalSourceBalance as bigint;
-                            current!.capitalAAmount = payload.capitalDestBalance as bigint;
                         }
 
+                        if (!current!.isReverse && payload.orderType == 'bid' || current!.isReverse && payload.orderType == 'ask') {
+                            update!.capitalAAmount = payload.capitalSourceBalance as bigint;
+                            update!.capitalBAmount = payload.capitalDestBalance as bigint;
+
+                        } else {
+                            update!.capitalBAmount = payload.capitalSourceBalance as bigint;
+                            update!.capitalAAmount = payload.capitalDestBalance as bigint;
+                        }
+
+                        console.log(current)
+
                         return [
-                            { ...current! },
+                            {
+                                ...current!,
+                                capitalAAmount: update.capitalAAmount,
+                                capitalBAmount: update.capitalBAmount,
+
+                            },
                             ...prev
                                 .filter((user: UserBalance) => user.marketId.toString() !== payload.bookConfig!.toString())
                         ] as UserBalance[]
@@ -542,18 +595,20 @@ export type OpenOrder = {
     marketId: PublicKey,
     positionConfig: PublicKey,
     positionId: PublicKey,
-    tokenA: string,
-    tokenB: string,
+    symbolA: string,
+    symbolB: string,
     decimalsA: number,
     decimalsB: number,
     isReverse: boolean,
-    ticker: string, // pair
+    ticker: string,
     orderType: "bid" | "ask",
     price: bigint,
-    amount: bigint, // size
-    fillAmount: bigint,
+    size: bigint,
+    amount: bigint,
+    fill: bigint,
     value: bigint,
-    valueUSD: bigint, // need oracle to make this work
+    // need oracle to make this work
+    valueUSD: bigint,
     createdAt: number,
 }
 
@@ -571,18 +626,18 @@ export type Markets = {
     accounts: {
         marketId: PublicKey,
         // maybe I don't need this data?
-        tokenMintA: PublicKey,
-        tokenMintB: PublicKey,
-        tokenProgramA: PublicKey,
-        tokenProgramB: PublicKey,
+        mintA: PublicKey,
+        mintB: PublicKey,
+        programA: PublicKey,
+        programB: PublicKey,
         sellMarketPointer: PublicKey,
         buyMarketPointer: PublicKey,
-        tokenDecimalsA: PublicKey,
-        tokenDecimalsB: PublicKey,
     },
     details: {
-        tokenSymbolA: string,
-        tokenSymbolB: string,
+        symbolA: string,
+        symbolB: string,
+        decimalsA: number,
+        decimalsB: number,
         // !isReverse
         // tokenB is the base
         // tokenA is the quote
@@ -591,11 +646,13 @@ export type Markets = {
         // tokenB is the quote
         quoteToken: {
             pubkeyId: PublicKey,
+            programId: PublicKey,
             decimals: number,
             symbol: string,
         }
         baseToken: {
             pubkeyId: PublicKey,
+            programId: PublicKey,
             decimals: number,
             symbol: string,
         }
@@ -610,56 +667,54 @@ export type Markets = {
         changeDelta: bigint,
         changePercent: bigint,
     },
+    // should this belong here? or be removed?
     userBalance: UserBalance[],
 };
 
 export interface FetchedMarket {
-    'pubkeyId': string,
-    'tokenMintA': string,
-    'tokenMintB': string,
-    'tokenProgramA': string,
-    'tokenProgramB': string,
-    'sellMarketPointer': string,
-    'buyMarketPointer': string,
-    'tokenDecimalsA': string,
-    'tokenDecimalsB': string,
-    'tokenSymbolA': string,
-    'tokenSymbolB': string,
-    'isReverse': string,
-    'ticker': string | undefined,
+    'pubkeyId': unknown,
+    'tokenMintA': unknown,
+    'tokenMintB': unknown,
+    'tokenProgramA': unknown,
+    'tokenProgramB': unknown,
+    'sellMarketPointer': unknown,
+    'buyMarketPointer': unknown,
+    'tokenDecimalsA': unknown,
+    'tokenDecimalsB': unknown,
+    'tokenSymbolA': unknown,
+    'tokenSymbolB': unknown,
+    'isReverse': unknown,
+    'ticker': unknown,
     'marketData': {
-        'lastPrice': string,
-        'volume': string,
-        'turnover': string,
-        'changeDelta': string,
+        'lastPrice': unknown,
+        'volume': unknown,
+        'turnover': unknown,
+        'changeDelta': unknown,
         'prevLastPrice': number,
-        'time': string,
+        'time': unknown,
     },
 
 
 }
 
-type ReceivedOpenLimitOrder = {
-    // 'positionId', p.pubkey_id,
-    // 'marketId', p.book_config,
-    // 'positionConfig', p.position_config,
-    // 'orderType', p.order_type,
-    // 'price', p.price,
-    // 'size', p.size,
-    // -- need filled total of size, currently not tracking
-    // 'slot', p.slot
-    marketId: string,
-    positionConfig: string,
-    positionId: string,
-    symbolA: string,
-    symbolB: string,
-    decimalsA: string,
-    decimalsB: string,
+interface ReceivedOpenLimitOrder {
+    marketId: unknown,
+    positionConfig: unknown,
+    positionId: unknown,
+    symbolA: unknown,
+    symbolB: unknown,
+    decimalsA: unknown,
+    decimalsB: unknown,
     isReverse: boolean,
-    ticker: string,
-    orderType: string,
-    // I think??
-    price: string,
-    size: string,
-    timestamp: number,
+    ticker: unknown,
+    orderType: unknown,
+    price: unknown,
+    size: unknown,
+    fill: unknown,
+    timestamp: unknown,
 };
+
+
+// NOTES:
+//  -   load balance is currently not relevent for the portfolio dashboard, only works in the context of a trade page
+//      would be nice to store the balance for reach user on the db and load them into memory instead of using the rpc

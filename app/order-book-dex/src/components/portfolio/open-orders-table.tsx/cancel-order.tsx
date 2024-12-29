@@ -20,8 +20,8 @@ interface CancelOrderProps {
 }
 
 interface OrderDetails {
-  tokenA: string;
-  tokenB: string;
+  symbolA: string;
+  symbolB: string;
   pair: string;
   type: string;
   amount: bigint;
@@ -116,6 +116,15 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
 
   };
 
+  console.log(bookConfig)
+  console.log(orderType,)
+  console.log(orderPosition)
+  console.log(orderDetails)
+  console.log(orderDetails.symbolA)
+  console.log(orderDetails.symbolB)
+
+
+
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
@@ -156,11 +165,19 @@ const CancelOrder: React.FC<CancelOrderProps> = ({ bookConfig, orderType, orderP
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <span className="font-medium">Amount:</span>
-                <span className="font-semibold font-mono">{displayValue(orderDetails.amount, orderDetails.isReverse ? orderDetails.decimalsA : orderDetails.decimalsB)} {!orderDetails.isReverse ? orderDetails.tokenB : orderDetails.tokenA}</span>
+                <span className="font-semibold font-mono">{displayValue(
+                  orderDetails.amount,
+                  orderDetails.isReverse ?
+                    orderDetails.decimalsA :
+                    orderDetails.decimalsB)} {!orderDetails.isReverse ? orderDetails.symbolB : orderDetails.symbolA}</span>
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <span className="font-medium">Price:</span>
-                <span className="font-semibold font-mono">{displayValue(orderDetails.price, orderDetails.isReverse ? orderDetails.decimalsB : orderDetails.decimalsA)} {!orderDetails.isReverse ? orderDetails.tokenA : orderDetails.tokenB}</span>
+                <span className="font-semibold font-mono">{displayValue(
+                  orderDetails.price,
+                  orderDetails.isReverse ?
+                    orderDetails.decimalsB :
+                    orderDetails.decimalsA)} {!orderDetails.isReverse ? orderDetails.symbolA : orderDetails.symbolB}</span>
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <span className="font-medium">Value (USD):</span>

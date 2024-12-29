@@ -83,6 +83,14 @@ class Queue {
         if (this.current === "init") {
             this.run()
             this.current = "b";
+
+            const orderBook = this.orderBook.listA;
+            const tradeHistory = this.tradeHistory.listA;
+
+            this.orderBook.listA = [];
+            this.tradeHistory.listA = [];
+
+            return [orderBook, tradeHistory];
         }
 
         if (this.current === "a") {
@@ -121,6 +129,8 @@ class Queue {
             if (orderBook.length === 0 && tradeHistory.length === 0) {
                 return
             }
+
+            console.log(orderBook, tradeHistory)
 
             this.setData!((prev) => {
                 const { asks, bids } = this.setOrderBook(
@@ -194,6 +204,8 @@ class Queue {
 
                 const bid = bids.get(data.price)!;
 
+                console.log("BID, ADD, HAS", bid, bids, data)
+
                 bids.set(data.price, {
                     ...bid,
                     size: data.method === 'add'
@@ -208,6 +220,8 @@ class Queue {
                 }
 
             } else if (data.order === 'bid') {
+                console.log("BID, ADD", bids, data)
+
                 bids.set(data.price, {
                     id: crypto.randomUUID(),
                     price: data.price,
@@ -327,12 +341,20 @@ export const useTransaction = (marketId: PublicKey) => {
 
     queue.update(setData);
 
+    console.log(queue)
+    console.log(data)
+
+
     useEffect(() => {
         if (subscribeId === undefined || connection === undefined) {
             return
         }
 
+        console.log("add on logs listener:", subscribeId)
         return () => {
+            console.log("remove on logs listener:", subscribeId)
+            console.log(connection.rpcEndpoint)
+
             connection
                 .removeOnLogsListener(subscribeId!)
                 .then(() => console.log("logs ended"))
@@ -557,6 +579,7 @@ export const useTransaction = (marketId: PublicKey) => {
         marketOrder.update("sell", null);
 
         const id = eventListner(
+            connection,
             marketId,
             [
                 MARKET_ORDER_TRIGGER_EVENT,
@@ -647,6 +670,8 @@ export const useTransaction = (marketId: PublicKey) => {
                     }
                 }
             });
+
+        console.log("ID :::: ", id, "subscribeId ::::", subscribeId)
 
         setSubscribeId(id);
         setTimeout(() => {

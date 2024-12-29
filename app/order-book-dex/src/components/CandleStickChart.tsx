@@ -131,7 +131,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({ data }) => {
         high: parseFloat(candle.high.toFixed(2)),
         low: parseFloat(candle.low.toFixed(2)),
         close: parseFloat(candle.close.toFixed(2)),
-        time: (candle.time / 1000) as Time // Convert to seconds and cast to Time
+        time: candle.time as Time,
+        // time: (candle.time / 1000) as Time // Convert to seconds and cast to Time
       }));
       candlestickSeries.setData(formattedData);
 

@@ -10,6 +10,8 @@ import Trade from "./trade";
 import { PublicKey } from "@solana/web3.js";
 import { useTransaction } from "@/program/utils/useTransaction";
 
+import { candles as data } from "../../../../lib/candles"
+
 export default function Page({ params }: { params: { marketId: string } }) {
   const { data: market, marketOrder } = useTransaction(
     new PublicKey(params.marketId),
@@ -23,7 +25,8 @@ export default function Page({ params }: { params: { marketId: string } }) {
 
   if (market === null) return <>{"LOADING"}</>;
 
-  const { candles } = market;
+  // const { candles } = market;
+  const candles = data;
 
   return (
     <div className="h-full">
