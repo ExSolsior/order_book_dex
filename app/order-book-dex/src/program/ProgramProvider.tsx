@@ -44,6 +44,7 @@ type Fill = {
   partial: { partial: { targetPrice: BN } };
 };
 
+// the wallet needs review and update, something with the wallet seems buggy
 export const ProgramContext = createContext<Value | null>(null);
 
 export const ProgramProvider = ({ children }: { children: ReactNode }) => {

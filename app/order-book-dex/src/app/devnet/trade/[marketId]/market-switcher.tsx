@@ -3,22 +3,22 @@
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
-  DropdownMenuContent,
+  // DropdownMenuContent,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Market } from "../../../../program/utils/useTransaction";
 
-import { newMarkets, popular, topGainers } from "@/lib/markets";
+// import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { CaretDownIcon } from "@radix-ui/react-icons";
-import { columns } from "@/components/markets-table/columns";
-import { MarketsTable } from "@/components/markets-table/data-table";
+// import { columns } from "@/components/markets-table/columns";
+// import { MarketsTable } from "@/components/markets-table/data-table";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 // need update MarketsTable :: colums, markets -> not handling right now
 export function MarketSwitcher({ market }: { market: Market }) {
-  const markets = newMarkets
-    .concat(topGainers, popular)
-    .sort((a, b) => b.volume - a.volume);
+  // const markets = newMarkets
+  //   .concat(topGainers, popular)
+  //   .sort((a, b) => b.volume - a.volume);
 
   const { symbolA, symbolB, isReverse } = market!.orderBook!.marketDetails;
   const { image } = market;
@@ -43,12 +43,12 @@ export function MarketSwitcher({ market }: { market: Market }) {
           <CaretDownIcon className="h-[1.2rem] w-[1.2rem] scale-100" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      {/* <DropdownMenuContent>
         <MarketsTable
           columns={columns}
           data={markets}
         />
-      </DropdownMenuContent>
+      </DropdownMenuContent> */}
     </DropdownMenu>
   );
 }

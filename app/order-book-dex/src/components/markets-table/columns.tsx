@@ -36,6 +36,7 @@ function DataTableColumnHeader<TData, TValue>({
 
 export const columns: ColumnDef<Market>[] = [
   {
+    // I don't see this being used?
     accessorKey: "marketId",
     header: ({ column }) => (
       <DataTableColumnHeader
@@ -52,7 +53,7 @@ export const columns: ColumnDef<Market>[] = [
     }
   },
   {
-    accessorKey: "tokenA",
+    accessorKey: "baseSymbol",
     header: ({ column }) => (
       <DataTableColumnHeader
         column={column}
@@ -60,14 +61,14 @@ export const columns: ColumnDef<Market>[] = [
       />
     ),
     cell: ({ row }) => {
-      const name = `${row.original.tokenA} / ${row.original.tokenB}`;
+      const name = `${row.original.baseSymbol} / ${row.original.quoteSymbol}`;
       return (
         <Link href={`/trade/${row.original.marketId}`}>
           <div className="text-left font-semibold flex items-center gap-2">
             <Avatar className="h-5 w-5">
               <AvatarImage
                 src={row.original.image}
-                alt={row.original.tokenA}
+                alt={row.original.baseSymbol}
               />
             </Avatar>
             <span>{name}</span>
@@ -88,14 +89,14 @@ export const columns: ColumnDef<Market>[] = [
     cell: ({ row }) => {
       // need to have dynamic number format for different currencies
       const amount = parseFloat(row.getValue("price"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 10
-      }).format(amount);
+      // const formatted = new Intl.NumberFormat("en-US", {
+      //   style: "currency",
+      //   currency: "USD",
+      //   minimumFractionDigits: 2,
+      //   maximumFractionDigits: 10
+      // }).format(amount);
 
-      return <div className="text-right font-semibold">{formatted}</div>;
+      return <div className="text-right font-semibold">{amount}</div>;
     }
   },
   {
@@ -108,20 +109,19 @@ export const columns: ColumnDef<Market>[] = [
       />
     ),
     cell: ({ row }) => {
-      // if (row.original.turnover === 0)
-      //   return <div className="text-right font-semibold">-</div>;
 
       const amount = parseFloat(row.getValue("turnover"));
-      let formatted;
+      let turnover;
       if (amount >= 1_000_000) {
-        formatted = (amount / 1_000_000).toFixed(2) + "M";
+        turnover = (amount / 1_000_000).toFixed(2) + "M";
       } else if (amount >= 1_000) {
-        formatted = (amount / 1_000).toFixed(2) + "K";
+        turnover = (amount / 1_000).toFixed(2) + "K";
       } else {
-        formatted = amount.toFixed(2);
+        turnover = amount.toFixed(2);
       }
+
       return (
-        <div className="text-right font-semibold">{formatted}</div>
+        <div className="text-right font-semibold">{turnover}</div>
       )
     }
   },
@@ -135,17 +135,18 @@ export const columns: ColumnDef<Market>[] = [
       />
     ),
     cell: ({ row }) => {
+
       const amount = parseFloat(row.getValue("volume"));
-      let formatted;
+      let volume;
       if (amount >= 1_000_000) {
-        formatted = (amount / 1_000_000).toFixed(2) + "M";
+        volume = (amount / 1_000_000).toFixed(2) + "M";
       } else if (amount >= 1_000) {
-        formatted = (amount / 1_000).toFixed(2) + "K";
+        volume = (amount / 1_000).toFixed(2) + "K";
       } else {
-        formatted = amount.toFixed(2);
+        volume = amount.toFixed(2);
       }
 
-      return <div className="text-right font-semibold">{formatted}</div>;
+      return <div className="text-right font-semibold">{volume}</div>;
     }
   },
   {

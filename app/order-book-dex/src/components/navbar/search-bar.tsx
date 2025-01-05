@@ -1,26 +1,29 @@
 "use client";
 
-import { newMarkets, popular, topGainers } from "@/lib/markets";
+// import { newMarkets, popular, topGainers } from "@/lib/markets";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import React from "react";
-import { Avatar, AvatarImage } from "../ui/avatar";
+// import { Avatar, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
   CommandDialog,
-  CommandEmpty,
-  CommandGroup,
+  // CommandEmpty,
+  // CommandGroup,
   CommandInput,
-  CommandItem,
-  CommandList
+  // CommandItem,
+  // CommandList
 } from "../ui/command";
+// import { Market } from "@/lib/markets";
 
 export function SearchBar() {
-  const router = useRouter();
+  // const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const allMarkets = newMarkets
-    .concat(topGainers, popular)
-    .sort((a, b) => b.volume - a.volume);
+  // const allMarkets = newMarkets
+  //   .concat(topGainers, popular)
+  //   .sort((a, b) => b.volume - a.volume);
+
+  // const allMarkets = [] as Market;
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -43,10 +46,10 @@ export function SearchBar() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const runSearch = React.useCallback((search: () => unknown) => {
-    setOpen(false);
-    search();
-  }, []);
+  // const runSearch = React.useCallback((search: () => unknown) => {
+  //   setOpen(false);
+  //   search();
+  // }, []);
 
   return (
     <>
@@ -69,7 +72,7 @@ export function SearchBar() {
         onOpenChange={setOpen}
       >
         <CommandInput placeholder="Type a market name..." />
-        <CommandList>
+        {/* <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup>
             {allMarkets.map((market) => (
@@ -92,7 +95,7 @@ export function SearchBar() {
               </CommandItem>
             ))}
           </CommandGroup>
-        </CommandList>
+        </CommandList> */}
       </CommandDialog>
     </>
   );

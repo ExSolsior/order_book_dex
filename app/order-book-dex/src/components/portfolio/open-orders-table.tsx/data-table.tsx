@@ -145,6 +145,7 @@ export function OpenOrdersTable<TData extends OpenOrder, TValue>({
                   ))}
                   <TableCell className="px-2 text-center">
                     <CancelOrder
+                      // need to review and update
                       bookConfig={row.original.marketId.toBase58()}
                       orderType={row.original.orderType}
                       orderPosition={row.original.positionId.toBase58()}

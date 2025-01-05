@@ -4,15 +4,19 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Market } from "@/lib/markets";
 import Link from "next/link";
 
+// I have no idea what this is for? I don't think this is being used yet
+// might not need it, needs review
 export default function MarketDetails({ market }: { market: Market }) {
   let volume;
-  if (market.volume >= 1_000_000) {
-    volume = (market.volume / 1_000_000).toFixed(2) + "M";
+  if (market.volume >= BigInt(1_000_000)) {
+    volume = (market.volume / 1_000_000) + "M";
   } else if (market.volume >= 1_000) {
-    volume = (market.volume / 1_000).toFixed(2) + "K";
+    volume = (market.volume / 1_000) + "K";
   } else {
-    volume = market.volume.toFixed(2);
+    volume = market.volume;
   }
+
+  console.log("VOLUME :: ", volume)
 
   return (
     <div className="flex flex-col w-1/3 p-2 gap-2 border-r-2 border-b-2">
@@ -22,7 +26,7 @@ export default function MarketDetails({ market }: { market: Market }) {
 
       <div className="flex justify-center items-center gap-1 border-b-2 pb-2">
         <h3 className="scroll-m-20 text-xl font-semibold">
-          {market.tokenA} / {market.tokenB}
+          {market.symbolA} / {market.symbolB}
         </h3>
         <Link
           href="https://birdeye.so/token/7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs?chain=solana&tab=markets"
@@ -43,7 +47,7 @@ export default function MarketDetails({ market }: { market: Market }) {
       </div>
 
       <div className="flex gap-2 border-b-2 items-center">
-        <span className="font-semibold flex-1">{market.tokenA}</span>
+        <span className="font-semibold flex-1">{market.symbolA}</span>
         <span className="rounded bg-muted flex items-center gap-1 px-1 mb-1">
           <CopyButton text="7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs" />
           <span className="font-mono text-sm font-semibold">7vfCX...voxs</span>
@@ -52,7 +56,7 @@ export default function MarketDetails({ market }: { market: Market }) {
       </div>
 
       <div className="flex gap-2 border-b-2 items-center">
-        <span className="font-semibold flex-1">{market.tokenB}</span>
+        <span className="font-semibold flex-1">{market.symbolB}</span>
         <span className="rounded bg-muted flex items-center gap-1 px-1 mb-1">
           <CopyButton text="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB" />
           <span className="font-mono text-sm font-semibold">Es9vM...wNYB</span>

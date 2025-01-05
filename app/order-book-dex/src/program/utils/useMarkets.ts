@@ -554,7 +554,7 @@ export const useMarkets = () => {
 
         setEventId(id)
 
-    }, [eventId, userWallet, connection, connection])
+    }, [eventId, userWallet, connection, markets])
 
     useEffect(() => {
         if (isLoading == false) {

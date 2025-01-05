@@ -72,9 +72,9 @@ export function MarketsTable<TData, TValue>({
         <Search className="h-5 w-5 mr-2" />
         <Input
           placeholder="Filter by token..."
-          value={(table.getColumn("tokenA")?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn("baseSymbol")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("tokenA")?.setFilterValue(event.target.value)
+            table.getColumn("baseSymbol")?.setFilterValue(event.target.value)
           }
           className="w-full"
         />
